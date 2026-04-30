@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thekenplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0e14;--bg2:#13141d;--bg3:#1a1c28;--bg4:#20233a;
+  --bd:rgba(255,255,255,.07);--bda:rgba(255,255,255,.15);
+  --tx:#e8e9f0;--txd:#7b7f9e;--txm:#454869;
+  --l1:#f5a623;--l1b:rgba(245,166,35,.11);--l1bd:rgba(245,166,35,.32);
+  --l2:#22d4a4;--l2b:rgba(34,212,164,.11);--l2bd:rgba(34,212,164,.32);
+  --l3:#e05aff;--l3b:rgba(224,90,255,.11);--l3bd:rgba(224,90,255,.32);
+  --l4:#ff6b6b;--l4b:rgba(255,107,107,.11);--l4bd:rgba(255,107,107,.32);
+  --miss:#ff4040;--missb:rgba(255,64,64,.13);
+  --r:10px;--rl:14px;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.app{max-width:1700px;margin:0 auto;padding:0 18px 60px}
+
+/* ── HEADER ─────────────────────────────────────────── */
+.app-header{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 16px;border-bottom:1px solid var(--bd);margin-bottom:18px;
+  gap:12px;flex-wrap:wrap}
+.app-title h1{font-family:var(--fh);font-size:1.55rem;font-weight:800;letter-spacing:-.5px;
+  background:linear-gradient(135deg,#fff 30%,#8890c8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.app-title p{color:var(--txd);font-size:.78rem;margin-top:2px}
+
+.week-nav{display:flex;align-items:center;gap:8px;background:var(--bg2);
+  border:1px solid var(--bd);border-radius:var(--r);padding:5px 8px}
+.wbtn{background:var(--bg3);border:1px solid var(--bd);color:var(--tx);
+  border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;transition:background .15s}
+.wbtn:hover{background:var(--bg4)}
+.week-info{min-width:165px;text-align:center}
+.week-kw{font-family:var(--fh);font-size:.82rem;font-weight:700}
+.week-range{font-size:.68rem;color:var(--txd);margin-top:1px}
+
+/* ── LOCATION FILTER ROW ─────────────────────────────── */
+.loc-row{display:flex;align-items:center;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.loc-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:var(--r);border:1px solid var(--bd);background:var(--bg2);
+  cursor:pointer;font-family:var(--fb);font-size:.8rem;color:var(--txd);
+  transition:all .15s;font-weight:500}
+.loc-btn:hover{border-color:var(--bda);color:var(--tx)}
+.loc-btn.all.active{background:var(--bg4);border-color:var(--bda);color:var(--tx)}
+.loc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+[data-loc="1"] .loc-dot{background:var(--l1)}
+[data-loc="2"] .loc-dot{background:var(--l2)}
+[data-loc="3"] .loc-dot{background:var(--l3)}
+[data-loc="4"] .loc-dot{background:var(--l4)}
+.loc-btn[data-loc="1"].active{background:var(--l1b);border-color:var(--l1bd);color:var(--l1)}
+.loc-btn[data-loc="2"].active{background:var(--l2b);border-color:var(--l2bd);color:var(--l2)}
+.loc-btn[data-loc="3"].active{background:var(--l3b);border-color:var(--l3bd);color:var(--l3)}
+.loc-btn[data-loc="4"].active{background:var(--l4b);border-color:var(--l4bd);color:var(--l4)}
+.loc-sep{width:1px;height:22px;background:var(--bd);margin:0 4px}
+
+/* ── CONTROLS ────────────────────────────────────────── */
+.controls{display:flex;align-items:center;gap:9px;margin-bottom:18px;flex-wrap:wrap}
+.ctrl-input,.ctrl-select{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  color:var(--tx);font-family:var(--fb);font-size:.82rem;padding:7px 11px;outline:none}
+.ctrl-input:focus,.ctrl-select:focus{border-color:var(--bda)}
+.ctrl-input{width:190px}
+.ctrl-select option{background:#1a1c28}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:none;
+  border-radius:var(--r);font-family:var(--fb);font-size:.79rem;font-weight:600;
+  cursor:pointer;transition:opacity .2s;white-space:nowrap}
+.btn:hover{opacity:.83}
+.btn-primary{background:#3b40c4;color:#fff}
+.btn-danger{background:var(--missb);color:var(--miss);border:1px solid rgba(255,64,64,.3)}
+.btn-ghost{background:transparent;color:var(--txd);border:1px solid var(--bd)}
+.btn-add{background:var(--bg3);color:var(--txd);border:1px dashed var(--bda)}
+.spacer{flex:1}
+.cnt{font-size:.75rem;color:var(--txm)}
+
+/* ── WEEK GRID ───────────────────────────────────────── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:40px}
+@media(max-width:1200px){.week-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:700px){.week-grid{grid-template-columns:repeat(2,1fr)}}
+
+.day-col{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);
+  min-height:150px;display:flex;flex-direction:column;overflow:hidden}
+.day-col.today{border-color:rgba(255,255,255,.22)}
+
+.day-head{padding:9px 11px 7px;border-bottom:1px solid var(--bd);background:var(--bg3);flex-shrink:0}
+.dh-top{display:flex;align-items:baseline;justify-content:space-between}
+.d-name{font-family:var(--fh);font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--txd)}
+.d-num{font-family:var(--fh);font-size:1.05rem;font-weight:800}
+.today-pill{background:rgba(255,255,255,.14);border-radius:4px;padding:0 5px;
+  font-size:.6rem;font-weight:700;color:#fff;margin-left:3px}
+.d-month{font-size:.67rem;color:var(--txm);margin-top:1px}
+.d-cnt{display:inline-block;background:var(--bg4);border-radius:10px;
+  padding:1px 7px;font-size:.65rem;color:var(--txm);margin-top:4px}
+
+.day-body{padding:7px;display:flex;flex-direction:column;gap:5px;flex:1}
+.day-empty{display:flex;align-items:center;justify-content:center;flex:1;
+  font-size:.72rem;color:var(--txm);padding:18px;text-align:center}
+
+/* ── EVENT CARD ──────────────────────────────────────── */
+.ev-card{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;
+  padding:9px 10px;cursor:pointer;transition:transform .13s,box-shadow .13s;
+  border-left:3px solid transparent;animation:fadeUp .2s ease both;
+  position:relative;}
+.card-acts{position:absolute;top:6px;right:6px;display:none;gap:3px;z-index:2}
+.ev-card:hover .card-acts{display:flex}
+.ca-btn{background:var(--bg4);border:1px solid var(--bd);color:var(--txd);
+  border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:.7rem;
+  display:flex;align-items:center;justify-content:center;transition:all .13s}
+.ca-btn:hover{border-color:var(--bda);color:var(--tx)}
+.ca-btn.del:hover{background:var(--missb);border-color:rgba(255,64,64,.4);color:var(--miss)}
+.m-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)}
+.m-del-confirm{display:flex;align-items:center;gap:8px;margin-top:10px;
+  background:var(--missb);border-radius:8px;padding:10px 14px;flex-wrap:wrap}
+.m-del-confirm span{font-size:.82rem;color:var(--miss);font-weight:600;flex:1}
+.btn-edit{background:var(--bg4);color:var(--txd);border:1px solid var(--bd)}
+.btn-edit:hover{color:var(--tx);border-color:var(--bda)}
+.btn-del{background:var(--missb);color:var(--miss);border:1px solid rgba(255,64,64,.3)}
+
+/* ── ADMIN MODE ──────────────────────────────────────── */
+/* Bearbeitungs-Elemente sind standardmäßig versteckt */
+.admin-only{display:none!important}
+body.admin .admin-only{display:inline-flex!important}
+/* Karten-Buttons nur im Admin-Modus beim Hover */
+.ev-card:hover .card-acts{display:none}
+body.admin .ev-card:hover .card-acts{display:flex}
+
+/* ── SYNC STATUS ─────────────────────────────────────── */
+.sync-row{display:flex;align-items:center;gap:8px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  padding:5px 12px;font-size:.72rem;color:var(--txd)}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sync-dot.ok {background:#22d4a4;box-shadow:0 0 6px rgba(34,212,164,.5)}
+.sync-dot.err{background:var(--miss);box-shadow:0 0 6px rgba(255,64,64,.4)}
+.sync-dot.busy{background:#f5a623;animation:sdpulse .8s infinite}
+.sync-dot.off {background:var(--txm)}
+@keyframes sdpulse{0%,100%{opacity:1}50%{opacity:.2}}
+.gear-btn{background:var(--bg3);border:1px solid var(--bd);color:var(--txd);
+  border-radius:8px;padding:6px 11px;cursor:pointer;font-size:.85rem;
+  display:flex;align-items:center;gap:5px;transition:all .15s}
+.gear-btn:hover{border-color:var(--bda);color:var(--tx)}
+body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164,.3);color:#22d4a4}
+
+/* ── SETTINGS MODAL ──────────────────────────────────── */
+.settings-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
+  padding:24px;max-width:440px;width:100%;transform:translateY(10px);
+  transition:transform .2s;position:relative;max-height:92vh;overflow-y:auto}
+.ov.open .settings-modal{transform:none}
+.stg-title{font-family:var(--fh);font-size:1.1rem;font-weight:800;margin-bottom:4px}
+.stg-sub{font-size:.78rem;color:var(--txd);margin-bottom:18px}
+.stg-sec{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--txm);font-weight:700;margin:16px 0 8px;padding-bottom:6px;
+  border-bottom:1px solid var(--bd)}
+.stg-status{display:flex;align-items:center;gap:8px;background:var(--bg4);
+  border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:14px}
+.stg-hint{font-size:.73rem;color:var(--txm);margin-top:5px;line-height:1.45}
+.ev-card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35);
+  border-color:var(--bda)}
+.ev-card[data-loc="1"]{border-left-color:var(--l1)}
+.ev-card[data-loc="2"]{border-left-color:var(--l2)}
+.ev-card[data-loc="3"]{border-left-color:var(--l3)}
+.ev-card[data-loc="4"]{border-left-color:var(--l4)}
+.ev-card.cancelled{opacity:.42}
+.ev-card.cancelled .ev-name{text-decoration:line-through;color:var(--txd)}
+.ev-card.relocated{opacity:.55}
+.tag-canc{background:rgba(255,255,255,.05);color:var(--txm)}
+.tag-reloc{background:rgba(255,255,255,.08);color:var(--txd)}
+.ev-card.conflict-card{border-left-color:var(--miss)!important;background:rgba(255,64,64,.04)}
+.tag-conflict{background:rgba(255,64,64,.15);color:var(--miss)}
+.plastik-banner{background:rgba(245,166,35,.18);border:1px solid rgba(245,166,35,.35);
+  border-radius:5px;padding:3px 8px;font-size:.7rem;font-weight:700;
+  color:var(--l1);margin-bottom:5px;text-align:center;letter-spacing:.03em}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.ev-top-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.loc-badge{font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  padding:1px 7px;border-radius:4px;flex-shrink:0}
+.loc-badge[data-loc="1"]{background:var(--l1b);color:var(--l1)}
+.loc-badge[data-loc="2"]{background:var(--l2b);color:var(--l2)}
+.loc-badge[data-loc="3"]{background:var(--l3b);color:var(--l3)}
+.loc-badge[data-loc="4"]{background:var(--l4b);color:var(--l4)}
+.tag{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:1px 6px;border-radius:4px}
+.tag-p{background:rgba(245,166,35,.15);color:var(--l1)}
+.tag-m{background:var(--missb);color:var(--miss)}
+.tag-ag{background:rgba(255,255,255,.05);color:var(--txm)}
+.tag-in{background:rgba(34,212,164,.1);color:#22d4a4}
+.tag-mk{background:rgba(224,90,255,.1);color:#e05aff}
+
+.ev-name{font-family:var(--fh);font-size:.86rem;font-weight:700;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-time{font-size:.7rem;color:var(--txd);margin-bottom:5px;font-variant-numeric:tabular-nums}
+.ev-time span{color:var(--txm)}
+
+.slist{display:flex;flex-direction:column;gap:3px}
+.srow{display:flex;align-items:center;gap:5px;font-size:.72rem}
+.sb{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  width:22px;flex-shrink:0;text-align:center;border-radius:3px;padding:1px 0;line-height:1.5}
+.sb.pl{background:rgba(255,255,255,.08);color:var(--txd)}
+.sb.bar{background:rgba(255,255,255,.05);color:var(--txm)}
+.sb.mb{background:var(--missb);color:var(--miss)}
+.sname{flex:1;color:var(--tx);font-weight:500}
+.sname.miss{color:var(--miss);font-style:italic}
+.stime{font-variant-numeric:tabular-nums;color:var(--txd)}
+.stime.mt{color:var(--miss)}
+.ev-note{margin-top:5px;font-size:.68rem;color:var(--txm);font-style:italic;
+  line-height:1.35;border-top:1px solid var(--bd);padding-top:4px}
+
+
+/* ── DETAIL MODAL ────────────────────────────────────── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;z-index:100;
+  opacity:0;pointer-events:none;transition:opacity .2s;padding:16px}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
+  padding:22px;max-width:480px;width:100%;transform:translateY(10px);
+  transition:transform .2s;position:relative;max-height:92vh;overflow-y:auto}
+.ov.open .modal{transform:none}
+.m-bar{height:3px;border-radius:3px;margin-bottom:16px}
+.m-x{position:absolute;top:12px;right:12px;background:var(--bg4);border:none;
+  color:var(--txd);border-radius:6px;width:26px;height:26px;cursor:pointer;
+  font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.m-x:hover{color:var(--tx)}
+.m-title{font-family:var(--fh);font-size:1.15rem;font-weight:800;margin-bottom:3px}
+.m-sub{font-size:.75rem;color:var(--txd);margin-bottom:12px}
+.m-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.m-tag{font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:20px}
+.m-tag.p{background:rgba(245,166,35,.15);color:var(--l1);border:1px solid rgba(245,166,35,.3)}
+.m-tag.m{background:var(--missb);color:var(--miss);border:1px solid rgba(255,64,64,.3)}
+.m-tag.kk{background:var(--bg4);color:var(--txd)}
+.m-times{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.m-tb{background:var(--bg4);border-radius:8px;padding:9px 11px}
+.m-tb label{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--txm);display:block;margin-bottom:2px;font-weight:700}
+.m-tb span{font-family:var(--fh);font-size:.95rem;font-weight:700}
+.m-sh{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--txm);font-weight:700;margin:10px 0 6px}
+.m-slist{display:flex;flex-direction:column;gap:5px}
+.m-srow{display:flex;align-items:center;gap:9px;background:var(--bg4);
+  border-radius:7px;padding:7px 11px}
+.m-srow.miss{background:var(--missb);border:1px solid rgba(255,64,64,.2)}
+.m-sbadge{font-size:.63rem;font-weight:700;text-transform:uppercase;
+  padding:2px 8px;border-radius:20px;flex-shrink:0;
+  background:rgba(255,255,255,.07);color:var(--txd)}
+.m-sname{flex:1;font-weight:600;font-size:.85rem}
+.m-sname.miss{color:var(--miss);font-style:italic}
+.m-stime{font-variant-numeric:tabular-nums;font-size:.8rem;color:var(--txd)}
+.m-note{background:var(--bg4);border-radius:8px;padding:9px 13px;
+  font-size:.8rem;color:var(--txd);font-style:italic;line-height:1.5;margin-top:8px}
+
+/* ── ENTRY MODAL ─────────────────────────────────────── */
+.entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
+  padding:0;width:min(900px,96vw);max-height:92vh;display:flex;flex-direction:column;
+  transform:translateY(10px);transition:transform .2s;position:relative;overflow:hidden}
+.ov.open .entry-modal{transform:none}
+.entry-modal-head{padding:16px 20px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.entry-modal-head h2{font-family:var(--fh);font-size:1rem;font-weight:800}
+.entry-body{display:flex;flex:1;overflow:hidden}
+
+.entry-form-col{flex:1;overflow-y:auto;padding:20px}
+@media(max-width:700px){.entry-form-col{padding:14px}}
+
+/* Form elements */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.fg label{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--txm);font-weight:700}
+.fi{background:var(--bg4);border:1px solid var(--bd);border-radius:8px;
+  color:var(--tx);font-family:var(--fb);font-size:.85rem;padding:8px 11px;outline:none;width:100%}
+.fi:focus{border-color:var(--bda)}
+.fi option{background:#1a1c28}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fsec{font-family:var(--fh);font-size:.75rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--txd);margin:16px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.staff-entry-row{display:flex;gap:7px;align-items:center;margin-bottom:7px;
+  background:var(--bg4);border-radius:8px;padding:8px 10px}
+.staff-entry-row .fi{background:var(--bg3)}
+.se-pos{font-family:var(--fh);font-size:.8rem;font-weight:700;
+  color:var(--txd);min-width:22px;text-align:center}
+.se-rm{background:none;border:none;color:var(--txm);cursor:pointer;font-size:1rem;
+  line-height:1;padding:0 4px;flex-shrink:0}
+.se-rm:hover{color:var(--miss)}
+.miss-cb{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--txd);cursor:pointer}
+.miss-cb input{accent-color:var(--miss)}
+.factions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+
+/* ── LIGHT THEME ─────────────────────────────────────── */
+body.light{
+  --bg:#f4f5f9;--bg2:#ffffff;--bg3:#eef0f6;--bg4:#e2e5ef;
+  --bd:rgba(0,0,0,.1);--bda:rgba(0,0,0,.2);
+  --tx:#1a1c28;--txd:#5a5e7a;--txm:#9095b0;
+}
+/* ── PRINT / PDF STYLES ──────────────────────────────── */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  .pw-screen,.app-header button,.gear-btn,.controls,
+  .modal-ov,.ov,.card-acts,.admin-only,.sync-row{display:none!important}
+  .week-grid{grid-template-columns:repeat(7,1fr)!important;gap:6px}
+  .ev-card{break-inside:avoid;border:1px solid #ccc!important;
+    background:#fff!important;box-shadow:none!important}
+  .plastik-banner{border:1px solid #c8861a;color:#c8861a}
+  .app{padding:0 8px}
+}
+/* ── PASSWORD SCREEN ─────────────────────────────────── */
+.pw-screen{position:fixed;inset:0;background:var(--bg);z-index:9000;
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.pw-box{background:var(--bg2);border:1px solid var(--bda);border-radius:var(--rl);
+  padding:32px;max-width:360px;width:100%;text-align:center}
+.pw-logo{font-family:var(--fh);font-size:1.6rem;font-weight:800;margin-bottom:4px;
+  background:linear-gradient(135deg,#fff 30%,#8890c8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pw-sub{font-size:.8rem;color:var(--txd);margin-bottom:24px}
+.pw-box input{width:100%;background:var(--bg4);border:1px solid var(--bd);
+  border-radius:8px;color:var(--tx);font-family:var(--fb);font-size:.95rem;
+  padding:11px 14px;outline:none;text-align:center;letter-spacing:.1em;margin-bottom:10px}
+.pw-box input:focus{border-color:var(--bda)}
+.pw-box button{width:100%;background:#3b40c4;color:#fff;border:none;
+  border-radius:8px;padding:11px;font-family:var(--fb);font-size:.9rem;
+  font-weight:600;cursor:pointer;margin-bottom:8px}
+.pw-box button:hover{opacity:.88}
+.pw-err{color:var(--miss);font-size:.78rem;margin-top:6px;min-height:18px}
+.pw-hint{font-size:.7rem;color:var(--txm);margin-top:10px}
+
+</style>
+</head>
+<body>
+<div id="pw-screen" class="pw-screen" style="display:none">
+  <div class="pw-box">
+    <div class="pw-logo">Thekenplan</div>
+    <div class="pw-sub" id="pw-sub">Bitte Passwort eingeben</div>
+    <input type="password" id="pw-input" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter')Auth.submit()">
+    <button onclick="Auth.submit()">Weiter</button>
+    <div class="pw-err" id="pw-err"></div>
+    <div class="pw-hint" id="pw-hint"></div>
+  </div>
+</div>
+
+<div class="app" id="app-root" style="display:none">
+
+  <!-- ── HEADER ── -->
+  <header class="app-header">
+    <div class="app-title">
+      <h1>Thekenplan</h1>
+      <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="sync-row">
+        <span class="sync-dot off" id="sync-dot"></span>
+        <span id="sync-label">Nicht verbunden</span>
+      </div>
+      <button class="gear-btn" onclick="App.toggleTheme()" id="theme-btn" title="Hell/Dunkel">&#9790;</button>
+      <button class="gear-btn admin-only" onclick="App.printPDF()" title="PDF exportieren" style="display:none">&#128438; PDF</button>
+      <button class="gear-btn" onclick="Auth.logout()" title="Abmelden" style="background:var(--bg3);border-color:var(--bd);color:var(--txd)">
+        &#128274; Abmelden
+      </button>
+      <button class="gear-btn admin-only" onclick="App.openSettings()" id="gear-btn">
+        &#9881; <span id="gear-label">Einstellungen</span>
+      </button>
+      <div class="week-nav">
+        <button class="wbtn" onclick="App.prevMonth()" title="Vorheriger Monat">&#171;</button>
+        <button class="wbtn" onclick="App.prevWeek()"  title="Vorherige Woche (&#8592;)">&#8249;</button>
+        <div class="week-info">
+          <div class="week-kw"    id="week-kw">&#8212;</div>
+          <div class="week-range" id="week-range">&#8212;</div>
+        </div>
+        <button class="wbtn" onclick="App.nextWeek()"  title="N&auml;chste Woche (&#8594;)">&#8250;</button>
+        <button class="wbtn" onclick="App.nextMonth()" title="N&auml;chster Monat">&#187;</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── LOCATION FILTER ── -->
+  <div class="loc-row" id="loc-row">
+    <button class="loc-btn all active" data-loc="0" onclick="App.setLoc(0)">
+      Alle Locations
+    </button>
+    <div class="loc-sep"></div>
+    <button class="loc-btn" data-loc="1" onclick="App.setLoc(1)">
+      <span class="loc-dot"></span>KH &middot; Location 1
+    </button>
+    <button class="loc-btn" data-loc="2" onclick="App.setLoc(2)">
+      <span class="loc-dot"></span>H39 &middot; Location 2
+    </button>
+    <button class="loc-btn" data-loc="3" onclick="App.setLoc(3)">
+      <span class="loc-dot"></span>Sunny &middot; Location 3
+    </button>
+    <button class="loc-btn" data-loc="4" onclick="App.setLoc(4)">
+      <span class="loc-dot"></span>OH &middot; Location 4
+    </button>
+  </div>
+
+  <!-- ── CONTROLS ── -->
+  <div class="controls">
+    <input class="ctrl-input" type="text" id="search-inp" placeholder="&#128269; Name oder Veranstaltung&hellip;">
+    <select class="ctrl-select" id="filter-staff">
+      <option value="">Alle Mitarbeiter</option>
+    </select>
+    <button class="btn btn-danger" id="btn-miss" onclick="App.toggleMiss()" style="display:none">
+      &#9888; Fehlende Besetzung
+    </button>
+    <button class="btn btn-ghost" onclick="App.resetFilters()">Alle anzeigen</button>
+    <div class="spacer"></div>
+    <span class="cnt" id="cnt"></span>
+    <div style="width:1px;height:22px;background:var(--bd)"></div>
+    <button class="btn btn-ghost admin-only" onclick="App.exportJSON()" title="Alle Events als JSON-Datei speichern">&#8659; Export</button>
+    <button class="btn btn-ghost admin-only" style="color:var(--miss);border-color:rgba(255,64,64,.2)" onclick="resetToDefaults()" title="Alle &Auml;nderungen verwerfen">&#8635; Zur&uuml;cksetzen</button>
+  </div>
+
+  <!-- ── WEEK GRID ── -->
+  <div class="week-grid" id="week-grid"></div>
+
+  <!-- ── UPLOAD SECTION ── -->
+</div><!-- /app -->
+
+<!-- ── DETAIL MODAL ── -->
+<div class="ov" id="det-ov" onclick="App.closeDet(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="m-bar" id="m-bar"></div>
+    <button class="m-x" onclick="App.closeDet()">&#10005;</button>
+    <div class="m-title" id="m-title"></div>
+    <div class="m-sub"   id="m-sub"></div>
+    <div class="m-tags"  id="m-tags"></div>
+    <div class="m-times" id="m-times"></div>
+    <div class="m-sh">Besetzung</div>
+    <div class="m-slist" id="m-slist"></div>
+    <div id="m-note"></div>
+    <div class="m-actions admin-only">
+      <button class="btn btn-edit"   onclick="App.editEvent()">&#9998; Bearbeiten</button>
+      <button class="btn btn-del"    onclick="App.confirmDelete()">&#128465; L&ouml;schen</button>
+    </div>
+    <div class="m-del-confirm" id="m-del-confirm" style="display:none">
+      <span>Wirklich l&ouml;schen?</span>
+      <button class="btn btn-danger" onclick="App.deleteEvent()">Ja, l&ouml;schen</button>
+      <button class="btn btn-ghost"  onclick="App.cancelDelete()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ENTRY MODAL ── -->
+<div class="ov" id="entry-ov" onclick="App.closeEntry(event)">
+  <div class="entry-modal" onclick="event.stopPropagation()">
+    <div class="entry-modal-head">
+      <h2 id="entry-title">&#128203; Event erfassen</h2>
+      <button class="m-x" style="position:static" onclick="App.closeEntry()">&#10005;</button>
+    </div>
+    <div class="entry-body">
+      <!-- Formular -->
+      <div class="entry-form-col">
+        <div class="frow">
+          <div class="fg">
+            <label>Location</label>
+            <select class="fi" id="f-loc">
+              <option value="1">KH &middot; Location 1</option>
+              <option value="2">H39 &middot; Location 2</option>
+              <option value="3">Sunny &middot; Location 3</option>
+              <option value="4">OH &middot; Location 4</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Datum</label>
+            <input class="fi" type="date" id="f-date">
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg" style="grid-column:1/-1">
+            <label>Veranstaltung</label>
+            <input class="fi" type="text" id="f-event" placeholder="Name des Konzerts / Events">
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <label>Bemerkungen</label>
+            <input class="fi" type="text" id="f-notes" placeholder="optional">
+          </div>
+          <div class="fg">
+            <label>Kundenkarte</label>
+            <select class="fi" id="f-kk">
+              <option value="">–</option>
+              <option value="Agentur">Agentur</option>
+              <option value="Intern">Intern</option>
+              <option value="Marken">Marken</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <label class="miss-cb">
+            <input type="checkbox" id="f-plastik">
+            &#127964; Plastikbecher Pflicht
+          </label>
+          <label class="miss-cb">
+            <input type="checkbox" id="f-missstaff">
+            &#9888; Besetzung unvollst&auml;ndig
+          </label>
+        </div>
+
+        <div class="fsec">Produktionsleiter</div>
+        <div class="frow">
+          <div class="fg">
+            <label>Name</label>
+            <input class="fi" type="text" id="f-pl-name" placeholder="Name">
+          </div>
+          <div class="fg">
+            <label>Beginn (Start Prod L)</label>
+            <input class="fi" type="time" id="f-pl-time">
+          </div>
+        </div>
+
+        <div class="fsec">Zeiten</div>
+        <div class="frow3">
+          <div class="fg">
+            <label>Start Gastro</label>
+            <input class="fi" type="time" id="f-gastro">
+          </div>
+          <div class="fg">
+            <label>Schluss Show</label>
+            <input class="fi" type="time" id="f-schluss">
+          </div>
+          <div class="fg">
+            <label>Belegungsende</label>
+            <input class="fi" type="time" id="f-ende">
+          </div>
+        </div>
+
+        <div class="fsec">
+          Bar-Besetzung
+          <span style="font-size:.68rem;color:var(--txm);font-weight:400;text-transform:none;
+            margin-left:8px">Pos 1&2 = Start Gastro &middot; Pos 3 = +30 Min &middot; Pos 4 = +60 Min</span>
+        </div>
+        <div id="f-staff-rows"></div>
+        <button class="btn btn-add" style="width:100%;justify-content:center;margin-bottom:4px"
+                onclick="Form.addStaffRow()">+ Zeile hinzuf&uuml;gen</button>
+
+        <div class="factions">
+          <button class="btn btn-primary" onclick="Form.save()">&#10003; Speichern</button>
+          <button class="btn btn-ghost"   onclick="Form.saveAndNew()">Speichern + weiteres Event</button>
+          <button class="btn btn-ghost"   onclick="App.closeEntry()">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SETTINGS MODAL ── -->
+<div class="ov" id="stg-ov" onclick="App.closeSettings(event)">
+  <div class="settings-modal" onclick="event.stopPropagation()">
+    <button class="m-x" onclick="App.closeSettings()">&#10005;</button>
+    <div class="stg-title">&#9881; Einstellungen</div>
+    <div class="stg-sub">Cloud-Synchronisation &middot; Admin-Modus</div>
+
+    <!-- Status -->
+    <div class="stg-status" id="stg-status-row">
+      <span class="sync-dot off" id="stg-dot"></span>
+      <span id="stg-status-text">Nicht konfiguriert</span>
+    </div>
+
+    <!-- Schritt 1: Master Key -->
+    <div class="stg-sec">Schritt 1 &ndash; Master Key eingeben</div>
+    <div class="fg">
+      <label>Master Key (von jsonbin.io/app/apikeys)</label>
+      <input class="fi" type="password" id="stg-key" placeholder="$2b$10$...">
+      <div class="stg-hint">
+        Nur einmal n&ouml;tig. Wird ausschlie&szlig;lich lokal auf <em>deinem</em> Ger&auml;t gespeichert.
+      </div>
+    </div>
+
+    <!-- Schritt 2: Bin erstellen ODER vorhandene ID eingeben -->
+    <div class="stg-sec" style="margin-top:16px">Schritt 2 &ndash; Speicherplatz einrichten</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="Cloud.createBin()" style="flex:1">
+        &#10024; Neuen Bin automatisch erstellen
+      </button>
+    </div>
+    <div class="stg-hint" style="margin-bottom:12px">
+      Klicke den Button &ndash; die App erstellt automatisch einen Speicherplatz auf JSONBin
+      und l&auml;dt alle Plandaten hoch. Du musst nichts manuell anlegen.
+    </div>
+    <div class="fg" style="margin-top:4px">
+      <label>Oder vorhandene Bin ID eintragen</label>
+      <input class="fi" type="text" id="stg-binid" placeholder="z.B. 6824abc123def456789">
+      <div class="stg-hint">Nur n&ouml;tig wenn du schon einen Bin hast.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="App.saveSettings()">&#10003; Verbinden</button>
+      <button class="btn btn-ghost" onclick="App.testConnection()">&#8635; Verbindung testen</button>
+    </div>
+
+    <!-- Admin-Modus -->
+    <div class="stg-sec" style="margin-top:20px">Admin-Modus</div>
+    <div id="stg-admin-info" style="font-size:.82rem;color:var(--txd);margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="stg-admin-btn" onclick="App.toggleAdmin()">
+        &#128274; Admin-Modus aktivieren
+      </button>
+    </div>
+    <div class="stg-hint" style="margin-top:8px">
+      Im Admin-Modus kannst du Events bearbeiten und l&ouml;schen.<br>
+      Deine Mitarbeiter &ouml;ffnen dieselbe Datei &ndash; sie sehen den Plan, k&ouml;nnen aber nichts &auml;ndern.
+    </div>
+
+    <!-- Mitarbeiter-Version -->
+    <div class="stg-sec" style="margin-top:20px">F&uuml;r Mitarbeiter</div>
+    <div class="stg-hint" style="margin-bottom:10px">
+      Exportiere eine schreibgesch&uuml;tzte Version dieser Datei.<br>
+      Diese enth&auml;lt die Bin&nbsp;ID, aber keinen Master&nbsp;Key &ndash; nur lesbar.
+    </div>
+    <button class="btn btn-ghost" onclick="App.exportViewerHTML()">
+      &#8659; Mitarbeiter-Version exportieren
+    </button>
+  </div>
+</div>
+
+
+<script>
+/* ============================================================
+   KONFIGURATION
+   ============================================================ */
+const LOCS={
+  1:{name:"KH \xB7 Location 1",short:"KH",color:"#f5a623"},
+  2:{name:"H39 \xB7 Location 2",short:"H39",color:"#22d4a4"},
+  3:{name:"Sunny \xB7 Location 3",short:"SR",color:"#e05aff"},
+  4:{name:"OH \xB7 Location 4",   short:"OH",color:"#ff6b6b"},
+};
+const DAYS =["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+const MONS =["Jan","Feb","M\u00e4r","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+/* ============================================================
+   DATENMODELL
+   Zeitberechnung Bar-Personal:
+     Position 1 & 2 -> startGastro
+     Position 3     -> startGastro + 30 Min
+     Position 4+    -> startGastro + 60 Min
+   Falls startOverride gesetzt -> gilt dieser Wert.
+   ============================================================ */
+let EVENTS=[];
+
+/* April 2026 – Location 1 (KH) */
+[
+  {id:"e01",date:"2026-04-01",location:1,event:"SIND",notes:"von H39 in KH verlegt",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Henry",pos:1,ov:null,miss:false},{name:"Igor",pos:2,ov:null,miss:false},{name:"Lucas",pos:3,ov:null,miss:false}]},
+  {id:"e02",date:"2026-04-05",location:1,event:"Katzenclub",notes:"Get In Basti 14\u201319 \xB7 Ostersonntag",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Lena",startTime:"19:00"},startGastro:"18:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Gabi",pos:1,ov:null,miss:false},{name:"Laura",pos:2,ov:null,miss:false},
+             {name:"Richard",pos:3,ov:"21:00",miss:false},{name:"Dominic",pos:4,ov:"23:00",miss:false},
+             {name:"Lucas",pos:1,ov:"18:00",miss:false}]},
+  {id:"e03",date:"2026-04-08",location:1,event:"Dark Suns",notes:"Hohl F. Probearbeit",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Bruce",startTime:"14:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Felix",pos:1,ov:null,miss:false},{name:"Bonnie",pos:2,ov:null,miss:false},
+             {name:"Hohl Felix",pos:3,ov:"18:00",miss:false},{name:"Lucas",pos:4,ov:"18:00",miss:false}]},
+  {id:"e04",date:"2026-04-09",location:1,event:"Skuth",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Claudio",pos:1,ov:"18:00",miss:false},{name:"Gabi",pos:2,ov:null,miss:false},
+             {name:"Bonnie",pos:3,ov:"18:00",miss:false},{name:"Lucas",pos:4,ov:null,miss:false}]},
+  {id:"e05",date:"2026-04-13",location:1,event:"Vincent Lima",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Lena",startTime:"15:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Igor",pos:1,ov:null,miss:false},{name:"Felix",pos:2,ov:null,miss:false}]},
+  {id:"e06",date:"2026-04-14",location:1,event:"Nite",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Anna",startTime:"15:30"},startGastro:"19:00",schlussShow:"23:00",belegungsende:"00:30",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false},{name:"Igor",pos:2,ov:null,miss:false}]},
+  {id:"e07",date:"2026-04-15",location:1,event:"Bella | Katharina",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"14:30"},startGastro:"18:30",schlussShow:"23:00",belegungsende:"01:00",
+   barStaff:[{name:"Laura",pos:1,ov:null,miss:false},{name:"Bonnie",pos:2,ov:null,miss:false}]},
+  {id:"e08",date:"2026-04-16",location:1,event:"Rikas",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Bruce",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"02:00",
+   barStaff:[{name:"Henry",pos:1,ov:null,miss:false},{name:"Gabi",pos:2,ov:null,miss:false}]},
+  {id:"e09",date:"2026-04-17",location:1,event:"Luca Noel",notes:"Hohl F. Probearbeit",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"14:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:"18:30",miss:false},{name:"Felix Hohl",pos:2,ov:"18:00",miss:false},
+             {name:"Lucas",pos:3,ov:"18:00",miss:false}]},
+  {id:"e10",date:"2026-04-18",location:1,event:"Klangraumfestival",notes:"Get In Lena 12\u201317",
+   plastik:true,missingStaff:true,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"17:00"},startGastro:"17:30",schlussShow:"00:00",belegungsende:"03:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false},{name:"Gabi",pos:2,ov:null,miss:false},
+             {name:"",pos:3,ov:null,miss:true}]},
+  {id:"e11",date:"2026-04-19",location:1,event:"The Zen Circus",notes:"tbc",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"15:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:null,miss:false},{name:"Gabi",pos:2,ov:null,miss:false}]},
+  {id:"e12",date:"2026-04-21",location:1,event:"Ben Caplan",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"15:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Henry",pos:1,ov:null,miss:false},{name:"Jonathan",pos:2,ov:null,miss:false}]},
+  {id:"e13",date:"2026-04-24",location:1,event:"Tyler Hilton",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Lena",startTime:"14:30"},startGastro:"18:30",schlussShow:"22:15",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:null,miss:false},{name:"Bonnie",pos:2,ov:null,miss:false}]},
+  {id:"e14",date:"2026-04-25",location:1,event:"Zestival",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Galia",pos:1,ov:"18:00",miss:false},{name:"Jonathan",pos:2,ov:"18:00",miss:false},
+             {name:"Franzi",pos:3,ov:null,miss:false}]},
+  {id:"e15",date:"2026-04-27",location:1,event:"FSP Demo Listening",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Bruce",startTime:"17:00"},startGastro:"17:30",schlussShow:"23:00",belegungsende:"00:00",
+   barStaff:[{name:"Igor",pos:1,ov:null,miss:false}]},
+  {id:"e16",date:"2026-04-28",location:1,event:"Cosmic Psychos",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Lena",startTime:"14:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Felix",pos:1,ov:null,miss:false},{name:"Jonathan",pos:2,ov:null,miss:false},
+             {name:"Igor",pos:3,ov:null,miss:false}]},
+  {id:"e17",date:"2026-04-29",location:1,event:"Jessica Baio",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:null,miss:false},{name:"Jonathan",pos:2,ov:null,miss:false}]},
+  {id:"e18",date:"2026-04-30",location:1,event:"MoreCore",notes:"",
+   plastik:true,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Marlon",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Felix",pos:1,ov:"22:00",miss:false},{name:"Claudio",pos:2,ov:null,miss:false},
+             {name:"Dominic",pos:3,ov:null,miss:false},{name:"Lucia",pos:4,ov:null,miss:false},
+             {name:"Franzi",pos:1,ov:"22:00",miss:false}]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   APRIL 2026 – LOCATION 2 (H39)
+   Quelle: hochgeladener Screenshot des Thekenplans H39.
+   ============================================================ */
+[
+  /* Mi.01.04 – SIND in die KH verlegt */
+  {id:"h01",date:"2026-04-01",location:2,event:"SIND",
+   notes:"In die KH verlegt \u2192 siehe Location 1",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",relocated:"KH \xB7 Location 1",
+   prodL:null,startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",barStaff:[]},
+
+  /* Di.07.04 – Casey */
+  {id:"h02",date:"2026-04-07",location:2,event:"Casey",notes:"Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"14:00"},startGastro:"19:00",schlussShow:"23:00",belegungsende:"01:00",
+   barStaff:[
+     {name:"Richard",pos:1,ov:null,miss:false},{name:"Gabi",pos:2,ov:null,miss:false},
+     {name:"Jonathan",pos:3,ov:null,miss:false},{name:"Igor",pos:4,ov:null,miss:false},
+     {name:"Dominic",pos:1,ov:null,miss:false},
+   ]},
+
+  /* Fr.10.04 – Black Opera */
+  {id:"h03",date:"2026-04-10",location:2,event:"Black Opera",notes:"Probearbeiten Franzi",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:"21:00",miss:false},{name:"Franzi",pos:1,ov:"21:00",miss:false},
+     {name:"Galia",pos:2,ov:null,miss:false},
+     {name:"Felix",pos:3,ov:"22:00",miss:false},{name:"Claudio",pos:4,ov:"23:00",miss:false},
+   ]},
+
+  /* Sa.11.04 – High Fade */
+  {id:"h04",date:"2026-04-11",location:2,event:"High Fade",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"14:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Galia",pos:1,ov:"18:00",miss:false},{name:"Bonnie",pos:2,ov:"18:00",miss:false},
+     {name:"Ines",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Mo.13.04 – Jay Buchanan (ABGESAGT) */
+  {id:"h05",date:"2026-04-13",location:2,event:"Jay Buchanan",notes:"Abgesagt",
+   plastik:false,missingStaff:false,kundenkarte:"",cancelled:true,
+   prodL:{name:"Pauline",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Felix",pos:1,ov:"18:00",miss:false},{name:"Gabi",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:"18:00",miss:false},
+   ]},
+
+  /* Mi.15.04 – Inji verlegt ins OH */
+  {id:"h06",date:"2026-04-15",location:2,event:"Inji",notes:"Verlegt ins OH",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",relocated:"OH \xB7 Location 4",
+   prodL:null,startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",barStaff:[]},
+
+  /* Do.16.04 – Vicky */
+  {id:"h07",date:"2026-04-16",location:2,event:"Vicky",notes:"Plastik \xB7 Get In Basti 10:30\u201314:00",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"14:00"},startGastro:"18:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:null,miss:false},{name:"Felix",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:"18:00",miss:false},{name:"Ines",pos:4,ov:"19:00",miss:false},
+   ]},
+
+  /* Fr.17.04 – Tide Lines */
+  {id:"h08",date:"2026-04-17",location:2,event:"Tide Lines",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Bruce",startTime:"14:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Ines",pos:1,ov:null,miss:false},{name:"Gabi",pos:2,ov:null,miss:false},
+     {name:"Galia",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Sa.18.04 – Vicky (FEHLENDE BESETZUNG Bar 3 + 4) */
+  {id:"h09",date:"2026-04-18",location:2,event:"Vicky",notes:"Plastik",
+   plastik:true,missingStaff:true,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"14:00"},startGastro:"18:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Galia",pos:1,ov:null,miss:false},{name:"Henry",pos:2,ov:null,miss:false},
+     {name:"",pos:3,ov:null,miss:true},{name:"",pos:4,ov:null,miss:true},
+   ]},
+
+  /* Mo.20.04 – Full Of Hell */
+  {id:"h10",date:"2026-04-20",location:2,event:"Full Of Hell",
+   notes:"Plastik \u2013 nur Saal \xB7 Get In Basti 11:30\u201314:00",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Bruce",startTime:"14:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Claudio",pos:1,ov:"18:30",miss:false},{name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Ines",pos:3,ov:"18:30",miss:false},{name:"Franzi",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Di.21.04 – Imarhan */
+  {id:"h11",date:"2026-04-21",location:2,event:"Imarhan",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"15:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Felix",pos:1,ov:null,miss:false},{name:"Igor",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Mi.22.04 – Solence */
+  {id:"h12",date:"2026-04-22",location:2,event:"Solence",
+   notes:"Plastik \u2013 nur Saal \xB7 Get In Lisa 11:15\u201314:00",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Lena",startTime:"14:00"},startGastro:"18:30",schlussShow:"22:50",belegungsende:"01:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:null,miss:false},{name:"Ines",pos:2,ov:null,miss:false},
+     {name:"Igor",pos:3,ov:null,miss:false},{name:"Felix",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Do.23.04 – DYSE */
+  {id:"h13",date:"2026-04-23",location:2,event:"DY\u0308SE",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Lena",startTime:"15:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:null,miss:false},{name:"Jonathan",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Fr.24.04 – Paktofonika (FEHLENDE BESETZUNG Bar 2) */
+  {id:"h14",date:"2026-04-24",location:2,event:"Paktofonika",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:true,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"16:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Dominic",pos:1,ov:null,miss:false},
+     {name:"",pos:2,ov:null,miss:true},
+     {name:"Galia",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Sa.25.04 – 4X4-Team (ABGESAGT) */
+  {id:"h15",date:"2026-04-25",location:2,event:"4X4-Team",notes:"Abgesagt \xB7 Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",cancelled:true,
+   prodL:{name:"Anna",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Lucia",pos:1,ov:null,miss:false},{name:"Dominic",pos:2,ov:null,miss:false},
+     {name:"Henry",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Mo.27.04 – Grade 2 */
+  {id:"h16",date:"2026-04-27",location:2,event:"Grade 2",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"15:30"},startGastro:"18:30",schlussShow:"22:00",belegungsende:"01:00",
+   barStaff:[
+     {name:"Claudio",pos:1,ov:null,miss:false},{name:"Felix",pos:2,ov:null,miss:false},
+     {name:"Jonathan",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Do.30.04 – MoreCore */
+  {id:"h17",date:"2026-04-30",location:2,event:"MoreCore",notes:"nur Saal",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Henry",pos:1,ov:null,miss:false},{name:"Jonathan",pos:2,ov:null,miss:false},
+     {name:"Galia",pos:3,ov:null,miss:false},
+   ]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   APRIL 2026 – LOCATION 3 (Sunny / SR)
+   Quelle: hochgeladener Screenshot.
+   Hinweis: Sunny betreibt meist nur Bar 1 (kleinere Location).
+   ============================================================ */
+[
+  /* Mi.01.04 – Reggae Jam */
+  {id:"sr01",date:"2026-04-01",location:3,event:"Reggae Jam",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Luise",startTime:"18:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:null,miss:false}]},
+
+  /* Sa.04.04 – Schandmaul Filmdreh (Karsamstag, Tagbetrieb) */
+  {id:"sr02",date:"2026-04-04",location:3,event:"Schandmaul Filmdreh",notes:"Karsamstag \u2013 Filmproduktion",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"07:30"},startGastro:"07:30",schlussShow:"16:00",belegungsende:"17:00",
+   barStaff:[]},
+
+  /* Sa.04.04 – Dubtown (verlegt von So.05.04) */
+  {id:"sr03",date:"2026-04-04",location:3,event:"Dubtown",notes:"Verlegt von So. 05.04.",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Luise",startTime:"21:00"},startGastro:"23:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* So.05.04 – Dubtown verlegt auf Sa.04.04 */
+  {id:"sr04",date:"2026-04-05",location:3,event:"Dubtown",notes:"Verlegt auf Sa. 04.04.",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",relocated:"Sa. 04.04.",
+   prodL:{name:"Luise",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Fr.10.04 – Eisbach Callin */
+  {id:"sr05",date:"2026-04-10",location:3,event:"Eisbach Callin",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Lena",startTime:"19:00"},startGastro:"21:30",schlussShow:"04:00",belegungsende:"05:30",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Sa.11.04 – Kettenrasseln Vol. 2 */
+  {id:"sr06",date:"2026-04-11",location:3,event:"Kettenrasseln Vol. 2",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"16:30"},startGastro:"19:00",schlussShow:"02:00",belegungsende:"03:30",
+   barStaff:[{name:"Dominic",pos:1,ov:null,miss:false}]},
+
+  /* Fr.17.04 – Break It Down */
+  {id:"sr07",date:"2026-04-17",location:3,event:"Break It Down",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"21:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Sa.18.04 – Omega Dub Circle */
+  {id:"sr08",date:"2026-04-18",location:3,event:"Omega Dub Circle",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Pauline",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Claudio",pos:1,ov:null,miss:false}]},
+
+  /* Di.21.04 – CoreChaos */
+  {id:"sr09",date:"2026-04-21",location:3,event:"CoreChaos",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"16:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Dominic",pos:1,ov:null,miss:false}]},
+
+  /* Do.23.04 – Bergfest (ABGESAGT) */
+  {id:"sr10",date:"2026-04-23",location:3,event:"Bergfest",notes:"Abgesagt",
+   plastik:false,missingStaff:false,kundenkarte:"",cancelled:true,
+   prodL:{name:"Luise",startTime:"16:30"},startGastro:"18:30",schlussShow:"22:30",belegungsende:"00:00",
+   barStaff:[]},
+
+  /* Fr.24.04 – Sacred Bones */
+  {id:"sr11",date:"2026-04-24",location:3,event:"Sacred Bones",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"21:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"06:30",
+   barStaff:[{name:"Claudio",pos:1,ov:null,miss:false}]},
+
+  /* Sa.25.04 – Schlecht & Schwindlig */
+  {id:"sr12",date:"2026-04-25",location:3,event:"Schlecht & Schwindlig",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"17:00"},startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Felix",pos:1,ov:null,miss:false}]},
+
+  /* Do.30.04 – Zombie Sessions */
+  {id:"sr13",date:"2026-04-30",location:3,event:"Zombie Sessions",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Pauline",startTime:"18:00"},startGastro:"19:30",schlussShow:"00:00",belegungsende:"01:00",
+   barStaff:[{name:"Ines",pos:1,ov:null,miss:false}]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   APRIL 2026 – LOCATION 4 (OH)
+   Quelle: hochgeladener Screenshot.
+   Hinweis: Inji (Mi.15.04) wurde von H39 ins OH verlegt.
+   ============================================================ */
+[
+  /* So.12.04 – Sonntags Cafe */
+  {id:"oh01",date:"2026-04-12",location:4,event:"Sonntags Cafe",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:"13:30",schlussShow:"18:00",belegungsende:"19:00",
+   barStaff:[{name:"Aline",pos:1,ov:null,miss:false}]},
+
+  /* Di.14.04 – Luisa */
+  {id:"oh02",date:"2026-04-14",location:4,event:"Luisa",notes:"Plastik ?",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"15:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucia",pos:1,ov:null,miss:false}]},
+
+  /* Mi.15.04 – Inji (von H39 verlegt) */
+  {id:"oh03",date:"2026-04-15",location:4,event:"Inji",notes:"Plastik ? \xB7 verlegt von H39",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Felix",pos:1,ov:null,miss:false},
+     {name:"Jonathan",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Do.16.04 – Mamoré */
+  {id:"oh04",date:"2026-04-16",location:4,event:"Mamoré",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"15:30"},startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Claudio",pos:1,ov:null,miss:false}]},
+
+  /* Fr.17.04 – Aufbau FW Sessions Azubi (kein Barbetrieb) */
+  {id:"oh05",date:"2026-04-17",location:4,event:"Aufbau FW Sessions Azubi",
+   notes:"Aufbau \u2013 kein Barbetrieb",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:"00:00",
+   barStaff:[]},
+
+  /* Sa.18.04 – Feierwerk Sessions */
+  {id:"oh06",date:"2026-04-18",location:4,event:"Feierwerk Sessions",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Basti",startTime:"15:00"},startGastro:"18:30",schlussShow:"22:00",belegungsende:"00:00",
+   barStaff:[{name:"Ines",pos:1,ov:null,miss:false}]},
+
+  /* So.19.04 – Sonntags Cafe */
+  {id:"oh07",date:"2026-04-19",location:4,event:"Sonntags Cafe",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:"13:30",schlussShow:"18:00",belegungsende:"19:00",
+   barStaff:[{name:"Aline",pos:1,ov:null,miss:false}]},
+
+  /* So.26.04 – Sonntags Cafe (FEHLENDE BESETZUNG Bar 1) */
+  {id:"oh08",date:"2026-04-26",location:4,event:"Sonntags Cafe",notes:"",
+   plastik:false,missingStaff:true,kundenkarte:"",
+   prodL:null,startGastro:"13:30",schlussShow:"18:00",belegungsende:"19:00",
+   barStaff:[{name:"",pos:1,ov:null,miss:true}]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   MAI 2026 – LOCATION 1 (KH)
+   ============================================================ */
+[
+  /* So.10.05 – Turnusreinigung GEMEINSAM (alle Locations, Treffen KH) */
+  {id:"tr0510",date:"2026-05-10",location:1,event:"Turnusreinigung",
+   notes:"Gemeinsames Meeting aller Locations \xB7 Treffen 10 Uhr KH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:"10:00",schlussShow:"17:00",belegungsende:"18:00",
+   barStaff:[
+     /* KH */ {name:"Lucas",pos:1,ov:null,miss:false},{name:"Dominic",pos:2,ov:null,miss:false},
+              {name:"Felix",pos:3,ov:null,miss:false},{name:"Galia",pos:4,ov:null,miss:false},
+     /* H39 */ {name:"Laura",pos:1,ov:null,miss:false},{name:"Franzi",pos:2,ov:null,miss:false},
+               {name:"Richard",pos:3,ov:null,miss:false},{name:"Lucia",pos:4,ov:null,miss:false},
+     /* OH */  {name:"Bonnie",pos:1,ov:null,miss:false},{name:"Claudio",pos:2,ov:null,miss:false},
+               {name:"Ines",pos:4,ov:null,miss:false},
+     /* SR */  {name:"Igor",pos:1,ov:null,miss:false},
+   ]},
+
+  /* Sa.02.05 – Black Opera (2 PLs: Anna 17:30, Marlon ab 21:00) */
+  {id:"kh_m01",date:"2026-05-02",location:1,event:"Black Opera",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"17:30"},prodL2:{name:"Marlon",startTime:"21:00"},
+   startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Lucas",pos:1,ov:null,miss:false},
+     {name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Lucia",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Mo.04.05 – Svalbard */
+  {id:"kh_m02",date:"2026-05-04",location:1,event:"Svalbard",notes:"Plastik",
+   plastik:true,missingStaff:true,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"15:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:null,miss:false},
+     {name:"Franzi",pos:2,ov:null,miss:false},
+     {name:"Igor",pos:3,ov:null,miss:false},
+     {name:"",pos:4,ov:null,miss:true},
+   ]},
+
+  /* Sa.09.05 – Tyna */
+  {id:"kh_m03",date:"2026-05-09",location:1,event:"Tyna",notes:"Plastik?",
+   plastik:true,missingStaff:true,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Dominic",pos:1,ov:null,miss:false},
+     {name:"Bonnie",pos:2,ov:null,miss:false},
+     {name:"",pos:3,ov:null,miss:true},
+   ]},
+
+  /* Mi.13.05 – Rummelsnuff */
+  {id:"kh_m04",date:"2026-05-13",location:1,event:"Rummelsnuff",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Marlon",startTime:"15:00"},startGastro:"19:00",schlussShow:"23:00",belegungsende:"00:30",
+   barStaff:[
+     {name:"Bonnie",pos:1,ov:null,miss:false},
+     {name:"Dominic",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.15.05 – Mittelstufenparty */
+  {id:"kh_m05",date:"2026-05-15",location:1,event:"Mittelstufenparty",
+   notes:"Plastik \u2013 kein Alk, afg billiger",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Marlon",startTime:"16:30"},startGastro:"17:00",schlussShow:"22:00",belegungsende:"00:00",
+   barStaff:[
+     {name:"Lucia",pos:1,ov:null,miss:false},
+     {name:"Jonathan",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Sa.16.05 – Freude */
+  {id:"kh_m06",date:"2026-05-16",location:1,event:"Freude",notes:"Plastik?",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Bruce",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Galia",pos:1,ov:null,miss:false},
+     {name:"Bonnie",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Do.21.05 – NoMBe */
+  {id:"kh_m07",date:"2026-05-21",location:1,event:"NoMBe",notes:"Plastik?",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:null,miss:false},
+     {name:"Bonnie",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.22.05 – Telekoma */
+  {id:"kh_m08",date:"2026-05-22",location:1,event:"Telekoma",notes:"Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Richard",pos:1,ov:null,miss:false},
+     {name:"Ines",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Sa.23.05 – Kaizoku */
+  {id:"kh_m09",date:"2026-05-23",location:1,event:"Kaizoku",
+   notes:"Get In Basti 17:45\u201320 \xB7 Special Getränke",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Marlon",startTime:"20:00"},startGastro:"20:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Richard",pos:1,ov:"20:15",miss:false},
+     {name:"Felix",pos:2,ov:"20:15",miss:false},
+     {name:"Bonnie",pos:3,ov:"21:00",miss:false},
+     {name:"Lucas",pos:4,ov:"21:30",miss:false},
+     {name:"Lucia",pos:1,ov:"22:30",miss:false},
+   ]},
+
+  /* Mi.27.05 – High Desert Queen */
+  {id:"kh_m10",date:"2026-05-27",location:1,event:"High Desert Queen",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"15:00"},startGastro:"19:00",schlussShow:"23:00",belegungsende:"00:30",
+   barStaff:[
+     {name:"Felix",pos:1,ov:null,miss:false},
+     {name:"Igor",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.29.05 – Deer Park Avenue */
+  {id:"kh_m11",date:"2026-05-29",location:1,event:"Deer Park Avenue",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Bruce",startTime:"15:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Galia",pos:1,ov:null,miss:false},
+     {name:"Franzi",pos:2,ov:null,miss:false},
+     {name:"Lucia",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Sa.30.05 – Nuketekk */
+  {id:"kh_m12",date:"2026-05-30",location:1,event:"Nuketekk",
+   notes:"Get In Basti 17\u201320 \xB7 Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Marlon",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:30",
+   barStaff:[
+     {name:"Bonnie",pos:1,ov:null,miss:false},
+     {name:"Felix",pos:2,ov:null,miss:false},
+     {name:"Lucia",pos:3,ov:null,miss:false},
+   ]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   MAI 2026 – LOCATION 2 (H39)
+   ============================================================ */
+[
+  /* Sa.02.05 – Black Opera (PL von KH, Bar3 fehlt) */
+  {id:"h39_m01",date:"2026-05-02",location:2,event:"Black Opera",
+   notes:"PL: s. KH \xB7 Bar 1 bis ca. 2/3 Uhr",
+   plastik:false,missingStaff:true,kundenkarte:"Marken",
+   prodL:{name:"s. KH",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Igor",pos:1,ov:null,miss:false},
+     {name:"Galia",pos:2,ov:null,miss:false},
+     {name:"",pos:3,ov:null,miss:true},
+   ]},
+
+  /* Do.07.05 – Los Invasores de Nuevo León */
+  {id:"h39_m02",date:"2026-05-07",location:2,event:"Los Invasores de Nuevo Le\xF3n",
+   notes:"Plastik? \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"15:30"},startGastro:"18:30",schlussShow:"22:45",belegungsende:"01:00",
+   barStaff:[
+     {name:"Claudio",pos:1,ov:null,miss:false},
+     {name:"Jonathan",pos:2,ov:null,miss:false},
+     {name:"Franzi",pos:3,ov:"18:30",miss:false},
+   ]},
+
+  /* Fr.08.05 – PTK (Plastik, nur Saal) */
+  {id:"h39_m03",date:"2026-05-08",location:2,event:"PTK",notes:"Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Marlon",startTime:"14:30"},startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:30",
+   barStaff:[
+     {name:"Galia",pos:1,ov:null,miss:false},
+     {name:"Lucas",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Fr.15.05 – Mittelstufenparty */
+  {id:"h39_m04",date:"2026-05-15",location:2,event:"Mittelstufenparty",
+   notes:"ab 19 Uhr offen \xB7 aus KH ggf. Unterst\u00fctzung \xB7 Plastik kein Alk, afg billiger",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Lena",startTime:"14:30"},startGastro:"17:00",schlussShow:"22:00",belegungsende:"00:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:"18:30",miss:false},
+   ]},
+
+  /* Sa.16.05 – Lunatica Noctis */
+  {id:"h39_m05",date:"2026-05-16",location:2,event:"Lunatica Noctis",
+   notes:"Special Getr\u00e4nk Met \u2013 nur Saal",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Pauline",startTime:"20:00"},startGastro:"20:30",schlussShow:"04:00",belegungsende:"06:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:"20:15",miss:false},
+     {name:"Claudio",pos:2,ov:"21:00",miss:false},
+   ]},
+
+  /* Mo.18.05 – Paledusk */
+  {id:"h39_m06",date:"2026-05-18",location:2,event:"Paledusk",notes:"Plastik",
+   plastik:true,missingStaff:true,kundenkarte:"Intern",
+   prodL:{name:"Luise",startTime:"12:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Dominic",pos:1,ov:null,miss:false},
+     {name:"Ines",pos:2,ov:null,miss:false},
+     {name:"",pos:3,ov:null,miss:true},
+   ]},
+
+  /* Mi.20.05 – Noveria */
+  {id:"h39_m07",date:"2026-05-20",location:2,event:"Noveria",notes:"Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Felix",pos:1,ov:null,miss:false},
+     {name:"Ines",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+     {name:"Flo Hohl",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Fr.22.05 – Kuult */
+  {id:"h39_m08",date:"2026-05-22",location:2,event:"Kuult",notes:"Plastik? \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Marlon",startTime:"14:00"},startGastro:"18:30",schlussShow:"22:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Dominic",pos:1,ov:null,miss:false},
+     {name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Claudio",pos:3,ov:"19:00",miss:false},
+   ]},
+
+  /* Sa.23.05 – Kaizoku */
+  {id:"h39_m09",date:"2026-05-23",location:2,event:"Kaizoku",
+   notes:"Get In Basti 17:45\u201320 \xB7 Special Getr\u00e4nke \u2013 nur Saal",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Lena",startTime:"20:00"},startGastro:"20:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Igor",pos:1,ov:"20:15",miss:false},
+     {name:"Laura",pos:2,ov:"20:15",miss:false},
+     {name:"Galia",pos:3,ov:"21:00",miss:false},
+   ]},
+
+  /* Sa.30.05 – Nuketekk */
+  {id:"h39_m10",date:"2026-05-30",location:2,event:"Nuketekk",
+   notes:"Get In Basti 17\u201320 \xB7 Plastik \u2013 nur Saal",
+   plastik:true,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:30",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:"21:30",miss:false},
+     {name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Franzi",pos:3,ov:null,miss:false},
+   ]},
+
+  /* So.31.05 – Noise and Needles Festival */
+  {id:"h39_m11",date:"2026-05-31",location:2,event:"Noise and Needles Festival",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"14:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Laura",pos:1,ov:null,miss:false},
+     {name:"Igor",pos:2,ov:null,miss:false},
+     {name:"Jonathan",pos:3,ov:null,miss:false},
+   ]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   MAI 2026 – LOCATION 3 (Sunny / SR)
+   ============================================================ */
+[
+  /* Fr.01.05 – Be Together (Feiertag) */
+  {id:"sr_m01",date:"2026-05-01",location:3,event:"Be Together",notes:"Feiertag",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Sa.02.05 – Dubtown */
+  {id:"sr_m02",date:"2026-05-02",location:3,event:"Dubtown",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Pauline",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Mi.06.05 – Reggae Jam */
+  {id:"sr_m03",date:"2026-05-06",location:3,event:"Reggae Jam",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"16:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Ines",pos:1,ov:null,miss:false}]},
+
+  /* Fr.08.05 – Chaos Blast */
+  {id:"sr_m04",date:"2026-05-08",location:3,event:"Chaos Blast",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Lena",startTime:"16:30"},startGastro:"19:30",schlussShow:"03:00",belegungsende:"04:30",
+   barStaff:[{name:"Claudio",pos:1,ov:null,miss:false}]},
+
+  /* Sa.09.05 – Unterwelt */
+  {id:"sr_m05",date:"2026-05-09",location:3,event:"Unterwelt",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"20:00"},startGastro:"21:30",schlussShow:"04:00",belegungsende:"06:00",
+   barStaff:[{name:"Henry",pos:1,ov:null,miss:false}]},
+
+  /* Mi.13.05 – Turnusreinigung SR (Putz-Event Sunny) */
+  {id:"sr_m06",date:"2026-05-13",location:3,event:"Turnusreinigung SR",notes:"Putztermin Sunny",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:"12:00",schlussShow:"18:30",belegungsende:"19:30",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Mi.13.05 – Black Rat */
+  {id:"sr_m07",date:"2026-05-13",location:3,event:"Black Rat",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"16:30"},startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Lucas",pos:1,ov:null,miss:false}]},
+
+  /* Do.14.05 – Venerea (Christi Himmelfahrt) */
+  {id:"sr_m08",date:"2026-05-14",location:3,event:"Venerea",notes:"Christi Himmelfahrt",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Lena",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Fr.15.05 – Tyrolean Death Alliance Tour */
+  {id:"sr_m09",date:"2026-05-15",location:3,event:"Tyrolean Death Alliance Tour",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Bruce",startTime:"16:00"},startGastro:"19:00",schlussShow:"23:00",belegungsende:"00:30",
+   barStaff:[{name:"Dominic",pos:1,ov:null,miss:false}]},
+
+  /* Sa.16.05 – Break It Down */
+  {id:"sr_m10",date:"2026-05-16",location:3,event:"Break It Down",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Luise",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"06:30",
+   barStaff:[{name:"Richard",pos:1,ov:null,miss:false}]},
+
+  /* Sa.23.05 – Sorry I'm late */
+  {id:"sr_m11",date:"2026-05-23",location:3,event:"Sorry I'm late",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Basti",startTime:"17:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Fr.29.05 – Lostclub */
+  {id:"sr_m12",date:"2026-05-29",location:3,event:"Lostclub",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Anna",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"07:30",
+   barStaff:[{name:"Claudio",pos:1,ov:null,miss:false}]},
+
+  /* Sa.30.05 – Black Hole Crumble */
+  {id:"sr_m13",date:"2026-05-30",location:3,event:"Black Hole Crumble",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Luise",startTime:"16:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Dominic",pos:1,ov:null,miss:false}]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   MAI 2026 – LOCATION 4 (OH)
+   ============================================================ */
+[
+  /* Sa.02.05 – PHANTA$Y & CHRIS RAIN (Bar1 fehlt) */
+  {id:"oh_m01",date:"2026-05-02",location:4,event:"PHANTA\$Y & CHRIS RAIN",notes:"Plastik?",
+   plastik:true,missingStaff:true,kundenkarte:"Agentur",
+   prodL:{name:"Luise",startTime:"14:30"},startGastro:"17:30",schlussShow:"22:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"",pos:1,ov:null,miss:true},
+     {name:"Ines",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.08.05 – PTK verlegt in H39 */
+  {id:"oh_m02",date:"2026-05-08",location:4,event:"PTK",
+   notes:"Verlegt in die H39",
+   plastik:false,missingStaff:false,kundenkarte:"",relocated:"H39 \xB7 Location 2",
+   prodL:null,startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:30",
+   barStaff:[]},
+
+  /* Sa.09.05 – Malummi ABGESAGT */
+  {id:"oh_m03",date:"2026-05-09",location:4,event:"Malummi",notes:"Abgesagt",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",cancelled:true,
+   prodL:{name:"Mady",startTime:"15:30"},startGastro:"19:30",schlussShow:"22:30",belegungsende:"00:30",
+   barStaff:[
+     {name:"Felix",pos:1,ov:null,miss:false},
+     {name:"Franzi",pos:2,ov:null,miss:false},
+     {name:"Lena",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Di.12.05 – jaschu */
+  {id:"oh_m04",date:"2026-05-12",location:4,event:"jaschu",notes:"Plastik?",
+   plastik:true,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Bruce",startTime:"15:00"},startGastro:"19:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Lucas",pos:1,ov:null,miss:false},
+     {name:"Richard",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.15.05 – Jutta Koller Geburtstag */
+  {id:"oh_m05",date:"2026-05-15",location:4,event:"Jutta Koller Geburtstag",
+   notes:"Externer Caterer",
+   plastik:false,missingStaff:false,kundenkarte:"Kunde",
+   prodL:{name:"Pauline",startTime:"16:30"},startGastro:"17:30",schlussShow:"00:00",belegungsende:"01:30",
+   barStaff:[
+     {name:"Henry",pos:1,ov:null,miss:false},
+   ]},
+
+  /* Sa.16.05 – Feierwerk Sessions */
+  {id:"oh_m06",date:"2026-05-16",location:4,event:"Feierwerk Sessions",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Intern",
+   prodL:{name:"Mady",startTime:"15:00"},startGastro:"18:30",schlussShow:"22:30",belegungsende:"00:00",
+   barStaff:[
+     {name:"Ines",pos:1,ov:null,miss:false},
+   ]},
+
+  /* So.17.05 – Angel Du$t */
+  {id:"oh_m07",date:"2026-05-17",location:4,event:"Angel Du\$t",notes:"Plastik",
+   plastik:true,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Lena",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:null,miss:false},
+     {name:"Richard",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Fr.22.05 – Wallner & die Rax Band (Bar2 fehlt) */
+  {id:"oh_m08",date:"2026-05-22",location:4,event:"Wallner & die Rax Band",notes:"",
+   plastik:false,missingStaff:true,kundenkarte:"Agentur",
+   prodL:{name:"Pauline",startTime:"15:30"},startGastro:"18:30",schlussShow:"00:00",belegungsende:"01:00",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:null,miss:false},
+     {name:"",pos:2,ov:null,miss:true},
+   ]},
+
+  /* Di.26.05 – Munich Grand Slam */
+  {id:"oh_m09",date:"2026-05-26",location:4,event:"Munich Grand Slam",notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"Agentur",
+   prodL:{name:"Anna",startTime:"15:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Igor",pos:1,ov:"18:00",miss:false},
+     {name:"Franzi",pos:2,ov:"18:00",miss:false},
+   ]},
+].forEach(e=>EVENTS.push(e));
+
+/* Snapshot der eingebauten Standarddaten (für "Zurücksetzen") */
+const DEFAULT_EVENTS = JSON.stringify(EVENTS);
+
+/* ============================================================
+   LOKALE SPEICHERUNG + CLOUD SYNC (JSONBin.io)
+   ============================================================ */
+const STORAGE_KEY  = 'thekenplan_events_v1';
+const BINID_KEY    = 'thekenplan_binid';
+const APIKEY_KEY   = 'thekenplan_apikey';
+const ADMIN_KEY    = 'thekenplan_admin';
+
+/* Voreingestellter Admin-Key – NUR in der Admin-Version enthalten */
+const _PRESET_KEY  = '$2a$10$UYwau0weNvUf98PsW9SF/eYueVVvYM2t5PKMjADshXieU5XDIDEuK';
+
+/* --- Lokal speichern/laden -------------------------------- */
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(EVENTS)); } catch(e) {}
+}
+function loadLocal() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const stored = JSON.parse(s);
+      if (Array.isArray(stored) && stored.length > 0) {
+        /* Smart Merge:
+           - Gespeicherte Events (inkl. Nutzer-Änderungen) bleiben erhalten
+           - Neue eingebaute Events (neue IDs) werden automatisch hinzugefügt
+           - So werden neue Monate beim Download sofort sichtbar */
+        const storedIds = new Set(stored.map(e => e.id));
+        const builtIn   = JSON.parse(DEFAULT_EVENTS);
+        const newEvents = builtIn.filter(e => !storedIds.has(e.id));
+        const merged    = [...stored, ...newEvents];
+        EVENTS.length = 0;
+        merged.forEach(e => EVENTS.push(e));
+        if (newEvents.length > 0) {
+          /* Neue Events direkt speichern damit nächster Load schon den vollen Stand hat */
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(EVENTS));
+          console.log(`[Merge] ${newEvents.length} neue Events aus Datei hinzugefügt.`);
+        }
+        return true;
+      }
+    }
+  } catch(e) {
+    console.warn('[loadLocal] Fehler:', e);
+  }
+  return false;
+}
+/* Alias für ältere Aufrufe */
+function saveData()  { saveLocal(); }
+function loadData()  { return loadLocal(); }
+
+/* --- Cloud (JSONBin.io) ----------------------------------- */
+const Cloud = {
+  binId()  { return localStorage.getItem(BINID_KEY)||''; },
+  apiKey() { return localStorage.getItem(APIKEY_KEY) || _PRESET_KEY; },
+  isConfigured() { return !!(this.binId()&&this.apiKey()); },
+
+  setSyncStatus(state, text) {
+    ['sync-dot','stg-dot'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){el.className='sync-dot '+state;}
+    });
+    const lbl=document.getElementById('sync-label');
+    if(lbl)lbl.textContent=text;
+    const stgl=document.getElementById('stg-status-text');
+    if(stgl)stgl.textContent=text;
+  },
+
+  async fetch() {
+    const id=this.binId(), key=this.apiKey();
+    if(!id||!key){this.setSyncStatus('off','Nicht konfiguriert');return false;}
+    this.setSyncStatus('busy','Lade Daten\u2026');
+    try {
+      const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{
+        headers:{'X-Master-Key':key,'X-Bin-Meta':'false'}
+      });
+      if(!res.ok)throw new Error(res.status);
+      const data=await res.json();
+      const cloudEvs=data.record||data;
+      if(Array.isArray(cloudEvs)){
+        const builtIn=JSON.parse(DEFAULT_EVENTS);
+        if(cloudEvs.length===0){
+          /* Bin ist leer – lokale Daten hochladen */
+          await this.save();
+        } else {
+          /* Smart Merge:
+             - Cloud-Daten sind Basis (enthalten Nutzer-Änderungen)
+             - Neue eingebaute Events (neue Monate) werden ergänzt
+             - Nichts wird gelöscht oder überschrieben */
+          const cloudIds=new Set(cloudEvs.map(e=>e.id));
+          const newBuiltIn=builtIn.filter(e=>!cloudIds.has(e.id));
+          const merged=[...cloudEvs,...newBuiltIn];
+          EVENTS.length=0;merged.forEach(e=>EVENTS.push(e));
+          saveLocal();
+          if(newBuiltIn.length>0){
+            /* Neue Events auch in Cloud speichern */
+            console.log(`[Cloud Merge] ${newBuiltIn.length} neue Events in Cloud hochgeladen.`);
+            await this.save();
+          }
+        }
+        const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+        this.setSyncStatus('ok',`Synchronisiert ${now}`);
+        return true;
+      }
+    } catch(e) {
+      this.setSyncStatus('err','Ladefehler \u2013 zeige lokale Daten');
+      console.warn('[Cloud] fetch error:',e);
+    }
+    return false;
+  },
+
+  async save() {
+    const id=this.binId(), key=this.apiKey();
+    if(!id||!key)return false;
+    this.setSyncStatus('busy','Speichere…');
+    try {
+      const res=await fetch(`https://api.jsonbin.io/v3/b/${id}`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json','X-Master-Key':key},
+        body:JSON.stringify(EVENTS)
+      });
+      if(!res.ok)throw new Error(res.status);
+      saveLocal();
+      const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      this.setSyncStatus('ok',`Gespeichert ${now}`);
+      return true;
+    } catch(e) {
+      this.setSyncStatus('err','Speicherfehler!');
+      console.warn('[Cloud] save error:',e);
+    }
+    return false;
+  },
+
+  async push() { saveLocal(); return await this.save(); },
+
+  async createBin() {
+    const key=(document.getElementById('stg-key').value||'').trim();
+    if(!key){alert('Bitte zuerst den Master Key eingeben.');return;}
+    this.setSyncStatus('busy','Erstelle Bin…');
+    try {
+      const res=await fetch('https://api.jsonbin.io/v3/b',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-Master-Key':key,
+          'X-Bin-Name':'Thekenplan',
+          'X-Private':'false'
+        },
+        body:JSON.stringify(EVENTS)
+      });
+      if(!res.ok){
+        const txt=await res.text();
+        throw new Error(`${res.status}: ${txt}`);
+      }
+      const data=await res.json();
+      const binId=data.metadata.id;
+      localStorage.setItem(BINID_KEY,binId);
+      localStorage.setItem(APIKEY_KEY,key);
+      localStorage.setItem(ADMIN_KEY,'1');
+      const el=document.getElementById('stg-binid');
+      if(el)el.value=binId;
+      applyAdminMode();
+      App.render();
+      const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      this.setSyncStatus('ok',`Verbunden ${now}`);
+      alert(`\u2705 Fertig!\n\nBin ID: ${binId}\n\nAlle Plandaten wurden hochgeladen. Du bist jetzt im Admin-Modus.\n\nN\u00e4chster Schritt: Klicke auf "\u2193 Mitarbeiter-Version exportieren" um die Datei f\u00fcr dein Team zu erstellen.`);
+    } catch(e) {
+      this.setSyncStatus('err','Fehler');
+      alert('Fehler beim Erstellen:\n'+e.message+'\n\nBitte den Master Key prüfen (jsonbin.io/app/apikeys).');
+      console.warn('[Cloud] createBin:',e);
+    }
+  },
+};
+
+/* --- Admin-Modus ------------------------------------------ */
+function isAdmin() { return !!localStorage.getItem(ADMIN_KEY); }
+
+function applyAdminMode() {
+  if(isAdmin()){
+    document.body.classList.add('admin');
+    const gl=document.getElementById('gear-label');if(gl)gl.textContent='Admin-Modus';
+    const btn=document.getElementById('stg-admin-btn');
+    if(btn)btn.innerHTML='&#128275; Admin-Modus deaktivieren';
+    const info=document.getElementById('stg-admin-info');
+    if(info)info.textContent='Admin-Modus ist aktiv – du kannst Events bearbeiten und löschen.';
+  } else {
+    document.body.classList.remove('admin');
+    const gl=document.getElementById('gear-label');if(gl)gl.textContent='Einstellungen';
+    const btn=document.getElementById('stg-admin-btn');
+    if(btn)btn.innerHTML='&#128274; Admin-Modus aktivieren';
+    const info=document.getElementById('stg-admin-info');
+    if(info)info.textContent='Du bist aktuell im Lesemodus.';
+  }
+}
+
+/* --- Reset ----------------------------------------------- */
+function resetToDefaults() {
+  if (!confirm('Alle Änderungen verwerfen und Original-Plandaten wiederherstellen?')) return;
+  EVENTS.length = 0;
+  JSON.parse(DEFAULT_EVENTS).forEach(e => EVENTS.push(e));
+  Cloud.push();
+  App.render();
+}
+function lds(d){
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m}
+function m2t(m){m=((m%1440)+1440)%1440;return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+function barStart(pos,gastro,ov){
+  if(ov)return ov;if(!gastro)return'\u2013';
+  const b=t2m(gastro);
+  if(pos<=2)return gastro;if(pos===3)return m2t(b+30);return m2t(b+60);
+}
+function monday(d){
+  const r=new Date(d);const wd=r.getDay();
+  r.setDate(r.getDate()+(wd===0?-6:1-wd));r.setHours(0,0,0,0);return r;
+}
+function isoWeek(d){
+  const u=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dn=u.getUTCDay()||7;u.setUTCDate(u.getUTCDate()+4-dn);
+  const y1=new Date(Date.UTC(u.getUTCFullYear(),0,1));
+  return Math.ceil(((u-y1)/86400000+1)/7);
+}
+function dFmt(ds){
+  const d=new Date(ds+'T12:00:00');
+  return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.`;
+}
+function weekdayIdx(ds){const wd=new Date(ds+'T12:00:00').getDay();return wd===0?6:wd-1}
+function allNames(ev){
+  const s=new Set();if(ev.prodL)s.add(ev.prodL.name);
+  ev.barStaff.filter(x=>!x.miss&&x.name).forEach(x=>s.add(x.name));return s;
+}
+function uid(){return'ev-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S={
+  monday:monday(new Date()),
+  filterLoc:0,
+  filterStaff:'',
+  search:'',
+  onlyMiss:false,
+};
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+function renderHeader(){
+  const mon=S.monday,sun=new Date(mon);sun.setDate(sun.getDate()+6);
+  const fmt=d=>`${String(d.getDate()).padStart(2,'0')}. ${MONS[d.getMonth()]}`;
+  document.getElementById('week-kw').textContent=`KW ${isoWeek(mon)} \xB7 ${mon.getFullYear()}`;
+  document.getElementById('week-range').textContent=`${fmt(mon)} \u2013 ${fmt(sun)}`;
+}
+
+function renderLocBtns(){
+  document.querySelectorAll('.loc-btn').forEach(b=>{
+    const l=Number(b.dataset.loc);
+    b.classList.toggle('active',l===S.filterLoc);
+  });
+}
+
+function getWeek(filtered=true){
+  const monS=lds(S.monday),sunD=new Date(S.monday);
+  sunD.setDate(sunD.getDate()+6);const sunS=lds(sunD);
+  return EVENTS.filter(e=>{
+    if(e.date<monS||e.date>sunS)return false;
+    if(filtered){
+      if(S.filterLoc&&e.location!==S.filterLoc)return false;
+      if(S.onlyMiss&&!e.missingStaff)return false;
+      if(S.filterStaff&&![...allNames(e)].includes(S.filterStaff))return false;
+      if(S.search){
+        const q=S.search.toLowerCase();
+        if(![e.event,...[...allNames(e)]].join(' ').toLowerCase().includes(q))return false;
+      }
+    }
+    return true;
+  });
+}
+
+/* Konflikterkennung: Mitarbeiter am selben Tag in 2 Locations */
+function detectConflicts(eventsForWeek){
+  const conflicts=[]; /* [{name, date, ev1, ev2}] */
+  const byDay={};
+  eventsForWeek.filter(e=>!e.cancelled&&!e.relocated).forEach(ev=>{
+    allNames(ev).forEach(name=>{
+      if(!name)return;
+      if(!byDay[ev.date])byDay[ev.date]={};
+      if(!byDay[ev.date][name])byDay[ev.date][name]=[];
+      byDay[ev.date][name].push(ev);
+    });
+  });
+  Object.entries(byDay).forEach(([date,names])=>{
+    Object.entries(names).forEach(([name,evs])=>{
+      /* Konflikte nur wenn verschiedene Locations */
+      const locs=new Set(evs.map(e=>e.location));
+      if(locs.size>1){
+        for(let i=0;i<evs.length-1;i++){
+          conflicts.push({name,date,ev1:evs[i],ev2:evs[i+1]});
+        }
+      }
+    });
+  });
+  return conflicts;
+}
+
+function renderConflictPanel(conflicts){
+  let panel=document.getElementById('conflict-panel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='conflict-panel';
+    panel.style.cssText='margin-bottom:18px;background:rgba(255,64,64,.1);border:1px solid rgba(255,64,64,.3);border-radius:12px;padding:14px 16px;display:none';
+    const grid=document.getElementById('week-grid');
+    grid.parentNode.insertBefore(panel,grid);
+  }
+  if(!conflicts.length){panel.style.display='none';return;}
+  panel.style.display='block';
+  panel.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <span style="font-size:1rem">⚠</span>
+    <span style="font-family:var(--fh);font-weight:700;color:var(--miss);font-size:.9rem">
+      ${conflicts.length} Planungskonflikt${conflicts.length>1?'e':''}
+    </span></div>`+
+    conflicts.map(c=>`<div style="font-size:.78rem;color:var(--txd);margin-bottom:4px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px">
+      ⚠ <strong style="color:var(--miss)">${c.name}</strong> – ${DAYS[weekdayIdx(c.date)]}
+      ${dFmt(c.date)}: <em>${LOCS[c.ev1.location].short}</em> (${c.ev1.event})
+      &amp; <em>${LOCS[c.ev2.location].short}</em> (${c.ev2.event})
+    </div>`).join('');
+}
+
+function renderGrid(){
+  const grid=document.getElementById('week-grid');
+  const vis=getWeek(true),all=getWeek(false);
+  const todayS=lds(new Date());
+  grid.innerHTML='';
+
+  /* Konflikte für diese Woche berechnen */
+  const conflicts=detectConflicts(all);
+  const conflictEventIds=new Set();
+  conflicts.forEach(c=>{conflictEventIds.add(c.ev1.id);conflictEventIds.add(c.ev2.id);});
+  renderConflictPanel(conflicts);
+
+  let tot=0;
+
+  DAYS.forEach((dayName,di)=>{
+    const dayD=new Date(S.monday);dayD.setDate(dayD.getDate()+di);
+    const dayS=lds(dayD);               /* <-- lokales Datum, kein UTC-Bug */
+    const isToday=dayS===todayS;
+    const dayV=vis.filter(e=>e.date===dayS)
+                  .sort((a,b)=>(a.startGastro||'00:00').localeCompare(b.startGastro||'00:00'));
+    const dayA=all.filter(e=>e.date===dayS);
+    tot+=dayV.length;
+
+    const col=document.createElement('div');
+    col.className='day-col'+(isToday?' today':'');
+    col.innerHTML=`<div class="day-head">
+      <div class="dh-top">
+        <span class="d-name">${dayName.slice(0,2)}</span>
+        <span class="d-num">${dayD.getDate()}${isToday?'<span class="today-pill">Heute</span>':''}</span>
+      </div>
+      <div class="d-month">${MONS[dayD.getMonth()]} ${dayD.getFullYear()}</div>
+      ${dayA.length?`<span class="d-cnt">${dayA.length} Event${dayA.length>1?'s':''}</span>`:''}
+    </div><div class="day-body" id="db-${di}"></div>`;
+    grid.appendChild(col);
+
+    const body=col.querySelector(`#db-${di}`);
+    if(!dayV.length){
+      body.innerHTML=`<div class="day-empty">${dayA.length?'(gefiltert)':'\u2014'}</div>`;
+      return;
+    }
+    dayV.forEach(ev=>body.appendChild(buildCard(ev,conflictEventIds)));
+  });
+
+  document.getElementById('cnt').textContent=tot?`${tot} Event${tot>1?'s':''} diese Woche`:'';
+  const hasMiss=all.some(e=>e.missingStaff);
+  document.getElementById('btn-miss').style.display=hasMiss?'':'none';
+}
+
+function buildCard(ev, conflictIds=new Set()){
+  const loc=LOCS[ev.location];
+  const isConflict=conflictIds.has(ev.id);
+  const card=document.createElement('div');
+  let cls='ev-card';
+  if(ev.missingStaff)cls+=' miss-card';
+  if(ev.cancelled)   cls+=' cancelled';
+  if(ev.relocated)   cls+=' relocated';
+  if(isConflict)     cls+=' conflict-card';
+  card.className=cls;
+  card.dataset.loc=ev.location;
+
+  const tags=[];
+  if(ev.cancelled)   tags.push(`<span class="tag tag-canc">Abgesagt</span>`);
+  if(ev.relocated)   tags.push(`<span class="tag tag-reloc">\u2192 ${ev.relocated}</span>`);
+  if(ev.missingStaff)tags.push(`<span class="tag tag-m">\u26A0 Bes.?</span>`);
+  if(isConflict)     tags.push(`<span class="tag tag-conflict">\u26A0 Doppelt!</span>`);
+  if(ev.kundenkarte) tags.push(`<span class="tag tag-${ev.kundenkarte.toLowerCase().slice(0,2)}">${ev.kundenkarte}</span>`);
+
+  const rows=[];
+  if(ev.prodL)rows.push(`<div class="srow"><span class="sb pl">PL</span>
+    <span class="sname">${ev.prodL.name}</span>
+    <span class="stime">${ev.prodL.startTime}</span></div>`);
+  if(ev.prodL2)rows.push(`<div class="srow"><span class="sb pl">PL</span>
+    <span class="sname">${ev.prodL2.name}</span>
+    <span class="stime">${ev.prodL2.startTime}</span></div>`);
+  ev.barStaff.forEach(s=>{
+    const t=s.miss?'\u2013':barStart(s.pos,ev.startGastro,s.ov);
+    rows.push(`<div class="srow"><span class="sb bar${s.miss?' mb':''}">${s.pos}</span>
+      <span class="sname${s.miss?' miss':''}">${s.miss?'fehlt!':s.name}</span>
+      <span class="stime${s.miss?' mt':''}">${t}</span></div>`);
+  });
+
+  const plastikBanner = ev.plastik && !ev.cancelled && !ev.relocated
+    ? `<div class="plastik-banner">\uD83E\uDDE3 Nur Plastikbecher!</div>` : '';
+
+  card.innerHTML=`
+    <div class="card-acts">
+      <button class="ca-btn" title="Bearbeiten" onclick="event.stopPropagation();App.editEventById('${ev.id}')">&#9998;</button>
+      <button class="ca-btn del" title="L&ouml;schen" onclick="event.stopPropagation();App.deleteEventById('${ev.id}')">&#128465;</button>
+    </div>
+    <div class="ev-top-row">
+      <span class="loc-badge" data-loc="${ev.location}">${loc.short}</span>
+      ${tags.join('')}
+    </div>
+    ${plastikBanner}
+    <div class="ev-name">${ev.event}</div>
+    ${(!ev.relocated&&!ev.cancelled)||ev.startGastro?`<div class="ev-time">${ev.startGastro||'–'} \u2013 ${ev.schlussShow||'–'} <span>\xB7 Ende ${ev.belegungsende||'–'}</span></div>`:''}
+    <div class="slist">${rows.join('')}</div>
+    ${ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}`;
+  card.addEventListener('click',()=>App.openDet(ev));
+  return card;
+}
+
+function updateStaffSel(){
+  const sel=document.getElementById('filter-staff');const cur=sel.value;
+  const names=new Set();
+  const pool=S.filterLoc?EVENTS.filter(e=>e.location===S.filterLoc):EVENTS;
+  pool.forEach(e=>allNames(e).forEach(n=>names.add(n)));
+  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
+    [...names].sort().map(n=>`<option${n===cur?' selected':''}>${n}</option>`).join('');
+}
+
+
+/* ============================================================
+   DETAIL MODAL
+   ============================================================ */
+function openDet(ev){
+  const loc=LOCS[ev.location];
+  document.getElementById('m-bar').style.background=loc.color;
+  document.getElementById('m-title').textContent=ev.event;
+  document.getElementById('m-sub').textContent=
+    `${dFmt(ev.date)} \xB7 ${DAYS[weekdayIdx(ev.date)]} \xB7 ${loc.name}`;
+  const tags=[];
+  if(ev.plastik)     tags.push(`<span class="m-tag p">\uD83E\uDDE3 Plastikbecher Pflicht</span>`);
+  if(ev.missingStaff)tags.push(`<span class="m-tag m">\u26A0 Besetzung unvollst\u00e4ndig</span>`);
+  if(ev.kundenkarte) tags.push(`<span class="m-tag kk">${ev.kundenkarte}</span>`);
+  document.getElementById('m-tags').innerHTML=tags.join('');
+  document.getElementById('m-times').innerHTML=`
+    <div class="m-tb"><label>Start Prod L</label><span>${ev.prodL?ev.prodL.startTime:'\u2013'}</span></div>
+    <div class="m-tb"><label>Start Gastro</label><span>${ev.startGastro}</span></div>
+    <div class="m-tb"><label>Schluss Show</label><span>${ev.schlussShow}</span></div>`;
+  const rows=[];
+  if(ev.prodL)rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
+    <span class="m-sname">${ev.prodL.name}</span><span class="m-stime">${ev.prodL.startTime}</span></div>`);
+  if(ev.prodL2)rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
+    <span class="m-sname">${ev.prodL2.name}</span><span class="m-stime">${ev.prodL2.startTime}</span></div>`);
+  ev.barStaff.forEach(s=>{
+    const t=s.miss?'\u2013':barStart(s.pos,ev.startGastro,s.ov);
+    rows.push(`<div class="m-srow${s.miss?' miss':''}"><span class="m-sbadge">Bar ${s.pos}</span>
+      <span class="m-sname${s.miss?' miss':''}">${s.miss?'\u26A0 Noch nicht besetzt':s.name}</span>
+      <span class="m-stime">${t}</span></div>`);
+  });
+  document.getElementById('m-slist').innerHTML=rows.join('');
+  document.getElementById('m-note').innerHTML=ev.notes
+    ?`<div class="m-sh">Bemerkungen</div><div class="m-note">${ev.notes}</div>`:'';
+  document.getElementById('det-ov').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+/* ============================================================
+   ENTRY FORM
+   ============================================================ */
+const Form={
+  currentLoc:1,
+  staffRows:0,
+  mode:'create',   /* 'create' | 'edit' */
+  editId:null,
+
+  init(locId){
+    this.mode='create'; this.editId=null;
+    this.currentLoc=locId; this.staffRows=0;
+    document.getElementById('entry-title').textContent='\uD83D\uDCCB Event erfassen';
+    document.getElementById('f-loc').value=locId;
+    document.getElementById('f-date').value='';
+    document.getElementById('f-event').value='';
+    document.getElementById('f-notes').value='';
+    document.getElementById('f-kk').value='';
+    document.getElementById('f-plastik').checked=false;
+    document.getElementById('f-missstaff').checked=false;
+    document.getElementById('f-pl-name').value='';
+    document.getElementById('f-pl-time').value='';
+    document.getElementById('f-gastro').value='';
+    document.getElementById('f-schluss').value='';
+    document.getElementById('f-ende').value='';
+    document.getElementById('f-staff-rows').innerHTML='';
+    this.addStaffRow();this.addStaffRow();
+  },
+
+  /* Formular mit bestehendem Event vorbef\u00fcllen */
+  load(ev){
+    this.mode='edit'; this.editId=ev.id;
+    this.currentLoc=ev.location; this.staffRows=0;
+    document.getElementById('entry-title').textContent='\u270F Event bearbeiten';
+    document.getElementById('f-loc').value=ev.location;
+    document.getElementById('f-date').value=ev.date;
+    document.getElementById('f-event').value=ev.event||'';
+    document.getElementById('f-notes').value=ev.notes||'';
+    document.getElementById('f-kk').value=ev.kundenkarte||'';
+    document.getElementById('f-plastik').checked=!!ev.plastik;
+    document.getElementById('f-missstaff').checked=!!ev.missingStaff;
+    document.getElementById('f-pl-name').value=ev.prodL?ev.prodL.name:'';
+    document.getElementById('f-pl-time').value=ev.prodL?ev.prodL.startTime:'';
+    document.getElementById('f-gastro').value=ev.startGastro||'';
+    document.getElementById('f-schluss').value=ev.schlussShow||'';
+    document.getElementById('f-ende').value=ev.belegungsende||'';
+    /* Besetzungszeilen aufbauen */
+    document.getElementById('f-staff-rows').innerHTML='';
+    ev.barStaff.forEach(s=>{
+      this.staffRows++;const n=this.staffRows;
+      const div=document.createElement('div');
+      div.className='staff-entry-row';div.id=`srow-${n}`;
+      div.innerHTML=`<span class="se-pos">${n}</span>
+        <input class="fi" type="text" placeholder="Name" id="sn-${n}" value="${s.name||''}" style="flex:2">
+        <input class="fi" type="time" id="st-${n}" value="${s.ov||''}" style="width:90px" title="Manuelle Startzeit">
+        <label class="miss-cb"><input type="checkbox" id="sm-${n}" ${s.miss?'checked':''}> fehlt</label>
+        <button class="se-rm" onclick="document.getElementById('srow-${n}').remove()">&#10005;</button>`;
+      document.getElementById('f-staff-rows').appendChild(div);
+    });
+    if(this.staffRows===0){this.addStaffRow();this.addStaffRow();}
+  },
+
+  addStaffRow(){
+    this.staffRows++;const n=this.staffRows;
+    const div=document.createElement('div');
+    div.className='staff-entry-row';div.id=`srow-${n}`;
+    div.innerHTML=`<span class="se-pos">${n}</span>
+      <input class="fi" type="text" placeholder="Name" id="sn-${n}" style="flex:2">
+      <input class="fi" type="time" id="st-${n}" style="width:90px" title="Manuelle Startzeit (leer = auto)">
+      <label class="miss-cb" title="Position noch nicht besetzt">
+        <input type="checkbox" id="sm-${n}"> fehlt
+      </label>
+      <button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`;
+    document.getElementById('f-staff-rows').appendChild(div);
+  },
+
+  collectStaff(){
+    const rows=[];let pos=1;
+    document.querySelectorAll('#f-staff-rows .staff-entry-row').forEach(row=>{
+      const id=row.id.replace('srow-','');
+      const name=document.getElementById(`sn-${id}`)?.value.trim()||'';
+      const time=document.getElementById(`st-${id}`)?.value||null;
+      const miss=document.getElementById(`sm-${id}`)?.checked||false;
+      if(name||miss)rows.push({name,pos,ov:time||null,miss});
+      pos++;
+    });
+    return rows;
+  },
+
+  getData(){
+    const plName=document.getElementById('f-pl-name').value.trim();
+    const plTime=document.getElementById('f-pl-time').value;
+    return{
+      id:this.mode==='edit'?this.editId:uid(),
+      date:document.getElementById('f-date').value,
+      location:Number(document.getElementById('f-loc').value),
+      event:document.getElementById('f-event').value.trim()||'(kein Name)',
+      notes:document.getElementById('f-notes').value.trim(),
+      plastik:document.getElementById('f-plastik').checked,
+      missingStaff:document.getElementById('f-missstaff').checked,
+      kundenkarte:document.getElementById('f-kk').value,
+      prodL:plName?{name:plName,startTime:plTime||'--:--'}:null,
+      startGastro:document.getElementById('f-gastro').value||null,
+      schlussShow:document.getElementById('f-schluss').value||null,
+      belegungsende:document.getElementById('f-ende').value||null,
+      barStaff:this.collectStaff(),
+    };
+  },
+
+  save(){
+    const ev=this.getData();
+    if(!ev.date){alert('Bitte ein Datum eingeben.');return;}
+    if(this.mode==='edit'){
+      const idx=EVENTS.findIndex(e=>e.id===this.editId);
+      if(idx!==-1)EVENTS[idx]=ev;
+    } else {
+      EVENTS.push(ev);
+    }
+    Cloud.push();
+    App.render();App.closeEntry();
+  },
+
+  saveAndNew(){
+    const ev=this.getData();
+    if(!ev.date){alert('Bitte ein Datum eingeben.');return;}
+    if(this.mode==='edit'){
+      const idx=EVENTS.findIndex(e=>e.id===this.editId);
+      if(idx!==-1)EVENTS[idx]=ev;
+      Cloud.push();
+      App.render();App.closeEntry();
+    } else {
+      EVENTS.push(ev);Cloud.push();App.render();
+      this.init(this.currentLoc);
+    }
+  }
+};
+
+/* ============================================================
+   APP CONTROLLER
+   ============================================================ */
+const App={
+  _currentEvId:null,  /* ID des aktuell ge\u00f6ffneten Events im Detail-Modal */
+
+  init(){
+    if(_PRESET_KEY && !localStorage.getItem(APIKEY_KEY)){
+      localStorage.setItem(APIKEY_KEY, _PRESET_KEY);
+    }
+    /* Passwort prüfen – erst dann App starten */
+    if(!Auth.check()){ Auth.showScreen(); return; }
+    this._start();
+  },
+
+  _start(){
+    /* Gespeichertes Theme anwenden */
+    if(localStorage.getItem('thekenplan_theme')==='light'){
+      document.body.classList.add('light');
+      const tb=document.getElementById('theme-btn');if(tb)tb.textContent='☀';
+    }
+    loadLocal();
+    applyAdminMode();
+    document.getElementById('search-inp').addEventListener('input',e=>{S.search=e.target.value.trim();renderGrid();});
+    document.getElementById('filter-staff').addEventListener('change',e=>{S.filterStaff=e.target.value;renderGrid();});
+    this.render();
+    Cloud.fetch().then(ok=>{ if(ok) App.render(); });
+  },
+  render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
+  prevWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()-7);this.render();},
+  nextWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()+7);this.render();},
+  prevMonth(){
+    const d=new Date(S.monday);d.setMonth(d.getMonth()-1);
+    S.monday=monday(d);this.render();
+  },
+  nextMonth(){
+    const d=new Date(S.monday);d.setMonth(d.getMonth()+1);
+    S.monday=monday(d);this.render();
+  },
+  setLoc(l){S.filterLoc=l;S.filterStaff='';S.search='';S.onlyMiss=false;
+    document.getElementById('search-inp').value='';this.render();},
+  toggleMiss(){
+    S.onlyMiss=!S.onlyMiss;
+    document.getElementById('btn-miss').style.background=S.onlyMiss?'rgba(255,64,64,.3)':'';
+    renderGrid();},
+  resetFilters(){S.filterLoc=0;S.filterStaff='';S.search='';S.onlyMiss=false;
+    document.getElementById('search-inp').value='';
+    document.getElementById('filter-staff').value='';
+    renderGrid();renderLocBtns();},
+
+  /* Detail-Modal */
+  openDet(ev){
+    this._currentEvId=ev.id;
+    document.getElementById('m-del-confirm').style.display='none';
+    openDet(ev);
+  },
+  closeDet(e){
+    if(e&&e.target!==document.getElementById('det-ov'))return;
+    document.getElementById('det-ov').classList.remove('open');
+    document.body.style.overflow='';},
+
+  /* Bearbeiten – aus Modal */
+  editEvent(){
+    const ev=EVENTS.find(e=>e.id===this._currentEvId);
+    if(!ev)return;
+    this.closeDet({target:document.getElementById('det-ov')});
+    Form.load(ev);
+    document.getElementById('entry-ov').classList.add('open');
+    document.body.style.overflow='hidden';
+  },
+
+  /* Bearbeiten – direkt von Karte (Hover-Button) */
+  editEventById(id){
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev)return;
+    Form.load(ev);
+    document.getElementById('entry-ov').classList.add('open');
+    document.body.style.overflow='hidden';
+  },
+
+  /* L\u00f6schen – Best\u00e4tigungsschritt anzeigen */
+  confirmDelete(){
+    document.getElementById('m-del-confirm').style.display='flex';
+  },
+  cancelDelete(){
+    document.getElementById('m-del-confirm').style.display='none';
+  },
+
+  /* Löschen – aus Modal bestätigt */
+  deleteEvent(){
+    const idx=EVENTS.findIndex(e=>e.id===this._currentEvId);
+    if(idx!==-1)EVENTS.splice(idx,1);
+    Cloud.push();
+    this.closeDet({target:document.getElementById('det-ov')});
+    this.render();
+  },
+
+  /* Löschen – direkt von Karte (Hover-Button) */
+  deleteEventById(id){
+    if(!confirm('Dieses Event wirklich l\u00f6schen?'))return;
+    const idx=EVENTS.findIndex(e=>e.id===id);
+    if(idx!==-1)EVENTS.splice(idx,1);
+    Cloud.push();
+    this.render();
+  },
+
+  /* Neues Event erfassen */
+  openEntry(locId){
+    Form.init(locId);
+    document.getElementById('entry-ov').classList.add('open');
+    document.body.style.overflow='hidden';},
+  closeEntry(e){
+    if(e&&e.target!==document.getElementById('entry-ov'))return;
+    document.getElementById('entry-ov').classList.remove('open');
+    document.body.style.overflow='';},
+
+
+
+  toggleTheme(){
+    const isLight=document.body.classList.toggle('light');
+    localStorage.setItem('thekenplan_theme', isLight?'light':'dark');
+    document.getElementById('theme-btn').textContent=isLight?'☀':'☾';
+  },
+
+  printPDF(){
+    window.print();
+  },
+
+  exportJSON(){
+    const json=JSON.stringify(EVENTS,null,2);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+    a.download=`thekenplan_${lds(new Date())}.json`;
+    a.click();URL.revokeObjectURL(a.href);
+  },
+
+  /* ── Settings Modal ── */
+  openSettings(){
+    const bid=document.getElementById('stg-binid');
+    const bkey=document.getElementById('stg-key');
+    if(bid)bid.value=Cloud.binId();
+    if(bkey)bkey.value=Cloud.apiKey();
+    applyAdminMode();
+    document.getElementById('stg-ov').classList.add('open');
+    document.body.style.overflow='hidden';
+  },
+
+  closeSettings(e){
+    if(e&&e.target!==document.getElementById('stg-ov'))return;
+    document.getElementById('stg-ov').classList.remove('open');
+    document.body.style.overflow='';
+  },
+
+  saveSettings(){
+    const bid=(document.getElementById('stg-binid').value||'').trim();
+    const key=(document.getElementById('stg-key').value||'').trim();
+    if(!bid||!key){alert('Bitte Bin ID und Master Key eingeben.');return;}
+    localStorage.setItem(BINID_KEY, bid);
+    localStorage.setItem(APIKEY_KEY, key);
+    /* Admin-Modus automatisch aktivieren wenn Key eingegeben */
+    localStorage.setItem(ADMIN_KEY,'1');
+    applyAdminMode();
+    /* Aktuelle Daten sofort in die Cloud laden */
+    Cloud.push().then(ok=>{
+      if(ok){
+        alert('Verbunden! Daten wurden in die Cloud gespeichert.\n\nDeine Mitarbeiter können jetzt die Datei öffnen – sie sehen immer den aktuellen Stand.');
+      } else {
+        alert('Verbindung fehlgeschlagen. Bitte Bin ID und Master Key prüfen.');
+      }
+    });
+  },
+
+  async testConnection(){
+    const ok=await Cloud.fetch();
+    if(ok){ App.render(); alert('Verbindung erfolgreich! Daten wurden geladen.'); }
+    else { alert('Verbindung fehlgeschlagen. Bitte Bin ID und Master Key im Einstellungen-Fenster prüfen.'); }
+  },
+
+  toggleAdmin(){
+    if(isAdmin()){
+      if(!confirm('Admin-Modus deaktivieren? Du kannst dann keine Events mehr bearbeiten.'))return;
+      localStorage.removeItem(ADMIN_KEY);
+    } else {
+      /* Nur aktivieren wenn API-Key vorhanden */
+      if(!Cloud.apiKey()){
+        alert('Bitte zuerst den Master Key eingeben und verbinden.');return;
+      }
+      localStorage.setItem(ADMIN_KEY,'1');
+    }
+    applyAdminMode();
+  },
+
+  /* Schreibgeschützte HTML für Mitarbeiter exportieren */
+  exportViewerHTML(){
+    const binId=Cloud.binId();
+    if(!binId){alert('Bitte zuerst einen Bin erstellen (Schritt 2 in Einstellungen).');return;}
+    const src=document.documentElement.outerHTML;
+    const patched=src
+      /* Bin ID hardcoden */
+      .replace(/localStorage\.getItem\(BINID_KEY\)\s*\|\|\s*''/g,`'${binId}'`)
+      /* Master Key entfernen */
+      .replace(/const _PRESET_KEY\s*=\s*'[^']*'/,`const _PRESET_KEY = ''`)
+      .replace(/localStorage\.getItem\(APIKEY_KEY\)\s*\|\|\s*_PRESET_KEY/g,"''")
+      /* Admin-Modus sperren */
+      .replace(/localStorage\.getItem\(ADMIN_KEY\)/g,"null")
+      .replace(/localStorage\.setItem\(ADMIN_KEY,'1'\)/g,"null");
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([patched],{type:'text/html'}));
+    a.download='thekenplan_mitarbeiter.html';
+    a.click();URL.revokeObjectURL(a.href);
+  },
+};
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.ov.open').forEach(o=>o.classList.remove('open'));
+    document.body.style.overflow='';
+  }
+  if(e.key==='ArrowLeft' &&!document.querySelector('.ov.open'))App.prevWeek();
+  if(e.key==='ArrowRight'&&!document.querySelector('.ov.open'))App.nextWeek();
+});
+
+/* ============================================================
+   PASSWORT-SYSTEM
+   VIEWER_PW: Passwort für Mitarbeiter (nur lesen)
+   ADMIN_PW:  Passwort für Admin (bearbeiten)
+   Beide können hier geändert werden.
+   ============================================================ */
+const VIEWER_PW = 'theke2026';   /* ← Mitarbeiter-Passwort hier ändern */
+const ADMIN_PW  = 'admin2026';   /* ← Admin-Passwort hier ändern */
+const PW_SESSION_KEY = 'thekenplan_auth';
+
+const Auth = {
+  /* Prüft ob bereits eingeloggt (sessionStorage – bleibt bis Tab geschlossen) */
+  check() {
+    const saved = sessionStorage.getItem(PW_SESSION_KEY);
+    if (saved === 'admin') { this.grantAccess('admin'); return true; }
+    if (saved === 'viewer'){ this.grantAccess('viewer'); return true; }
+    return false;
+  },
+
+  /* Passwort-Bildschirm anzeigen */
+  showScreen() {
+    document.getElementById('pw-screen').style.display = 'flex';
+    document.getElementById('pw-hint').textContent =
+      'Mitarbeiter: Teampasswort verwenden · Admin: eigenes Passwort';
+    setTimeout(()=>document.getElementById('pw-input').focus(), 100);
+  },
+
+  /* Eingabe prüfen */
+  submit() {
+    const val = (document.getElementById('pw-input').value || '').trim();
+    const err = document.getElementById('pw-err');
+    if (val === ADMIN_PW) {
+      sessionStorage.setItem(PW_SESSION_KEY, 'admin');
+      this.grantAccess('admin');
+    } else if (val === VIEWER_PW) {
+      sessionStorage.setItem(PW_SESSION_KEY, 'viewer');
+      this.grantAccess('viewer');
+    } else {
+      err.textContent = 'Falsches Passwort – bitte erneut versuchen.';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  },
+
+  /* Zugang gewähren */
+  grantAccess(role) {
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('app-root').style.display  = 'block';
+    if (role === 'admin') {
+      localStorage.setItem(ADMIN_KEY, '1');
+    } else {
+      localStorage.removeItem(ADMIN_KEY);
+    }
+    applyAdminMode();
+  },
+
+  /* Abmelden */
+  logout() {
+    sessionStorage.removeItem(PW_SESSION_KEY);
+    localStorage.removeItem(ADMIN_KEY);
+    document.getElementById('app-root').style.display = 'none';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-err').textContent = '';
+    document.getElementById('pw-screen').style.display = 'flex';
+    setTimeout(()=>document.getElementById('pw-input').focus(), 100);
+  }
+};
+
+App.init();
+</script>
+</body>
+</html>
