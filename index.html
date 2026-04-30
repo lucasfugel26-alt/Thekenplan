@@ -1567,23 +1567,10 @@ function loadLocal() {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) {
-      const stored = JSON.parse(s);
-      if (Array.isArray(stored) && stored.length > 0) {
-        /* Smart Merge:
-           - Gespeicherte Events (inkl. Nutzer-Änderungen) bleiben erhalten
-           - Neue eingebaute Events (neue IDs) werden automatisch hinzugefügt
-           - So werden neue Monate beim Download sofort sichtbar */
-        const storedIds = new Set(stored.map(e => e.id));
-        const builtIn   = JSON.parse(DEFAULT_EVENTS);
-        const newEvents = builtIn.filter(e => !storedIds.has(e.id));
-        const merged    = [...stored, ...newEvents];
+      const p = JSON.parse(s);
+      if (Array.isArray(p) && p.length > 0) {
         EVENTS.length = 0;
-        merged.forEach(e => EVENTS.push(e));
-        if (newEvents.length > 0) {
-          /* Neue Events direkt speichern damit nächster Load schon den vollen Stand hat */
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(EVENTS));
-          console.log(`[Merge] ${newEvents.length} neue Events aus Datei hinzugefügt.`);
-        }
+        p.forEach(e => EVENTS.push(e));
         return true;
       }
     }
@@ -1623,30 +1610,19 @@ const Cloud = {
       });
       if(!res.ok)throw new Error(res.status);
       const data=await res.json();
-      const cloudEvs=data.record||data;
-      if(Array.isArray(cloudEvs)){
-        const builtIn=JSON.parse(DEFAULT_EVENTS);
-        if(cloudEvs.length===0){
-          /* Bin ist leer – lokale Daten hochladen */
-          await this.save();
-        } else {
-          /* Smart Merge:
-             - Cloud-Daten sind Basis (enthalten Nutzer-Änderungen)
-             - Neue eingebaute Events (neue Monate) werden ergänzt
-             - Nichts wird gelöscht oder überschrieben */
-          const cloudIds=new Set(cloudEvs.map(e=>e.id));
-          const newBuiltIn=builtIn.filter(e=>!cloudIds.has(e.id));
-          const merged=[...cloudEvs,...newBuiltIn];
-          EVENTS.length=0;merged.forEach(e=>EVENTS.push(e));
-          saveLocal();
-          if(newBuiltIn.length>0){
-            /* Neue Events auch in Cloud speichern */
-            console.log(`[Cloud Merge] ${newBuiltIn.length} neue Events in Cloud hochgeladen.`);
-            await this.save();
-          }
-        }
+      const cloudEvs=Array.isArray(data)?data:(data.record||data);
+      if(Array.isArray(cloudEvs)&&cloudEvs.length>0){
+        /* Cloud ist IMMER die Wahrheit – alle Admin-Änderungen sind dort */
+        EVENTS.length=0;
+        cloudEvs.forEach(e=>EVENTS.push(e));
+        saveLocal();
         const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
         this.setSyncStatus('ok',`Synchronisiert ${now}`);
+        return true;
+      } else if(cloudEvs.length===0){
+        /* Leerer Bin – lokale Daten hochladen */
+        await this.save();
+        this.setSyncStatus('ok','Initialisiert');
         return true;
       }
     } catch(e) {
