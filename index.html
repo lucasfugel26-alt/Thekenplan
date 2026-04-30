@@ -1514,7 +1514,7 @@ function loadData()  { return loadLocal(); }
 
 /* --- Cloud (JSONBin.io) ----------------------------------- */
 const Cloud = {
-  binId()  { return localStorage.getItem(BINID_KEY)||''; },
+  binId()  { return localStorage.getItem(BINID_KEY) || '69f313d836566621a80b7dc7'; },
   apiKey() { return localStorage.getItem(APIKEY_KEY) || _PRESET_KEY; },
   isConfigured() { return !!(this.binId()&&this.apiKey()); },
 
