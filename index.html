@@ -500,7 +500,7 @@ body.light{
     <span class="cnt" id="cnt"></span>
     <div style="width:1px;height:22px;background:var(--bd)"></div>
     <button class="btn btn-ghost admin-only" onclick="App.exportJSON()" title="Alle Events als JSON-Datei speichern">&#8659; Export</button>
-    <button class="btn btn-ghost admin-only" style="color:var(--miss);border-color:rgba(255,64,64,.2)" onclick="resetToDefaults()" title="Alle &Auml;nderungen verwerfen">&#8635; Zur&uuml;cksetzen</button>
+    <button class="btn btn-ghost admin-only" onclick="App.forceSync()" title="Neue eingebaute Events in Cloud laden" style="color:#22d4a4;border-color:rgba(34,212,164,.3)">&#8593; Sync</button>
   </div>
 
   <!-- ── WEEK GRID ── -->
@@ -2301,6 +2301,25 @@ const App={
     a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
     a.download=`thekenplan_${lds(new Date())}.json`;
     a.click();URL.revokeObjectURL(a.href);
+  },
+
+  async forceSync(){
+    /* Fügt neue eingebaute Events zur Cloud hinzu ohne bestehende zu löschen */
+    const builtIn = JSON.parse(DEFAULT_EVENTS);
+    const existingIds = new Set(EVENTS.map(e=>e.id));
+    const newEvents = builtIn.filter(e=>!existingIds.has(e.id));
+    if(newEvents.length === 0){
+      alert('Alles bereits aktuell – keine neuen Events gefunden.');
+      return;
+    }
+    newEvents.forEach(e=>EVENTS.push(e));
+    const ok = await Cloud.push();
+    if(ok){
+      App.render();
+      alert(`✅ ${newEvents.length} neue Events in die Cloud geladen.\n\nAlle Geräte sehen jetzt den aktuellen Stand nach einem Refresh.`);
+    } else {
+      alert('Fehler beim Sync. Bitte Verbindung prüfen.');
+    }
   },
 
   /* ── Settings Modal ── */
