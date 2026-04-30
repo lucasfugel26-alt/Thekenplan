@@ -2085,8 +2085,12 @@ const App={
     if(_PRESET_KEY && !localStorage.getItem(APIKEY_KEY)){
       localStorage.setItem(APIKEY_KEY, _PRESET_KEY);
     }
-    /* Passwort prüfen – erst dann App starten */
-    if(!Auth.check()){ Auth.showScreen(); return; }
+    if(!Auth.check()){
+      Auth.showScreen();
+      return;
+    }
+    /* Bereits eingeloggt – direkt starten */
+    document.getElementById('app-root').style.display = 'block';
     this._start();
   },
 
@@ -2100,7 +2104,11 @@ const App={
     applyAdminMode();
     document.getElementById('search-inp').addEventListener('input',e=>{S.search=e.target.value.trim();renderGrid();});
     document.getElementById('filter-staff').addEventListener('change',e=>{S.filterStaff=e.target.value;renderGrid();});
-    this.render();
+    /* Erst lokale Daten zeigen, dann Cloud im Hintergrund */
+    if(EVENTS.length > 0){
+      this.render();
+    }
+    /* Cloud laden – überschreibt lokale Daten sobald bereit */
     Cloud.fetch().then(ok=>{ if(ok) App.render(); });
   },
   render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
@@ -2343,14 +2351,18 @@ const Auth = {
 
   /* Zugang gewähren */
   grantAccess(role) {
-    document.getElementById('pw-screen').style.display = 'none';
-    document.getElementById('app-root').style.display  = 'block';
     if (role === 'admin') {
       localStorage.setItem(ADMIN_KEY, '1');
     } else {
       localStorage.removeItem(ADMIN_KEY);
     }
     applyAdminMode();
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('app-root').style.display  = 'block';
+    /* Lade-Spinner zeigen bis Cloud antwortet */
+    document.getElementById('week-grid').innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--txm);font-size:.9rem">Lade Plandaten…</div>';
+    App._start();
   },
 
   /* Abmelden */
