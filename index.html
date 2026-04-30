@@ -304,14 +304,98 @@ body.light{
 }
 /* ── PRINT / PDF STYLES ──────────────────────────────── */
 @media print{
-  body{background:#fff!important;color:#000!important}
-  .pw-screen,.app-header button,.gear-btn,.controls,
-  .modal-ov,.ov,.card-acts,.admin-only,.sync-row{display:none!important}
-  .week-grid{grid-template-columns:repeat(7,1fr)!important;gap:6px}
-  .ev-card{break-inside:avoid;border:1px solid #ccc!important;
-    background:#fff!important;box-shadow:none!important}
-  .plastik-banner{border:1px solid #c8861a;color:#c8861a}
-  .app{padding:0 8px}
+  @page { size: A4 landscape; margin: 10mm; }
+
+  /* Alles ausblenden außer Wochenraster */
+  .pw-screen,.app-header,.loc-tabs,.controls,.loc-row,
+  .modal-ov,.ov,.card-acts,.admin-only,.sync-row,
+  #conflict-panel { display:none!important }
+
+  body { background:#fff!important; color:#000!important; font-size:11px; }
+
+  /* Druckheader */
+  .app::before {
+    content: 'Thekenplan · Wochenübersicht';
+    display:block;
+    font-family: var(--fh);
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #000;
+  }
+
+  .app { padding: 0; max-width:100%; }
+
+  /* 7 Spalten gleichmäßig */
+  .week-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  .day-col {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    break-inside: avoid;
+    overflow: visible !important;
+  }
+
+  .day-head {
+    background: #f0f0f0 !important;
+    padding: 4px 6px !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .d-name { color: #444 !important; font-size: 9px !important; }
+  .d-num  { font-size: 14px !important; }
+  .d-month { font-size: 9px !important; color: #666 !important; }
+  .d-cnt  { font-size: 8px !important; background: #e0e0e0 !important; color: #444 !important; }
+
+  .day-body { padding: 4px !important; gap: 3px !important; }
+
+  .ev-card {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    border-radius: 3px !important;
+    padding: 4px 5px !important;
+    break-inside: avoid;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  /* Farbige linke Kante beibehalten */
+  .ev-card[data-loc="1"] { border-left: 3px solid #f5a623 !important; }
+  .ev-card[data-loc="2"] { border-left: 3px solid #22d4a4 !important; }
+  .ev-card[data-loc="3"] { border-left: 3px solid #e05aff !important; }
+  .ev-card[data-loc="4"] { border-left: 3px solid #ff6b6b !important; }
+
+  .loc-badge { font-size: 7px !important; padding: 1px 4px !important; background:#eee!important; color:#333!important; }
+  .ev-name   { font-size: 9px !important; white-space: normal !important; }
+  .ev-time   { font-size: 8px !important; color: #555 !important; }
+  .ev-time span { color: #777 !important; }
+  .srow      { font-size: 8px !important; gap: 3px !important; }
+  .sb        { font-size: 7px !important; width: 16px !important; }
+  .sname     { color: #222 !important; }
+  .stime     { color: #555 !important; }
+  .ev-note   { font-size: 7px !important; color: #666 !important; }
+  .ev-top-row { margin-bottom: 2px !important; }
+
+  .plastik-banner {
+    font-size: 7px !important;
+    padding: 1px 4px !important;
+    background: #fff3cd !important;
+    border: 1px solid #f5a623 !important;
+    color: #8a6000 !important;
+  }
+
+  .tag { font-size: 7px !important; padding: 0px 4px !important; }
+  .tag-m { background: #ffe0e0 !important; color: #cc0000 !important; }
+
+  .miss-card { background: #fff5f5 !important; }
+  .cancelled { opacity: 0.4 !important; }
+  .day-empty { color: #ccc !important; font-size: 8px !important; }
 }
 /* ── PASSWORD SCREEN ─────────────────────────────────── */
 .pw-screen{position:fixed;inset:0;background:var(--bg);z-index:9000;
