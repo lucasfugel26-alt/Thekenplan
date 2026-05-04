@@ -6,6 +6,7 @@
 <title>Thekenplan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#0d0e14;--bg2:#13141d;--bg3:#1a1c28;--bg4:#20233a;
@@ -416,6 +417,11 @@ body.light{
 .pw-box button:hover{opacity:.88}
 .pw-err{color:var(--miss);font-size:.78rem;margin-top:6px;min-height:18px}
 .pw-hint{font-size:.7rem;color:var(--txm);margin-top:10px}
+.pw-box input{margin-bottom:8px}
+.pw-box input:last-of-type{margin-bottom:10px}
+.ev-card.my-shift{border-color:rgba(255,255,255,.3)!important;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+.srow.mine .sname{font-weight:700;color:var(--tx)}
+.stg-user-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bd)}
 
 </style>
 </head>
@@ -423,12 +429,13 @@ body.light{
 <div id="pw-screen" class="pw-screen" style="display:none">
   <div class="pw-box">
     <div class="pw-logo">Thekenplan</div>
-    <div class="pw-sub" id="pw-sub">Bitte Passwort eingeben</div>
-    <input type="password" id="pw-input" placeholder="••••••••"
+    <div class="pw-sub">Bitte mit deinem Account anmelden</div>
+    <input type="email" id="pw-email" placeholder="E-Mail"
+           onkeydown="if(event.key==='Enter')document.getElementById('pw-input').focus()">
+    <input type="password" id="pw-input" placeholder="Passwort"
            onkeydown="if(event.key==='Enter')Auth.submit()">
-    <button onclick="Auth.submit()">Weiter</button>
+    <button onclick="Auth.submit()">Anmelden</button>
     <div class="pw-err" id="pw-err"></div>
-    <div class="pw-hint" id="pw-hint"></div>
   </div>
 </div>
 
@@ -450,8 +457,8 @@ body.light{
       <button class="gear-btn" onclick="Auth.logout()" title="Abmelden" style="background:var(--bg3);border-color:var(--bd);color:var(--txd)">
         &#128274; Abmelden
       </button>
-      <button class="gear-btn admin-only" onclick="App.openSettings()" id="gear-btn">
-        &#9881; <span id="gear-label">Einstellungen</span>
+      <button class="gear-btn" onclick="App.openSettings()" id="gear-btn">
+        &#9881; Einstellungen
       </button>
       <div class="week-nav">
         <button class="wbtn" onclick="App.prevMonth()" title="Vorheriger Monat">&#171;</button>
@@ -642,67 +649,28 @@ body.light{
   <div class="settings-modal" onclick="event.stopPropagation()">
     <button class="m-x" onclick="App.closeSettings()">&#10005;</button>
     <div class="stg-title">&#9881; Einstellungen</div>
-    <div class="stg-sub">Cloud-Synchronisation &middot; Admin-Modus</div>
+    <div class="stg-sub">Account &middot; Mitarbeiter &middot; Design</div>
 
-    <!-- Status -->
     <div class="stg-status" id="stg-status-row">
       <span class="sync-dot off" id="stg-dot"></span>
-      <span id="stg-status-text">Nicht konfiguriert</span>
+      <span id="stg-status-text">Nicht verbunden</span>
     </div>
 
-    <!-- Schritt 1: Master Key -->
-    <div class="stg-sec">Schritt 1 &ndash; Master Key eingeben</div>
-    <div class="fg">
-      <label>Master Key (von jsonbin.io/app/apikeys)</label>
-      <input class="fi" type="password" id="stg-key" placeholder="$2b$10$...">
-      <div class="stg-hint">
-        Nur einmal n&ouml;tig. Wird ausschlie&szlig;lich lokal auf <em>deinem</em> Ger&auml;t gespeichert.
-      </div>
-    </div>
+    <div class="stg-sec">Mein Account</div>
+    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:12px 14px;margin-bottom:6px;font-size:.85rem"></div>
 
-    <!-- Schritt 2: Bin erstellen ODER vorhandene ID eingeben -->
-    <div class="stg-sec" style="margin-top:16px">Schritt 2 &ndash; Speicherplatz einrichten</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="Cloud.createBin()" style="flex:1">
-        &#10024; Neuen Bin automatisch erstellen
-      </button>
-    </div>
-    <div class="stg-hint" style="margin-bottom:12px">
-      Klicke den Button &ndash; die App erstellt automatisch einen Speicherplatz auf JSONBin
-      und l&auml;dt alle Plandaten hoch. Du musst nichts manuell anlegen.
-    </div>
-    <div class="fg" style="margin-top:4px">
-      <label>Oder vorhandene Bin ID eintragen</label>
-      <input class="fi" type="text" id="stg-binid" placeholder="z.B. 6824abc123def456789">
-      <div class="stg-hint">Nur n&ouml;tig wenn du schon einen Bin hast.</div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="App.saveSettings()">&#10003; Verbinden</button>
-      <button class="btn btn-ghost" onclick="App.testConnection()">&#8635; Verbindung testen</button>
-    </div>
+    <div class="stg-sec admin-only" style="margin-top:20px">Mitarbeiter-Verwaltung</div>
+    <div class="stg-hint admin-only">Rollen &auml;ndern. Neue Accounts im <a href="https://supabase.com/dashboard" target="_blank" style="color:#22d4a4">Supabase Dashboard</a> &rarr; Authentication &rarr; Users anlegen.</div>
+    <div id="stg-users-list" class="admin-only" style="margin-top:8px"></div>
 
-    <!-- Admin-Modus -->
-    <div class="stg-sec" style="margin-top:20px">Admin-Modus</div>
-    <div id="stg-admin-info" style="font-size:.82rem;color:var(--txd);margin-bottom:10px"></div>
+    <div class="stg-sec" style="margin-top:20px">Erscheinungsbild</div>
+    <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
+
+    <div class="stg-sec admin-only" style="margin-top:20px">Datensicherung</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost" id="stg-admin-btn" onclick="App.toggleAdmin()">
-        &#128274; Admin-Modus aktivieren
-      </button>
+      <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
+      <button class="btn btn-ghost admin-only" onclick="App.forceSync()" style="color:#22d4a4;border-color:rgba(34,212,164,.3)">&#8593; Builtin-Events hochladen</button>
     </div>
-    <div class="stg-hint" style="margin-top:8px">
-      Im Admin-Modus kannst du Events bearbeiten und l&ouml;schen.<br>
-      Deine Mitarbeiter &ouml;ffnen dieselbe Datei &ndash; sie sehen den Plan, k&ouml;nnen aber nichts &auml;ndern.
-    </div>
-
-    <!-- Mitarbeiter-Version -->
-    <div class="stg-sec" style="margin-top:20px">F&uuml;r Mitarbeiter</div>
-    <div class="stg-hint" style="margin-bottom:10px">
-      Exportiere eine schreibgesch&uuml;tzte Version dieser Datei.<br>
-      Diese enth&auml;lt die Bin&nbsp;ID, aber keinen Master&nbsp;Key &ndash; nur lesbar.
-    </div>
-    <button class="btn btn-ghost" onclick="App.exportViewerHTML()">
-      &#8659; Mitarbeiter-Version exportieren
-    </button>
   </div>
 </div>
 
@@ -1549,15 +1517,15 @@ let EVENTS=[];
 const DEFAULT_EVENTS = JSON.stringify(EVENTS);
 
 /* ============================================================
-   LOKALE SPEICHERUNG + CLOUD SYNC (JSONBin.io)
+   LOKALE SPEICHERUNG + SUPABASE SYNC
    ============================================================ */
-const STORAGE_KEY  = 'thekenplan_events_v1';
-const BINID_KEY    = 'thekenplan_binid';
-const APIKEY_KEY   = 'thekenplan_apikey';
-const ADMIN_KEY    = 'thekenplan_admin';
+const STORAGE_KEY = 'thekenplan_events_v1';
+const SUPABASE_URL = 'https://anagoloyaaikuexzbxae.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_XTuf7VVSntXltXks1tslUw_mWq8TRWn';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* Voreingestellter Admin-Key – NUR in der Admin-Version enthalten */
-const _PRESET_KEY  = '$2a$10$L2mDEngfq28lvC.BEhPfQeGqHPbozrqIi.pi7IGxmBiUHtPOOOHGK';
+let currentUser    = null;
+let currentProfile = null;
 
 /* --- Lokal speichern/laden -------------------------------- */
 function saveLocal() {
@@ -1574,20 +1542,15 @@ function loadLocal() {
         return true;
       }
     }
-  } catch(e) {
-    console.warn('[loadLocal] Fehler:', e);
-  }
+  } catch(e) {}
   return false;
 }
-/* Alias für ältere Aufrufe */
-function saveData()  { saveLocal(); }
-function loadData()  { return loadLocal(); }
+function saveData() { saveLocal(); }
+function loadData() { return loadLocal(); }
 
-/* --- Cloud (JSONBin.io) ----------------------------------- */
+/* --- Cloud (Supabase) ------------------------------------- */
 const Cloud = {
-  binId()  { return localStorage.getItem(BINID_KEY) || '69f3815f856a6821898f799c'; },
-  apiKey() { return localStorage.getItem(APIKEY_KEY) || _PRESET_KEY; },
-  isConfigured() { return !!(this.binId()&&this.apiKey()); },
+  isConfigured() { return !!currentUser; },
 
   setSyncStatus(state, text) {
     ['sync-dot','stg-dot'].forEach(id=>{
@@ -1601,113 +1564,61 @@ const Cloud = {
   },
 
   async fetch() {
-    const id=this.binId(), key=this.apiKey();
-    if(!id||!key){this.setSyncStatus('off','Nicht konfiguriert');return false;}
-    this.setSyncStatus('busy','Lade Daten\u2026');
+    if(!currentUser){this.setSyncStatus('off','Nicht angemeldet');return false;}
+    this.setSyncStatus('busy','Lade Daten…');
     try {
-      const res=await fetch(`/api/plan?binId=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`,{
-        cache:'no-store'
-      });
-      if(!res.ok)throw new Error(res.status);
-      const data=await res.json();
-      const cloudEvs=Array.isArray(data)?data:(data.record||data);
-      if(Array.isArray(cloudEvs)&&cloudEvs.length>0){
-        /* Cloud ist IMMER die Wahrheit – alle Admin-Änderungen sind dort */
+      const {data,error}=await db.from('events').select('data').order('date');
+      if(error)throw error;
+      if(data.length>0){
         EVENTS.length=0;
-        cloudEvs.forEach(e=>EVENTS.push(e));
+        data.forEach(row=>EVENTS.push(row.data));
         saveLocal();
         const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
         this.setSyncStatus('ok',`Synchronisiert ${now}`);
         return true;
-      } else if(cloudEvs.length===0){
-        /* Leerer Bin – lokale Daten hochladen */
+      } else {
         await this.save();
-        this.setSyncStatus('ok','Initialisiert');
         return true;
       }
     } catch(e) {
-      this.setSyncStatus('err','Ladefehler \u2013 zeige lokale Daten');
-      console.warn('[Cloud] fetch error:',e);
+      this.setSyncStatus('err','Verbindungsfehler');
+      console.warn('[Supabase] fetch error:',e);
     }
     return false;
   },
 
   async save() {
-    const id=this.binId(), key=this.apiKey();
-    if(!id||!key)return false;
+    if(!currentUser)return false;
     this.setSyncStatus('busy','Speichere…');
     try {
-      const res=await fetch(`/api/plan?binId=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`,{
-        method:'PUT',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(EVENTS)
-      });
-      if(!res.ok)throw new Error(res.status);
+      const rows=EVENTS.map(ev=>({
+        id:ev.id,date:ev.date,location_id:ev.location||1,
+        data:ev,updated_at:new Date().toISOString()
+      }));
+      const {error}=await db.from('events').upsert(rows);
+      if(error)throw error;
       saveLocal();
       const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       this.setSyncStatus('ok',`Gespeichert ${now}`);
       return true;
     } catch(e) {
       this.setSyncStatus('err','Speicherfehler!');
-      console.warn('[Cloud] save error:',e);
+      console.warn('[Supabase] save error:',e);
     }
     return false;
   },
 
   async push() { saveLocal(); return await this.save(); },
-
-  async createBin() {
-    const key=(document.getElementById('stg-key').value||'').trim();
-    if(!key){alert('Bitte zuerst den Master Key eingeben.');return;}
-    this.setSyncStatus('busy','Erstelle Bin…');
-    try {
-      const res=await fetch(`/api/plan?key=${encodeURIComponent(key)}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(EVENTS)
-      });
-      if(!res.ok){
-        const txt=await res.text();
-        throw new Error(`${res.status}: ${txt}`);
-      }
-      const data=await res.json();
-      const binId=data.metadata.id;
-      localStorage.setItem(BINID_KEY,binId);
-      localStorage.setItem(APIKEY_KEY,key);
-      localStorage.setItem(ADMIN_KEY,'1');
-      const el=document.getElementById('stg-binid');
-      if(el)el.value=binId;
-      applyAdminMode();
-      App.render();
-      const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-      this.setSyncStatus('ok',`Verbunden ${now}`);
-      alert(`\u2705 Fertig!\n\nBin ID: ${binId}\n\nAlle Plandaten wurden hochgeladen. Du bist jetzt im Admin-Modus.\n\nN\u00e4chster Schritt: Klicke auf "\u2193 Mitarbeiter-Version exportieren" um die Datei f\u00fcr dein Team zu erstellen.`);
-    } catch(e) {
-      this.setSyncStatus('err','Fehler');
-      alert('Fehler beim Erstellen:\n'+e.message+'\n\nBitte den Master Key prüfen (jsonbin.io/app/apikeys).');
-      console.warn('[Cloud] createBin:',e);
-    }
-  },
 };
 
 /* --- Admin-Modus ------------------------------------------ */
-function isAdmin() { return !!localStorage.getItem(ADMIN_KEY); }
+function isAdmin() { return currentProfile?.role === 'admin'; }
 
 function applyAdminMode() {
   if(isAdmin()){
     document.body.classList.add('admin');
-    const gl=document.getElementById('gear-label');if(gl)gl.textContent='Admin-Modus';
-    const btn=document.getElementById('stg-admin-btn');
-    if(btn)btn.innerHTML='&#128275; Admin-Modus deaktivieren';
-    const info=document.getElementById('stg-admin-info');
-    if(info)info.textContent='Admin-Modus ist aktiv – du kannst Events bearbeiten und löschen.';
   } else {
     document.body.classList.remove('admin');
-    const gl=document.getElementById('gear-label');if(gl)gl.textContent='Einstellungen';
-    const btn=document.getElementById('stg-admin-btn');
-    if(btn)btn.innerHTML='&#128274; Admin-Modus aktivieren';
-    const info=document.getElementById('stg-admin-info');
-    if(info)info.textContent='Du bist aktuell im Lesemodus.';
   }
 }
 
@@ -1899,6 +1810,8 @@ function buildCard(ev, conflictIds=new Set()){
   const card=document.createElement('div');
   let cls='ev-card';
   if(ev.missingStaff)cls+=' miss-card';
+  const isMyShift=currentProfile&&ev.barStaff?.some(s=>!s.miss&&s.name&&s.name.toLowerCase()===currentProfile.display_name?.toLowerCase());
+  if(isMyShift)cls+=' my-shift';
   if(ev.cancelled)   cls+=' cancelled';
   if(ev.relocated)   cls+=' relocated';
   if(isConflict)     cls+=' conflict-card';
@@ -1919,9 +1832,11 @@ function buildCard(ev, conflictIds=new Set()){
   if(ev.prodL2)rows.push(`<div class="srow"><span class="sb pl">PL</span>
     <span class="sname">${ev.prodL2.name}</span>
     <span class="stime">${ev.prodL2.startTime}</span></div>`);
+  const myName=currentProfile?.display_name?.toLowerCase();
   ev.barStaff.forEach(s=>{
     const t=s.miss?'\u2013':barStart(s.pos,ev.startGastro,s.ov);
-    rows.push(`<div class="srow"><span class="sb bar${s.miss?' mb':''}">${s.pos}</span>
+    const isMine=myName&&s.name&&s.name.toLowerCase()===myName&&!s.miss;
+    rows.push(`<div class="srow${isMine?' mine':''}"><span class="sb bar${s.miss?' mb':''}">${s.pos}</span>
       <span class="sname${s.miss?' miss':''}">${s.miss?'fehlt!':s.name}</span>
       <span class="stime${s.miss?' mt':''}">${t}</span></div>`);
   });
@@ -2136,36 +2051,25 @@ const Form={
 const App={
   _currentEvId:null,  /* ID des aktuell ge\u00f6ffneten Events im Detail-Modal */
 
-  init(){
-    if(_PRESET_KEY && !localStorage.getItem(APIKEY_KEY)){
-      localStorage.setItem(APIKEY_KEY, _PRESET_KEY);
-    }
-    if(!Auth.check()){
-      Auth.showScreen();
-      return;
-    }
-    /* Bereits eingeloggt – direkt starten */
-    document.getElementById('app-root').style.display = 'block';
-    this._start();
-  },
-
-  _start(){
-    /* Gespeichertes Theme anwenden */
+  async init(){
     if(localStorage.getItem('thekenplan_theme')==='light'){
       document.body.classList.add('light');
       const tb=document.getElementById('theme-btn');if(tb)tb.textContent='☀';
     }
+    const loggedIn=await Auth.init();
+    if(!loggedIn) Auth.showScreen();
+  },
+
+  _start(){
     loadLocal();
     applyAdminMode();
     document.getElementById('search-inp').addEventListener('input',e=>{S.search=e.target.value.trim();renderGrid();});
     document.getElementById('filter-staff').addEventListener('change',e=>{S.filterStaff=e.target.value;renderGrid();});
-    /* Erst lokale Daten zeigen, dann Cloud im Hintergrund */
-    if(EVENTS.length > 0){
-      this.render();
-    }
-    /* Cloud laden – überschreibt lokale Daten sobald bereit */
-    Cloud.fetch().then(ok=>{ if(ok) App.render(); });
+    if(EVENTS.length>0){this.render();}
+    Cloud.fetch().then(ok=>{if(ok)App.render();});
+    setupRealtime();
   },
+
   render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
   prevWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()-7);this.render();},
   nextWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()+7);this.render();},
@@ -2294,14 +2198,46 @@ const App={
   },
 
   /* ── Settings Modal ── */
-  openSettings(){
-    const bid=document.getElementById('stg-binid');
-    const bkey=document.getElementById('stg-key');
-    if(bid)bid.value=Cloud.binId();
-    if(bkey)bkey.value=Cloud.apiKey();
+  async openSettings(){
     applyAdminMode();
     document.getElementById('stg-ov').classList.add('open');
     document.body.style.overflow='hidden';
+    const info=document.getElementById('stg-user-info');
+    if(currentProfile&&info){
+      info.innerHTML=`<div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${currentProfile.display_name}</div>
+        <div style="color:var(--txd);font-size:.78rem">${currentUser?.email}&nbsp;·&nbsp;
+          <span style="color:${currentProfile.role==='admin'?'#22d4a4':'var(--txd)'}">
+            ${currentProfile.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}
+          </span></div>`;
+    }
+    if(isAdmin())await this._loadUsersList();
+  },
+
+  async _loadUsersList(){
+    const list=document.getElementById('stg-users-list');
+    if(!list)return;
+    list.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:8px 0">Lade…</div>';
+    const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
+    if(error||!profiles){list.innerHTML='<div style="color:var(--miss);font-size:.8rem">Fehler</div>';return;}
+    list.innerHTML=profiles.map(p=>`
+      <div class="stg-user-row">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:600">${p.display_name}</div>
+          <div style="font-size:.72rem;color:var(--txm)">${p.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}</div>
+        </div>
+        ${p.id!==currentProfile?.id?`
+          <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap"
+            onclick="App.toggleUserRole('${p.id}','${p.role}')">
+            ${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>`
+          :'<span style="font-size:.72rem;color:var(--txm);padding:4px">Du</span>'}
+      </div>`).join('');
+  },
+
+  async toggleUserRole(userId,currentRole){
+    const newRole=currentRole==='admin'?'viewer':'admin';
+    const {error}=await db.from('profiles').update({role:newRole}).eq('id',userId);
+    if(error){alert('Fehler: '+error.message);return;}
+    await this._loadUsersList();
   },
 
   closeSettings(e){
@@ -2310,64 +2246,6 @@ const App={
     document.body.style.overflow='';
   },
 
-  saveSettings(){
-    const bid=(document.getElementById('stg-binid').value||'').trim();
-    const key=(document.getElementById('stg-key').value||'').trim();
-    if(!bid||!key){alert('Bitte Bin ID und Master Key eingeben.');return;}
-    localStorage.setItem(BINID_KEY, bid);
-    localStorage.setItem(APIKEY_KEY, key);
-    /* Admin-Modus automatisch aktivieren wenn Key eingegeben */
-    localStorage.setItem(ADMIN_KEY,'1');
-    applyAdminMode();
-    /* Aktuelle Daten sofort in die Cloud laden */
-    Cloud.push().then(ok=>{
-      if(ok){
-        alert('Verbunden! Daten wurden in die Cloud gespeichert.\n\nDeine Mitarbeiter können jetzt die Datei öffnen – sie sehen immer den aktuellen Stand.');
-      } else {
-        alert('Verbindung fehlgeschlagen. Bitte Bin ID und Master Key prüfen.');
-      }
-    });
-  },
-
-  async testConnection(){
-    const ok=await Cloud.fetch();
-    if(ok){ App.render(); alert('Verbindung erfolgreich! Daten wurden geladen.'); }
-    else { alert('Verbindung fehlgeschlagen. Bitte Bin ID und Master Key im Einstellungen-Fenster prüfen.'); }
-  },
-
-  toggleAdmin(){
-    if(isAdmin()){
-      if(!confirm('Admin-Modus deaktivieren? Du kannst dann keine Events mehr bearbeiten.'))return;
-      localStorage.removeItem(ADMIN_KEY);
-    } else {
-      /* Nur aktivieren wenn API-Key vorhanden */
-      if(!Cloud.apiKey()){
-        alert('Bitte zuerst den Master Key eingeben und verbinden.');return;
-      }
-      localStorage.setItem(ADMIN_KEY,'1');
-    }
-    applyAdminMode();
-  },
-
-  /* Schreibgeschützte HTML für Mitarbeiter exportieren */
-  exportViewerHTML(){
-    const binId=Cloud.binId();
-    if(!binId){alert('Bitte zuerst einen Bin erstellen (Schritt 2 in Einstellungen).');return;}
-    const src=document.documentElement.outerHTML;
-    const patched=src
-      /* Bin ID hardcoden */
-      .replace(/localStorage\.getItem\(BINID_KEY\)\s*\|\|\s*''/g,`'${binId}'`)
-      /* Master Key entfernen */
-      .replace(/const _PRESET_KEY\s*=\s*'[^']*'/,`const _PRESET_KEY = ''`)
-      .replace(/localStorage\.getItem\(APIKEY_KEY\)\s*\|\|\s*_PRESET_KEY/g,"''")
-      /* Admin-Modus sperren */
-      .replace(/localStorage\.getItem\(ADMIN_KEY\)/g,"null")
-      .replace(/localStorage\.setItem\(ADMIN_KEY,'1'\)/g,"null");
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([patched],{type:'text/html'}));
-    a.download='thekenplan_mitarbeiter.html';
-    a.click();URL.revokeObjectURL(a.href);
-  },
 };
 
 document.addEventListener('keydown',e=>{
@@ -2380,76 +2258,74 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============================================================
-   PASSWORT-SYSTEM
-   VIEWER_PW: Passwort für Mitarbeiter (nur lesen)
-   ADMIN_PW:  Passwort für Admin (bearbeiten)
-   Beide können hier geändert werden.
+   SUPABASE AUTH
    ============================================================ */
-const VIEWER_PW = 'theke2026';   /* ← Mitarbeiter-Passwort hier ändern */
-const ADMIN_PW  = 'admin2026';   /* ← Admin-Passwort hier ändern */
-const PW_SESSION_KEY = 'thekenplan_auth';
-
 const Auth = {
-  /* Prüft ob bereits eingeloggt (sessionStorage – bleibt bis Tab geschlossen) */
-  check() {
-    const saved = sessionStorage.getItem(PW_SESSION_KEY);
-    if (saved === 'admin') { this.grantAccess('admin'); return true; }
-    if (saved === 'viewer'){ this.grantAccess('viewer'); return true; }
+  async init() {
+    const {data:{session}}=await db.auth.getSession();
+    db.auth.onAuthStateChange(async(event,session)=>{
+      if(session&&!currentUser){
+        await this._onSignIn(session.user);
+      } else if(event==='SIGNED_OUT'){
+        this._onSignOut();
+      }
+    });
+    if(session){await this._onSignIn(session.user);return true;}
     return false;
   },
 
-  /* Passwort-Bildschirm anzeigen */
-  showScreen() {
-    document.getElementById('pw-screen').style.display = 'flex';
-    document.getElementById('pw-hint').textContent =
-      'Mitarbeiter: Teampasswort verwenden · Admin: eigenes Passwort';
-    setTimeout(()=>document.getElementById('pw-input').focus(), 100);
-  },
-
-  /* Eingabe prüfen */
-  submit() {
-    const val = (document.getElementById('pw-input').value || '').trim();
-    const err = document.getElementById('pw-err');
-    if (val === ADMIN_PW) {
-      sessionStorage.setItem(PW_SESSION_KEY, 'admin');
-      this.grantAccess('admin');
-    } else if (val === VIEWER_PW) {
-      sessionStorage.setItem(PW_SESSION_KEY, 'viewer');
-      this.grantAccess('viewer');
-    } else {
-      err.textContent = 'Falsches Passwort – bitte erneut versuchen.';
-      document.getElementById('pw-input').value = '';
-      document.getElementById('pw-input').focus();
-    }
-  },
-
-  /* Zugang gewähren */
-  grantAccess(role) {
-    if (role === 'admin') {
-      localStorage.setItem(ADMIN_KEY, '1');
-    } else {
-      localStorage.removeItem(ADMIN_KEY);
-    }
+  async _onSignIn(user){
+    currentUser=user;
+    const {data}=await db.from('profiles').select('*').eq('id',user.id).single();
+    currentProfile=data;
+    document.getElementById('pw-screen').style.display='none';
+    document.getElementById('app-root').style.display='block';
     applyAdminMode();
-    document.getElementById('pw-screen').style.display = 'none';
-    document.getElementById('app-root').style.display  = 'block';
-    /* Lade-Spinner zeigen bis Cloud antwortet */
-    document.getElementById('week-grid').innerHTML =
-      '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--txm);font-size:.9rem">Lade Plandaten…</div>';
     App._start();
   },
 
-  /* Abmelden */
-  logout() {
-    sessionStorage.removeItem(PW_SESSION_KEY);
-    localStorage.removeItem(ADMIN_KEY);
-    document.getElementById('app-root').style.display = 'none';
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-err').textContent = '';
-    document.getElementById('pw-screen').style.display = 'flex';
-    setTimeout(()=>document.getElementById('pw-input').focus(), 100);
+  _onSignOut(){
+    currentUser=null;
+    currentProfile=null;
+    EVENTS.length=0;
+    document.getElementById('app-root').style.display='none';
+    document.getElementById('pw-screen').style.display='flex';
+    applyAdminMode();
+    setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
+  },
+
+  async submit(){
+    const email=(document.getElementById('pw-email').value||'').trim();
+    const password=document.getElementById('pw-input').value;
+    const err=document.getElementById('pw-err');
+    err.textContent='';
+    if(!email||!password){err.textContent='Bitte E-Mail und Passwort eingeben.';return;}
+    const btn=document.querySelector('#pw-screen button');
+    if(btn){btn.disabled=true;btn.textContent='Anmelden…';}
+    const {error}=await db.auth.signInWithPassword({email,password});
+    if(btn){btn.disabled=false;btn.textContent='Anmelden';}
+    if(error){
+      err.textContent='Falsche E-Mail oder Passwort.';
+      document.getElementById('pw-input').value='';
+    }
+  },
+
+  async logout(){await db.auth.signOut();},
+
+  showScreen(){
+    document.getElementById('pw-screen').style.display='flex';
+    setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
   }
 };
+
+function setupRealtime(){
+  db.channel('events-realtime')
+    .on('postgres_changes',{event:'*',schema:'public',table:'events'},async()=>{
+      const ok=await Cloud.fetch();
+      if(ok)App.render();
+    })
+    .subscribe();
+}
 
 App.init();
 </script>
