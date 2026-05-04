@@ -1606,7 +1606,8 @@ const Cloud = {
     this.setSyncStatus('busy','Lade Daten\u2026');
     try {
       const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{
-        headers:{'X-Master-Key':key,'X-Bin-Meta':'false'}
+        headers:{'X-Master-Key':key,'X-Bin-Meta':'false'},
+        cache:'no-store'
       });
       if(!res.ok)throw new Error(res.status);
       const data=await res.json();
