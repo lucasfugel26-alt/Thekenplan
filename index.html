@@ -1605,8 +1605,7 @@ const Cloud = {
     if(!id||!key){this.setSyncStatus('off','Nicht konfiguriert');return false;}
     this.setSyncStatus('busy','Lade Daten\u2026');
     try {
-      const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{
-        headers:{'X-Master-Key':key,'X-Bin-Meta':'false'},
+      const res=await fetch(`/api/plan?binId=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`,{
         cache:'no-store'
       });
       if(!res.ok)throw new Error(res.status);
@@ -1638,9 +1637,9 @@ const Cloud = {
     if(!id||!key)return false;
     this.setSyncStatus('busy','Speichere…');
     try {
-      const res=await fetch(`https://api.jsonbin.io/v3/b/${id}`,{
+      const res=await fetch(`/api/plan?binId=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`,{
         method:'PUT',
-        headers:{'Content-Type':'application/json','X-Master-Key':key},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify(EVENTS)
       });
       if(!res.ok)throw new Error(res.status);
@@ -1662,14 +1661,9 @@ const Cloud = {
     if(!key){alert('Bitte zuerst den Master Key eingeben.');return;}
     this.setSyncStatus('busy','Erstelle Bin…');
     try {
-      const res=await fetch('https://api.jsonbin.io/v3/b',{
+      const res=await fetch(`/api/plan?key=${encodeURIComponent(key)}`,{
         method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'X-Master-Key':key,
-          'X-Bin-Name':'Thekenplan',
-          'X-Private':'false'
-        },
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify(EVENTS)
       });
       if(!res.ok){
