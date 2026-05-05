@@ -1893,7 +1893,7 @@ function renderGrid(){
     col.className='day-col'+(isToday?' today':'');
     col.innerHTML=`<div class="day-head">
       <div class="dh-top">
-        <span class="d-name">${dayName.slice(0,2)}</span>
+        <span class="d-name">${dayName}</span>
         <span class="d-num">${dayD.getDate()}${isToday?'<span class="today-pill">Heute</span>':''}</span>
       </div>
       <div class="d-month">${MONS[dayD.getMonth()]} ${dayD.getFullYear()}</div>
