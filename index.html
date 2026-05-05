@@ -209,19 +209,19 @@ body.admin .ev-card:hover .card-acts{display:flex}
 .imp-date{font-size:.74rem;color:var(--txd)}
 /* ── LOCATIONS PANEL ─────────────────────────────────── */
 .loc-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);
-  z-index:200;display:none;align-items:stretch;justify-content:flex-end}
+  z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
 .loc-ov.open{display:flex}
-.loc-panel{background:var(--bg2);width:min(860px,100%);height:100%;
-  display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--bd);
-  transform:translateX(40px);opacity:0;transition:transform .22s,opacity .22s}
+.loc-panel{background:var(--bg2);width:min(900px,100%);max-height:90vh;
+  display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--bd);
+  border-radius:16px;transform:translateY(20px);opacity:0;transition:transform .22s,opacity .22s}
 .loc-ov.open .loc-panel{transform:none;opacity:1}
-.loc-ph{padding:26px 32px 18px;border-bottom:1px solid var(--bd);flex-shrink:0;
+.loc-ph{padding:22px 28px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;
   display:flex;align-items:center;gap:14px}
 .loc-ph h2{font-family:var(--fh);font-size:1.3rem;font-weight:800;flex:1;
   background:linear-gradient(135deg,#fff 40%,#8890c8);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.loc-pb{flex:1;overflow-y:auto;padding:28px 32px;
-  display:grid;grid-template-columns:1fr 300px;gap:32px;align-items:start}
+.loc-pb{flex:1;overflow-y:auto;padding:24px 28px;
+  display:grid;grid-template-columns:1fr 300px;gap:28px;align-items:start}
 .loc-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
   border-radius:8px;border:1px solid var(--bd);margin-bottom:8px;background:var(--bg3)}
 .loc-dot-big{width:22px;height:22px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.15)}
@@ -229,14 +229,54 @@ body.admin .ev-card:hover .card-acts{display:flex}
 .loc-item-name{font-weight:600;font-size:.9rem}
 .loc-item-short{font-size:.74rem;color:var(--txd)}
 .loc-create-box{background:var(--bg3);border:1px solid var(--bd);border-radius:12px;
-  padding:24px;position:sticky;top:0}
-.loc-create-box h3{font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:16px}
-.color-row{display:flex;gap:8px;align-items:center}
+  padding:20px;position:sticky;top:0}
+.loc-create-box h3{font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:14px}
+.color-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .color-swatch{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);
   cursor:pointer;flex-shrink:0;transition:transform .15s}
 .color-swatch:hover{transform:scale(1.15)}
 .color-swatch.active{border-color:#fff;transform:scale(1.2)}
-@media(max-width:700px){.loc-pb{grid-template-columns:1fr;padding:18px}.loc-ph{padding:18px}}
+.color-presets{display:flex;gap:5px;flex-wrap:wrap}
+.cp-swatch{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.15);
+  cursor:pointer;transition:transform .12s}
+.cp-swatch:hover,.cp-swatch.active{transform:scale(1.25);border-color:#fff}
+/* Location Edit Modal */
+.loc-edit-modal{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;
+  width:min(680px,96%);max-height:92vh;overflow-y:auto;display:flex;flex-direction:column}
+.loc-edit-hdr{display:flex;align-items:center;padding:18px 22px 14px;border-bottom:1px solid var(--bd);gap:10px;flex-shrink:0}
+.loc-edit-hdr h3{font-family:var(--fh);font-weight:800;font-size:1rem;flex:1}
+.loc-edit-body{padding:20px 22px 24px}
+.loc-edit-cols{display:grid;grid-template-columns:160px 1fr;gap:20px}
+.loc-img-area{background:var(--bg4);border:2px dashed var(--bd);border-radius:10px;
+  min-height:140px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;overflow:hidden;transition:border-color .15s}
+.loc-img-area:hover{border-color:var(--bda)}
+.loc-img-area img{width:100%;height:100%;object-fit:cover}
+.loc-img-area .loc-img-ph{font-size:.78rem;color:var(--txm);text-align:center;padding:12px;line-height:1.5}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Location Info Sheet */
+.loc-info-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  z-index:300;display:none;align-items:flex-end;justify-content:center}
+.loc-info-ov.open{display:flex}
+.loc-info-sheet{background:var(--bg2);border:1px solid var(--bd);border-top-left-radius:18px;
+  border-top-right-radius:18px;width:min(600px,100%);max-height:85vh;overflow-y:auto;
+  padding:20px 22px 32px;transform:translateY(30px);opacity:0;transition:transform .22s,opacity .22s}
+.loc-info-ov.open .loc-info-sheet{transform:none;opacity:1}
+.loc-info-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.loc-info-name{font-family:var(--fh);font-size:1.1rem;font-weight:800}
+.loc-info-sub{font-size:.75rem;color:var(--txd);margin-top:2px}
+.loc-info-body{display:flex;flex-direction:column;gap:10px}
+.li-row{display:flex;align-items:flex-start;gap:10px;font-size:.84rem}
+.li-icon{font-size:1rem;flex-shrink:0;width:22px;text-align:center;margin-top:1px}
+.li-label{font-size:.65rem;text-transform:uppercase;color:var(--txm);letter-spacing:.05em;margin-bottom:2px}
+.li-val{color:var(--tx)}
+.li-val a{color:var(--l2);text-decoration:none}
+.li-val a:hover{text-decoration:underline}
+@media(max-width:700px){
+  .loc-pb{grid-template-columns:1fr;padding:16px}
+  .loc-ph{padding:16px}
+  .loc-edit-cols{grid-template-columns:1fr}
+}
 .gear-btn{background:var(--bg3);border:1px solid var(--bd);color:var(--txd);
   border-radius:8px;padding:6px 11px;cursor:pointer;font-size:.85rem;
   display:flex;align-items:center;gap:5px;transition:all .15s}
@@ -986,8 +1026,8 @@ body.light{
         <div class="fg">
           <label>Farbe</label>
           <div class="color-row">
-            <input class="fi" type="color" id="nl-color" value="#3b40c4" style="width:50px;padding:4px;cursor:pointer">
-            <span style="font-size:.78rem;color:var(--txd)" id="nl-color-preview">&#9679; Vorschau</span>
+            <input class="fi" type="color" id="nl-color" value="#f5a623" style="width:44px;padding:4px;cursor:pointer">
+            <div class="color-presets" id="nl-color-presets"></div>
           </div>
         </div>
         <div id="nl-err" style="color:var(--miss);font-size:.78rem;margin-bottom:8px;display:none"></div>
@@ -995,6 +1035,73 @@ body.light{
         <div class="stg-hint" style="margin-top:12px">Locations werden global gespeichert und sind f&uuml;r alle Nutzer sichtbar.</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── LOCATION EDIT MODAL ── -->
+<div class="ov" id="loc-edit-ov" onclick="App.closeLocEdit(event)">
+  <div class="loc-edit-modal" onclick="event.stopPropagation()">
+    <div class="loc-edit-hdr">
+      <h3 id="loc-edit-title">Location bearbeiten</h3>
+      <button class="m-x" style="position:static" onclick="App.closeLocEdit()">&#10005;</button>
+    </div>
+    <div class="loc-edit-body">
+      <input type="hidden" id="le-id">
+      <div class="loc-edit-cols">
+        <div>
+          <div class="loc-img-area" id="le-img-area" onclick="document.getElementById('le-img-file').click()">
+            <div class="loc-img-ph">&#128247;<br>Foto hinzuf&uuml;gen<br><span style="font-size:.65rem;color:var(--txm)">klicken oder tippen</span></div>
+          </div>
+          <input type="file" id="le-img-file" accept="image/*" style="display:none" onchange="App._handleLocImage(this.files[0])">
+          <button class="btn btn-ghost" id="le-img-clear" style="width:100%;font-size:.73rem;margin-top:6px;display:none" onclick="App._clearLocImage()">&#128465; Bild entfernen</button>
+        </div>
+        <div>
+          <div class="fg"><label>Name</label><input class="fi" type="text" id="le-name"></div>
+          <div class="fg"><label>K&uuml;rzel</label><input class="fi" type="text" id="le-short" maxlength="4"></div>
+          <div class="fg">
+            <label>Farbe</label>
+            <div class="color-row">
+              <input class="fi" type="color" id="le-color" style="width:44px;padding:4px;cursor:pointer">
+              <div class="color-presets" id="le-color-presets"></div>
+            </div>
+          </div>
+          <div class="fg"><label>Adresse <span style="color:var(--txm);font-weight:400">(optional)</span></label>
+            <input class="fi" type="text" id="le-address" placeholder="Stra&szlig;e, Stadt"></div>
+          <div class="fg"><label>Google Maps Link <span style="color:var(--txm);font-weight:400">(optional)</span></label>
+            <input class="fi" type="url" id="le-maps" placeholder="https://maps.google.com/..."></div>
+          <div class="fg-row">
+            <div class="fg"><label>Ansprechpartner <span style="color:var(--txm);font-weight:400">(opt.)</span></label>
+              <input class="fi" type="text" id="le-contact-name" placeholder="Name"></div>
+            <div class="fg"><label>Telefon <span style="color:var(--txm);font-weight:400">(opt.)</span></label>
+              <input class="fi" type="tel" id="le-contact-phone" placeholder="+49..."></div>
+          </div>
+          <div class="fg"><label>Kapazit&auml;t <span style="color:var(--txm);font-weight:400">(optional)</span></label>
+            <input class="fi" type="number" id="le-capacity" placeholder="max. Besucher" min="0"></div>
+          <div class="fg"><label>Hinweise f&uuml;r Mitarbeiter <span style="color:var(--txm);font-weight:400">(optional)</span></label>
+            <textarea class="fi" id="le-notes" rows="3" placeholder="Besonderheiten, Zugangscodes, wichtige Infos..."></textarea></div>
+        </div>
+      </div>
+      <div id="le-err" style="color:var(--miss);font-size:.78rem;margin:8px 0;display:none"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:14px" onclick="App.saveLocEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOCATION INFO SHEET ── -->
+<div class="loc-info-ov" id="loc-info-ov" onclick="App.closeLocInfo()">
+  <div class="loc-info-sheet" onclick="event.stopPropagation()">
+    <div class="loc-info-hdr">
+      <span class="loc-badge" id="li-badge" style="font-size:.75rem;padding:5px 10px"></span>
+      <div style="flex:1">
+        <div class="loc-info-name" id="li-name"></div>
+        <div class="loc-info-sub" id="li-sub"></div>
+      </div>
+      <button class="m-x" style="position:static" onclick="App.closeLocInfo()">&#10005;</button>
+    </div>
+    <div id="li-img-wrap" style="display:none;margin-bottom:14px">
+      <img id="li-img" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px">
+    </div>
+    <div id="li-body" class="loc-info-body"></div>
   </div>
 </div>
 
@@ -1898,7 +2005,12 @@ const LocationsMgr = {
       if (data && data.length > 0) {
         this._rows = data;
         LOCS = {};
-        data.forEach(l => { LOCS[l.id] = {name:l.name, short:l.short, color:l.color}; });
+        data.forEach(l => { LOCS[l.id] = {
+          id:l.id, name:l.name, short:l.short, color:l.color,
+          image:l.image||null, address:l.address||null, maps_url:l.maps_url||null,
+          contact_name:l.contact_name||null, contact_phone:l.contact_phone||null,
+          capacity:l.capacity||null, notes:l.notes||null
+        }; });
         return true;
       }
     } catch(e) { console.warn('[Locations] using defaults:', e.message); }
@@ -2277,7 +2389,7 @@ function buildCard(ev, conflictIds=new Set()){
       <button class="ca-btn del" title="L&ouml;schen" onclick="event.stopPropagation();App.deleteEventById('${ev.id}')">&#128465;</button>
     </div>
     <div class="ev-top-row">
-      <span class="loc-badge" style="background:${loc?loc.color+'18':'var(--bg4)'};color:${loc?loc.color:'var(--txd)'}">${loc?loc.short:'?'}</span>
+      <span class="loc-badge" style="background:${loc?loc.color+'18':'var(--bg4)'};color:${loc?loc.color:'var(--txd)'};cursor:pointer" title="${loc?loc.name:''}" onclick="event.stopPropagation();App.openLocInfo(${ev.location})">${loc?loc.short:'?'}</span>
       ${tags.join('')}
     </div>
     ${becherBanner}
@@ -2845,7 +2957,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     const stgPage=document.getElementById('stg-page');
     if(stgPage&&stgPage.style.display!=='none'){App.closeSettings();return;}
-    document.querySelectorAll('.ov.open').forEach(o=>o.classList.remove('open'));
+    const infoOv=document.getElementById('loc-info-ov');
+    if(infoOv&&infoOv.classList.contains('open')){App.closeLocInfo();return;}
+    document.querySelectorAll('.ov.open,.loc-info-ov.open').forEach(o=>o.classList.remove('open'));
     document.body.style.overflow='';
   }
   if(e.key==='ArrowLeft' &&!document.querySelector('.ov.open'))App.prevWeek();
@@ -3125,9 +3239,41 @@ function renderStatusConfig() {
   ).join('') || '<div style="color:var(--txm);font-size:.8rem;padding:8px 0">Keine Statusoptionen</div>';
 }
 
+const LOC_PRESET_COLORS = ['#f5a623','#22d4a4','#e05aff','#ff6b6b','#4a9eff','#ff9f40','#a259ff','#00c875','#ff5c8a','#5ce1e6','#ffde59','#c9cbff'];
+
+function _buildColorPresets(containerId, inputId) {
+  const wrap = document.getElementById(containerId);
+  const inp  = document.getElementById(inputId);
+  if (!wrap || !inp) return;
+  wrap.innerHTML = LOC_PRESET_COLORS.map(c =>
+    `<span class="cp-swatch" style="background:${c}" title="${c}" onclick="(function(){document.getElementById('${inputId}').value='${c}';document.querySelectorAll('#${containerId} .cp-swatch').forEach(s=>s.classList.remove('active'));this.classList.add('active')}).call(this)"></span>`
+  ).join('');
+  inp.addEventListener('input', () => {
+    wrap.querySelectorAll('.cp-swatch').forEach(s => s.classList.toggle('active', s.title === inp.value));
+  });
+}
+
+async function resizeImageToBase64(file, maxW=420, quality=0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.src = url;
+  });
+}
+
 App.openLocations = async function() {
   document.getElementById('loc-ov').classList.add('open');
   document.body.style.overflow = 'hidden';
+  _buildColorPresets('nl-color-presets', 'nl-color');
   renderLocationList();
 };
 
@@ -3143,14 +3289,15 @@ function renderLocationList() {
   list.innerHTML = Object.entries(LOCS).map(([id, loc]) =>
     `<div class="loc-item">
       <div class="loc-dot-big" style="background:${loc.color}"></div>
+      ${loc.image ? `<img src="${loc.image}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0">` : ''}
       <div class="loc-item-info">
         <div class="loc-item-name">${loc.name}</div>
-        <div class="loc-item-short">Kürzel: ${loc.short} · ID: ${id}</div>
+        <div class="loc-item-short">Kürzel: ${loc.short} &middot; ID: ${id}${loc.address ? ` &middot; ${loc.address}` : ''}</div>
       </div>
       <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px"
-        onclick="App.editLocationPrompt(${id})">&#9998; Bearbeiten</button>
+        onclick="App.openLocEdit(${id})">✎ Bearbeiten</button>
       <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
-        onclick="App.deleteLocation(${id})">&#128465;</button>
+        onclick="App.deleteLocation(${id})">\U0001f5d1</button>
     </div>`
   ).join('') || '<div style="color:var(--txm);padding:12px">Keine Locations</div>';
 }
@@ -3164,7 +3311,7 @@ App.createLocation = async function() {
   if (!name || !short) { err.textContent = 'Name und Kürzel sind Pflicht.'; err.style.display = ''; return; }
   try {
     const loc = await LocationsMgr.create(name, short, color);
-    LOCS[loc.id] = {name, short, color};
+    LOCS[loc.id] = {id:loc.id, name, short, color, image:null, address:null, maps_url:null, contact_name:null, contact_phone:null, capacity:null, notes:null};
     document.getElementById('nl-name').value = '';
     document.getElementById('nl-short').value = '';
     renderLocationList();
@@ -3172,18 +3319,83 @@ App.createLocation = async function() {
   } catch(e) { err.textContent = 'Fehler: ' + e.message; err.style.display = ''; }
 };
 
-App.editLocationPrompt = function(id) {
+App.openLocEdit = function(id) {
   const loc = LOCS[id];
   if (!loc) return;
-  const name = prompt('Name:', loc.name);
-  if (!name) return;
-  const short = prompt('Kürzel:', loc.short);
-  if (!short) return;
-  LocationsMgr.update(id, {name, short}).then(() => {
-    LOCS[id] = {...loc, name, short};
+  document.getElementById('le-id').value = id;
+  document.getElementById('le-name').value = loc.name || '';
+  document.getElementById('le-short').value = loc.short || '';
+  document.getElementById('le-color').value = loc.color || '#f5a623';
+  document.getElementById('le-address').value = loc.address || '';
+  document.getElementById('le-maps').value = loc.maps_url || '';
+  document.getElementById('le-contact-name').value = loc.contact_name || '';
+  document.getElementById('le-contact-phone').value = loc.contact_phone || '';
+  document.getElementById('le-capacity').value = loc.capacity || '';
+  document.getElementById('le-notes').value = loc.notes || '';
+  const imgArea = document.getElementById('le-img-area');
+  const clearBtn = document.getElementById('le-img-clear');
+  if (loc.image) {
+    imgArea.innerHTML = `<img src="${loc.image}">`;
+    clearBtn.style.display = '';
+  } else {
+    imgArea.innerHTML = `<div class="loc-img-ph">\u{1f4f7}<br>Foto hinzufügen<br><span style="font-size:.65rem;color:var(--txm)">klicken oder tippen</span></div>`;
+    clearBtn.style.display = 'none';
+  }
+  document.getElementById('le-img-file').value = '';
+  document.getElementById('le-err').style.display = 'none';
+  _buildColorPresets('le-color-presets', 'le-color');
+  document.getElementById('loc-edit-ov').classList.add('open');
+};
+
+App.closeLocEdit = function(e) {
+  if (e && e.target !== document.getElementById('loc-edit-ov')) return;
+  document.getElementById('loc-edit-ov').classList.remove('open');
+};
+
+App._handleLocImage = async function(file) {
+  if (!file) return;
+  const b64 = await resizeImageToBase64(file);
+  const imgArea = document.getElementById('le-img-area');
+  imgArea.innerHTML = `<img src="${b64}">`;
+  imgArea._b64 = b64;
+  document.getElementById('le-img-clear').style.display = '';
+};
+
+App._clearLocImage = function() {
+  const imgArea = document.getElementById('le-img-area');
+  imgArea.innerHTML = `<div class="loc-img-ph">\u{1f4f7}<br>Foto hinzufügen<br><span style="font-size:.65rem;color:var(--txm)">klicken oder tippen</span></div>`;
+  imgArea._b64 = null;
+  document.getElementById('le-img-clear').style.display = 'none';
+  document.getElementById('le-img-file').value = '';
+};
+
+App.saveLocEdit = async function() {
+  const id = Number(document.getElementById('le-id').value);
+  const name = document.getElementById('le-name').value.trim();
+  const short = document.getElementById('le-short').value.trim().toUpperCase();
+  const color = document.getElementById('le-color').value;
+  const err = document.getElementById('le-err');
+  err.style.display = 'none';
+  if (!name || !short) { err.textContent = 'Name und Kürzel sind Pflicht.'; err.style.display = ''; return; }
+  const imgArea = document.getElementById('le-img-area');
+  const currentLoc = LOCS[id] || {};
+  const image = imgArea._b64 !== undefined ? imgArea._b64 : (imgArea.querySelector('img') ? currentLoc.image : null);
+  const updates = {
+    name, short, color, image,
+    address:       document.getElementById('le-address').value.trim() || null,
+    maps_url:      document.getElementById('le-maps').value.trim() || null,
+    contact_name:  document.getElementById('le-contact-name').value.trim() || null,
+    contact_phone: document.getElementById('le-contact-phone').value.trim() || null,
+    capacity:      Number(document.getElementById('le-capacity').value) || null,
+    notes:         document.getElementById('le-notes').value.trim() || null,
+  };
+  try {
+    await LocationsMgr.update(id, updates);
+    LOCS[id] = {...currentLoc, id, ...updates};
+    App.closeLocEdit();
     renderLocationList();
     App.render();
-  }).catch(e => alert('Fehler: ' + e.message));
+  } catch(e) { err.textContent = 'Fehler: ' + e.message; err.style.display = ''; }
 };
 
 App.deleteLocation = function(id) {
@@ -3195,17 +3407,32 @@ App.deleteLocation = function(id) {
   }).catch(e => alert('Fehler: ' + e.message));
 };
 
-/* ── Location-Farbvorschau ── */
-document.addEventListener('DOMContentLoaded', () => {
-  const colorPick = document.getElementById('nl-color');
-  const preview = document.getElementById('nl-color-preview');
-  if (colorPick && preview) {
-    colorPick.addEventListener('input', () => {
-      preview.style.color = colorPick.value;
-      preview.textContent = '\u25CF Vorschau';
-    });
-  }
-});
+App.openLocInfo = function(locId) {
+  const loc = LOCS[locId];
+  if (!loc) return;
+  const badge = document.getElementById('li-badge');
+  badge.textContent = loc.short;
+  badge.style.background = loc.color + '22';
+  badge.style.color = loc.color;
+  document.getElementById('li-name').textContent = loc.name;
+  document.getElementById('li-sub').textContent = loc.address || '';
+  const imgWrap = document.getElementById('li-img-wrap');
+  const img = document.getElementById('li-img');
+  if (loc.image) { img.src = loc.image; imgWrap.style.display = ''; }
+  else imgWrap.style.display = 'none';
+  const rows = [];
+  if (loc.address) rows.push(`<div class="li-row"><span class="li-icon">&#128205;</span><div><div class="li-label">Adresse</div><div class="li-val">${loc.address}${loc.maps_url ? ` &nbsp;<a href="${loc.maps_url}" target="_blank" rel="noopener">&#128506; Karte</a>` : ''}</div></div></div>`);
+  if (loc.contact_name || loc.contact_phone) rows.push(`<div class="li-row"><span class="li-icon">&#128222;</span><div><div class="li-label">Ansprechpartner</div><div class="li-val">${loc.contact_name || ''}${loc.contact_phone ? ` &nbsp;<a href="tel:${loc.contact_phone}">${loc.contact_phone}</a>` : ''}</div></div></div>`);
+  if (loc.capacity) rows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazität</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
+  if (loc.notes) rows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
+  document.getElementById('li-body').innerHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem">Keine weiteren Infos hinterlegt.</div>';
+  document.getElementById('loc-info-ov').classList.add('open');
+};
+
+App.closeLocInfo = function() {
+  document.getElementById('loc-info-ov').classList.remove('open');
+};
+
 
 App.init();
 </script>
