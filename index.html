@@ -691,9 +691,16 @@ body.light{
     <div class="stg-sec">Mein Account</div>
     <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:12px 14px;margin-bottom:6px;font-size:.85rem"></div>
 
-    <div class="stg-sec admin-only" style="margin-top:20px">Mitarbeiter-Verwaltung</div>
-    <div class="stg-hint admin-only">Rollen &auml;ndern. Neue Accounts im <a href="https://supabase.com/dashboard" target="_blank" style="color:#22d4a4">Supabase Dashboard</a> &rarr; Authentication &rarr; Users anlegen.</div>
+        <div class="stg-sec admin-only" style="margin-top:20px">Mitarbeiter-Verwaltung</div>
     <div id="stg-users-list" class="admin-only" style="margin-top:8px"></div>
+    <div class="admin-only" style="margin-top:14px;background:var(--bg4);border-radius:8px;padding:14px">
+      <div style="font-size:.78rem;font-weight:600;color:var(--txm);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">Neuen Mitarbeiter anlegen</div>
+      <input id="nu-name"  type="text"     placeholder="Name"     style="width:100%;box-sizing:border-box;margin-bottom:7px;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);font-size:.85rem">
+      <input id="nu-email" type="email"    placeholder="E-Mail"   style="width:100%;box-sizing:border-box;margin-bottom:7px;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);font-size:.85rem">
+      <input id="nu-pw"    type="password" placeholder="Passwort" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);font-size:.85rem">
+      <div id="nu-err" style="color:var(--miss);font-size:.78rem;margin-bottom:6px;display:none"></div>
+      <button class="btn btn-primary" style="font-size:.82rem;padding:7px 14px" onclick="App.createUser()">&#43; Anlegen</button>
+    </div>
 
     <div class="stg-sec" style="margin-top:20px">Erscheinungsbild</div>
     <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
@@ -2257,10 +2264,14 @@ const App={
           <div style="font-size:.85rem;font-weight:600">${p.display_name}</div>
           <div style="font-size:.72rem;color:var(--txm)">${p.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}</div>
         </div>
-        ${p.id!==currentProfile?.id?`
-          <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap"
-            onclick="App.toggleUserRole('${p.id}','${p.role}')">
-            ${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>`
+                ${p.id!==currentProfile?.id?`
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap"
+              onclick="App.toggleUserRole('${p.id}','${p.role}')">
+              ${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
+            <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap;color:var(--miss);border-color:rgba(255,80,80,.3)"
+              onclick="App.deleteUser('${p.id}','${p.display_name}')">&#128465;</button>
+          </div>`
           :'<span style="font-size:.72rem;color:var(--txm);padding:4px">Du</span>'}
       </div>`).join('');
   },
@@ -2269,6 +2280,43 @@ const App={
     const newRole=currentRole==='admin'?'viewer':'admin';
     const {error}=await db.from('profiles').update({role:newRole}).eq('id',userId);
     if(error){alert('Fehler: '+error.message);return;}
+    await this._loadUsersList();
+  },
+    async createUser(){
+    const name =document.getElementById('nu-name').value.trim();
+    const email=document.getElementById('nu-email').value.trim();
+    const pw   =document.getElementById('nu-pw').value;
+    const errEl=document.getElementById('nu-err');
+    errEl.style.display='none';
+    if(!name||!email||!pw){errEl.textContent='Alle Felder ausfüllen.';errEl.style.display='';return;}
+    const {data:{session}}=await db.auth.getSession();
+    const token=session?.access_token;
+    if(!token){errEl.textContent='Nicht angemeldet.';errEl.style.display='';return;}
+    const r=await fetch('/api/admin?action=createUser',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({email,password:pw,display_name:name})
+    });
+    const data=await r.json();
+    if(!r.ok){errEl.textContent=data.error||'Fehler';errEl.style.display='';return;}
+    document.getElementById('nu-name').value='';
+    document.getElementById('nu-email').value='';
+    document.getElementById('nu-pw').value='';
+    await this._loadUsersList();
+  },
+
+  async deleteUser(userId,displayName){
+    if(!confirm(`"${displayName}" wirklich löschen?`))return;
+    const {data:{session}}=await db.auth.getSession();
+    const token=session?.access_token;
+    if(!token){alert('Nicht angemeldet.');return;}
+    const r=await fetch('/api/admin?action=deleteUser',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({userId})
+    });
+    const data=await r.json();
+    if(!r.ok){alert('Fehler: '+(data.error||'Unbekannt'));return;}
     await this._loadUsersList();
   },
 
