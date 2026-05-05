@@ -506,11 +506,11 @@ body.light{
   <div class="pw-box">
     <div class="pw-logo">Thekenplan</div>
     <div class="pw-sub">Bitte mit deinem Account anmelden</div>
-    <input type="email" id="pw-email" placeholder="E-Mail"
-           onkeydown="if(event.key==='Enter')document.getElementById('pw-input').focus()">
-    <input type="password" id="pw-input" placeholder="Passwort"
-           onkeydown="if(event.key==='Enter')Auth.submit()">
-    <button onclick="Auth.submit()">Anmelden</button>
+       <form onsubmit="event.preventDefault();Auth.submit()">
+      <input type="email" id="pw-email" placeholder="E-Mail" autocomplete="email">
+      <input type="password" id="pw-input" placeholder="Passwort" autocomplete="current-password">
+      <button type="submit">Anmelden</button>
+    </form>
     <div class="pw-err" id="pw-err"></div>
   </div>
 </div>
