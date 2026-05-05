@@ -751,6 +751,35 @@ body.light{
   </div>
 </div>
 
+<!-- ── TEAM PANEL ── -->
+<div class="team-ov" id="team-ov" onclick="App.closeTeam(event)">
+  <div class="team-panel" onclick="event.stopPropagation()">
+    <div class="team-ph">
+      <h2>&#128101; Team-Verwaltung</h2>
+      <span id="team-count" style="font-size:.78rem;color:var(--txd);font-weight:500"></span>
+      <button class="m-x" style="position:static;flex-shrink:0" onclick="App.closeTeam()">&#10005;</button>
+    </div>
+    <div class="team-body">
+      <div class="team-tbl-wrap">
+        <div class="team-tbl-head">
+          <span>Name</span>
+          <span>Rolle</span>
+          <span style="text-align:right">Aktionen</span>
+        </div>
+        <div id="team-table"></div>
+      </div>
+      <div class="team-create-box">
+        <h3>&#43; Neuer Mitarbeiter</h3>
+        <input id="nu-name"  type="text"     class="tfi" placeholder="Name">
+        <input id="nu-email" type="email"    class="tfi" placeholder="E-Mail">
+        <input id="nu-pw"    type="password" class="tfi" placeholder="Passwort">
+        <div id="nu-err" style="color:var(--miss);font-size:.78rem;margin-bottom:8px;display:none"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="App.createUser()">&#43; Anlegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
 /* ============================================================
