@@ -255,6 +255,12 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .stg-status{display:flex;align-items:center;gap:8px;background:var(--bg4);
   border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:14px}
 .stg-hint{font-size:.73rem;color:var(--txm);margin-top:5px;line-height:1.45}
+.stg-subsec{font-size:.75rem;color:var(--txm);font-weight:600;margin:10px 0 8px}
+.stg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.stg-field{display:flex;flex-direction:column;gap:4px}
+.stg-label{font-size:.72rem;color:var(--txm);font-weight:500}
+.stg-toggle{display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;user-select:none}
+.stg-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer}
 .ev-card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35);
   border-color:var(--bda)}
 .ev-card[data-loc="1"]{border-left-color:var(--l1)}
@@ -304,6 +310,7 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .sname.miss{color:var(--miss);font-style:italic}
 .stime{font-variant-numeric:tabular-nums;color:var(--txd)}
 .stime.mt{color:var(--miss)}
+.ev-besucher{font-size:.7rem;color:var(--txm);margin:3px 0}
 .ev-note{margin-top:5px;font-size:.68rem;color:var(--txm);font-style:italic;
   line-height:1.35;border-top:1px solid var(--bd);padding-top:4px}
 
@@ -817,10 +824,49 @@ body.light{
     </div>
 
     <div class="stg-sec">Mein Account</div>
-    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:14px 16px;font-size:.85rem"></div>
+    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:14px 16px;font-size:.85rem;margin-bottom:12px"></div>
+    <div class="stg-subsec">Passwort &auml;ndern</div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:320px">
+      <input class="fi" type="password" id="stg-pw1" placeholder="Neues Passwort (min. 6 Zeichen)">
+      <input class="fi" type="password" id="stg-pw2" placeholder="Passwort wiederholen">
+      <div id="stg-pw-msg" style="font-size:.75rem;display:none;padding:4px 0"></div>
+      <button class="btn btn-ghost" style="align-self:flex-start" onclick="App.changePassword()">Passwort &auml;ndern</button>
+    </div>
 
     <div class="stg-sec">Erscheinungsbild</div>
     <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
+
+    <div class="stg-sec">Standardwerte f&uuml;r neue Events</div>
+    <div class="stg-grid2">
+      <div class="stg-field">
+        <label class="stg-label">Standard-Location</label>
+        <select class="fi" id="stg-def-loc"></select>
+      </div>
+      <div class="stg-field">
+        <label class="stg-label">Gastro-Start</label>
+        <input class="fi" type="time" id="stg-def-gastro">
+      </div>
+      <div class="stg-field">
+        <label class="stg-label">Schluss Show</label>
+        <input class="fi" type="time" id="stg-def-schluss">
+      </div>
+      <div class="stg-field">
+        <label class="stg-label">Belegungsende</label>
+        <input class="fi" type="time" id="stg-def-ende">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <button class="btn btn-ghost" onclick="Defaults.save()">Speichern</button>
+      <span id="stg-def-msg" style="font-size:.75rem;color:#22d4a4;display:none">&#10003; Gespeichert</span>
+    </div>
+
+    <div class="stg-sec">Event-Karten­felder</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label class="stg-toggle"><input type="checkbox" id="stg-cf-becher" onchange="CardFields.save()"><span>Bechertyp-Banner anzeigen</span></label>
+      <label class="stg-toggle"><input type="checkbox" id="stg-cf-zeiten" onchange="CardFields.save()"><span>Zeitangaben anzeigen</span></label>
+      <label class="stg-toggle"><input type="checkbox" id="stg-cf-besucher" onchange="CardFields.save()"><span>Besucherzahl anzeigen</span></label>
+      <label class="stg-toggle"><input type="checkbox" id="stg-cf-notizen" onchange="CardFields.save()"><span>Notizen anzeigen</span></label>
+    </div>
 
     <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
     <div id="stg-statuses" class="admin-only"></div>
@@ -2216,10 +2262,13 @@ function buildCard(ev, conflictIds=new Set()){
       <span class="stime${isFehlt?' mt':''}">${t}</span></div>`);
   });
 
+  const cf=CardFields.get();
   const bechertyp=ev.bechertyp||(ev.plastik?'plastik':null);
-  const becherBanner=!ev.cancelled&&!ev.relocated
+  const becherBanner=cf.becher&&!ev.cancelled&&!ev.relocated
     ?(bechertyp==='plastik'?`<div class="plastik-banner">&#129347; Nur Plastikbecher!</div>`
       :bechertyp==='glas'?`<div class="glas-banner">&#129380; Glasbecher</div>`:''):'';
+  const besucherBadge=cf.besucher&&ev.besucherzahl
+    ?`<div class="ev-besucher">&#128101; ${ev.besucherzahl} Besucher</div>`:'';
 
   card.style.borderLeftColor=loc?loc.color:'transparent';
   card.innerHTML=`
@@ -2233,9 +2282,10 @@ function buildCard(ev, conflictIds=new Set()){
     </div>
     ${becherBanner}
     <div class="ev-name">${ev.event}</div>
-    ${(!ev.relocated&&!ev.cancelled)||ev.startGastro?`<div class="ev-time">${ev.startGastro||'\u2013'} \u2013 ${ev.schlussShow||'\u2013'} <span>\xB7 Ende ${ev.belegungsende||'\u2013'}</span></div>`:''}
+    ${besucherBadge}
+    ${cf.zeiten&&((!ev.relocated&&!ev.cancelled)||ev.startGastro)?`<div class="ev-time">${ev.startGastro||'\u2013'} \u2013 ${ev.schlussShow||'\u2013'} <span>\xB7 Ende ${ev.belegungsende||'\u2013'}</span></div>`:''}
     <div class="slist">${rows.join('')}</div>
-    ${ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}`;
+    ${cf.notizen&&ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}`;
   card.addEventListener('click',()=>App.openDet(ev));
   return card;
 }
@@ -2315,6 +2365,7 @@ const Form={
     this.setBecher(document.querySelector('.bt-btn[data-val="unbekannt"]'));
     document.getElementById('f-staff-rows').innerHTML='';
     this.addStaffRow();this.addStaffRow();
+    Defaults.applyToForm();
   },
 
   setBecher(btn){
@@ -2436,6 +2487,68 @@ const Form={
       EVENTS.push(ev);Cloud.push();App.render();
       this.init(this.currentLoc);
     }
+  }
+};
+
+/* ============================================================
+   DEFAULTS & CARD FIELDS
+   ============================================================ */
+const Defaults = {
+  _key: 'theken_defaults',
+  get() {
+    try { return JSON.parse(localStorage.getItem(this._key)||'{}'); } catch { return {}; }
+  },
+  applyToForm() {
+    const d = this.get();
+    if(d.gastro) { const el=document.getElementById('f-gastro'); if(el) el.value=d.gastro; }
+    if(d.schluss) { const el=document.getElementById('f-schluss'); if(el) el.value=d.schluss; }
+    if(d.ende)   { const el=document.getElementById('f-ende');   if(el) el.value=d.ende; }
+    if(d.loc)    { const el=document.getElementById('f-loc');    if(el && el.querySelector(`option[value="${d.loc}"]`)) el.value=d.loc; }
+  },
+  save() {
+    const v = k => document.getElementById(k)?.value || '';
+    const d = { loc: v('stg-def-loc'), gastro: v('stg-def-gastro'), schluss: v('stg-def-schluss'), ende: v('stg-def-ende') };
+    localStorage.setItem(this._key, JSON.stringify(d));
+    const msg = document.getElementById('stg-def-msg');
+    if(msg){ msg.style.display=''; setTimeout(()=>msg.style.display='none', 2000); }
+  },
+  loadIntoSettings() {
+    const d = this.get();
+    const locSel = document.getElementById('stg-def-loc');
+    if(locSel) {
+      locSel.innerHTML = Object.values(LOCS).map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+      if(d.loc) locSel.value = d.loc;
+    }
+    const set = (id, val) => { const el=document.getElementById(id); if(el&&val) el.value=val; };
+    set('stg-def-gastro', d.gastro);
+    set('stg-def-schluss', d.schluss);
+    set('stg-def-ende', d.ende);
+  }
+};
+
+const CardFields = {
+  _key: 'theken_card_fields',
+  _def: { becher:true, zeiten:true, besucher:false, notizen:true },
+  get() {
+    try { return {...this._def, ...JSON.parse(localStorage.getItem(this._key)||'{}')}; } catch { return this._def; }
+  },
+  save() {
+    const cb = id => document.getElementById(id)?.checked ?? true;
+    localStorage.setItem(this._key, JSON.stringify({
+      becher:   cb('stg-cf-becher'),
+      zeiten:   cb('stg-cf-zeiten'),
+      besucher: cb('stg-cf-besucher'),
+      notizen:  cb('stg-cf-notizen'),
+    }));
+    App.render();
+  },
+  loadIntoSettings() {
+    const cf = this.get();
+    const set = (id, val) => { const el=document.getElementById(id); if(el) el.checked=val; };
+    set('stg-cf-becher',   cf.becher);
+    set('stg-cf-zeiten',   cf.zeiten);
+    set('stg-cf-besucher', cf.besucher);
+    set('stg-cf-notizen',  cf.notizen);
   }
 };
 
@@ -2581,6 +2694,21 @@ const App={
     window.print();
   },
 
+  async changePassword(){
+    const pw1 = document.getElementById('stg-pw1')?.value || '';
+    const pw2 = document.getElementById('stg-pw2')?.value || '';
+    const msg = document.getElementById('stg-pw-msg');
+    const show = (txt, color) => { if(msg){ msg.style.display=''; msg.style.color=color; msg.textContent=txt; } };
+    if(pw1.length < 6){ show('Mindestens 6 Zeichen erforderlich.', 'var(--miss)'); return; }
+    if(pw1 !== pw2){ show('Passwörter stimmen nicht überein.', 'var(--miss)'); return; }
+    const { error } = await db.auth.updateUser({ password: pw1 });
+    if(error){ show('Fehler: ' + error.message, 'var(--miss)'); return; }
+    show('✓ Passwort erfolgreich geändert!', '#22d4a4');
+    document.getElementById('stg-pw1').value = '';
+    document.getElementById('stg-pw2').value = '';
+    setTimeout(() => { if(msg) msg.style.display='none'; }, 3000);
+  },
+
   exportJSON(){
     const json=JSON.stringify(EVENTS,null,2);
     const a=document.createElement('a');
@@ -2622,6 +2750,8 @@ const App={
           </span></div>`;
     }
     renderStatusConfig();
+    Defaults.loadIntoSettings();
+    CardFields.loadIntoSettings();
     if(isAdmin())await this._loadUsersList();
   },
 
