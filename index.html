@@ -243,16 +243,15 @@ body.admin .ev-card:hover .card-acts{display:flex}
 .gear-btn:hover{border-color:var(--bda);color:var(--tx)}
 body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164,.3);color:#22d4a4}
 
-/* ── SETTINGS MODAL ──────────────────────────────────── */
-.settings-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
-  padding:24px;max-width:440px;width:100%;transform:translateY(10px);
-  transition:transform .2s;position:relative;max-height:92vh;overflow-y:auto}
-.ov.open .settings-modal{transform:none}
-.stg-title{font-family:var(--fh);font-size:1.1rem;font-weight:800;margin-bottom:4px}
-.stg-sub{font-size:.78rem;color:var(--txd);margin-bottom:18px}
+/* ── SETTINGS PAGE ──────────────────────────────────── */
+.stg-page{position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;display:none}
+.stg-page-inner{max-width:580px;margin:0 auto;padding:28px 20px 48px}
+.stg-page-hdr{display:flex;align-items:center;gap:14px;margin-bottom:28px;border-bottom:1px solid var(--bd);padding-bottom:18px}
+.stg-back{font-size:.82rem;padding:7px 14px}
+.stg-page-title{font-family:var(--fh);font-size:1.3rem;font-weight:800}
 .stg-sec{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;
-  color:var(--txm);font-weight:700;margin:16px 0 8px;padding-bottom:6px;
-  border-bottom:1px solid var(--bd)}
+  color:var(--txm);font-weight:700;margin:24px 0 10px;padding-bottom:6px;
+  border-bottom:1px solid var(--bd);display:block;width:100%}
 .stg-status{display:flex;align-items:center;gap:8px;background:var(--bg4);
   border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:14px}
 .stg-hint{font-size:.73rem;color:var(--txm);margin-top:5px;line-height:1.45}
@@ -805,11 +804,12 @@ body.light{
 </div>
 
 <!-- ── SETTINGS MODAL ── -->
-<div class="ov" id="stg-ov" onclick="App.closeSettings(event)">
-  <div class="settings-modal" onclick="event.stopPropagation()">
-    <button class="m-x" onclick="App.closeSettings()">&#10005;</button>
-    <div class="stg-title">&#9881; Einstellungen</div>
-    <div class="stg-sub">Account &middot; Design</div>
+<div class="stg-page" id="stg-page">
+  <div class="stg-page-inner">
+    <div class="stg-page-hdr">
+      <button class="btn btn-ghost stg-back" onclick="App.closeSettings()">&#8592; Zur&uuml;ck</button>
+      <div class="stg-page-title">&#9881; Einstellungen</div>
+    </div>
 
     <div class="stg-status" id="stg-status-row">
       <span class="sync-dot off" id="stg-dot"></span>
@@ -817,37 +817,22 @@ body.light{
     </div>
 
     <div class="stg-sec">Mein Account</div>
-    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:12px 14px;margin-bottom:6px;font-size:.85rem"></div>
+    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:14px 16px;font-size:.85rem"></div>
 
-        
-
-    <div class="stg-sec" style="margin-top:20px">Erscheinungsbild</div>
+    <div class="stg-sec">Erscheinungsbild</div>
     <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
 
-    <div class="stg-sec admin-only" style="margin-top:20px">Statusoptionen (Bar-Besetzung)</div>
+    <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
     <div id="stg-statuses" class="admin-only"></div>
-    <div style="display:flex;gap:6px;margin-top:8px" class="admin-only">
+    <div style="display:flex;gap:6px;margin-top:10px" class="admin-only">
       <input class="fi" type="text" id="stg-new-status-label" placeholder="Neuer Status-Name" style="flex:1">
       <input class="fi" type="color" id="stg-new-status-color" value="#f5a623" style="width:44px;padding:4px">
       <button class="btn btn-ghost" onclick="Config.addStatus()">&#43; Hinzuf&uuml;gen</button>
     </div>
 
-    <div class="stg-sec admin-only" style="margin-top:20px">Datensicherung</div>
+    <div class="stg-sec admin-only">Datensicherung</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
       <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
-    </div>
-
-    <div class="stg-sec admin-only" style="margin-top:20px">Supabase Setup (einmalig)</div>
-    <div class="stg-hint admin-only">F&uuml;r Locations- und Config-Verwaltung folgende SQL-Tabellen in Supabase erstellen:<br>
-      <code style="font-size:.65rem;display:block;margin-top:6px;padding:8px;background:var(--bg);border-radius:6px;white-space:pre;overflow-x:auto">CREATE TABLE locations (id SERIAL PRIMARY KEY, name TEXT, short TEXT, color TEXT, sort_order INT DEFAULT 0);
-INSERT INTO locations VALUES (1,'KH · Location 1','KH','#f5a623',1),(2,'H39 · Location 2','H39','#22d4a4',2),(3,'Sunny · Location 3','SR','#e05aff',3),(4,'OH · Location 4','OH','#ff6b6b',4);
-CREATE TABLE app_config (key TEXT PRIMARY KEY, value JSONB, updated_at TIMESTAMPTZ DEFAULT NOW());
-ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "read_locations" ON locations FOR SELECT USING (true);
-CREATE POLICY "admin_locations" ON locations FOR ALL USING (true);
-CREATE POLICY "read_config" ON app_config FOR SELECT USING (true);
-CREATE POLICY "admin_config" ON app_config FOR ALL USING (true);</code>
     </div>
   </div>
 </div>
@@ -2626,7 +2611,7 @@ const App={
   /* ── Settings Modal ── */
   async openSettings(){
     applyAdminMode();
-    document.getElementById('stg-ov').classList.add('open');
+    document.getElementById('stg-page').style.display='block';
     document.body.style.overflow='hidden';
     const info=document.getElementById('stg-user-info');
     if(currentProfile&&info){
@@ -2636,6 +2621,7 @@ const App={
             ${currentProfile.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}
           </span></div>`;
     }
+    renderStatusConfig();
     if(isAdmin())await this._loadUsersList();
   },
 
@@ -2718,9 +2704,8 @@ const App={
     await this._loadUsersList();
   },
 
-  closeSettings(e){
-    if(e&&e.target!==document.getElementById('stg-ov'))return;
-    document.getElementById('stg-ov').classList.remove('open');
+  closeSettings(){
+    document.getElementById('stg-page').style.display='none';
     document.body.style.overflow='';
   },
 
@@ -2728,6 +2713,8 @@ const App={
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    const stgPage=document.getElementById('stg-page');
+    if(stgPage&&stgPage.style.display!=='none'){App.closeSettings();return;}
     document.querySelectorAll('.ov.open').forEach(o=>o.classList.remove('open'));
     document.body.style.overflow='';
   }
@@ -3076,13 +3063,6 @@ App.deleteLocation = function(id) {
     renderLocationList();
     App.render();
   }).catch(e => alert('Fehler: ' + e.message));
-};
-
-/* ── Settings: Status-Config beim Öffnen laden ── */
-const _origOpenSettings = App.openSettings.bind(App);
-App.openSettings = async function() {
-  await _origOpenSettings();
-  renderStatusConfig();
 };
 
 /* ── Location-Farbvorschau ── */
