@@ -2319,28 +2319,39 @@ const App={
     if(isAdmin())await this._loadUsersList();
   },
 
-  async _loadUsersList(){
-    const list=document.getElementById('stg-users-list');
-    if(!list)return;
-    list.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:8px 0">Lade…</div>';
+   async _loadUsersList(){
+    const tbl=document.getElementById('team-table');
+    const cnt=document.getElementById('team-count');
+    if(!tbl)return;
+    tbl.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:18px 14px">Lade…</div>';
     const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
-    if(error||!profiles){list.innerHTML='<div style="color:var(--miss);font-size:.8rem">Fehler</div>';return;}
-    list.innerHTML=profiles.map(p=>`
-      <div class="stg-user-row">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.85rem;font-weight:600">${p.display_name}</div>
-          <div style="font-size:.72rem;color:var(--txm)">${p.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}</div>
+    if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
+    if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
+    tbl.innerHTML=profiles.map(p=>`
+      <div class="team-row">
+        <div><div class="team-name">${p.display_name}</div></div>
+        <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}</span></div>
+        <div class="team-acts">
+          ${p.id!==currentProfile?.id?`
+            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
+              onclick="App.toggleUserRole('${p.id}','${p.role}')">${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
+            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
+              onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>
+          `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
         </div>
-                ${p.id!==currentProfile?.id?`
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap"
-              onclick="App.toggleUserRole('${p.id}','${p.role}')">
-              ${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
-            <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px;white-space:nowrap;color:var(--miss);border-color:rgba(255,80,80,.3)"
-              onclick="App.deleteUser('${p.id}','${p.display_name}')">&#128465;</button>
-          </div>`
-          :'<span style="font-size:.72rem;color:var(--txm);padding:4px">Du</span>'}
       </div>`).join('');
+  },
+
+  async openTeam(){
+    document.getElementById('team-ov').classList.add('open');
+    document.body.style.overflow='hidden';
+    await this._loadUsersList();
+  },
+
+  closeTeam(e){
+    if(e&&e.target!==document.getElementById('team-ov'))return;
+    document.getElementById('team-ov').classList.remove('open');
+    document.body.style.overflow='';
   },
 
   async toggleUserRole(userId,currentRole){
