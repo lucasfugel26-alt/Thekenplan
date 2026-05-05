@@ -455,6 +455,50 @@ body.light{
 .srow.mine .sname{font-weight:700;color:var(--tx)}
 .stg-user-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bd)}
 
+  /* ── TEAM PANEL ── */
+.team-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);
+  z-index:200;display:none;align-items:stretch;justify-content:flex-end}
+.team-ov.open{display:flex}
+.team-panel{background:var(--bg2);width:min(900px,100%);height:100%;
+  display:flex;flex-direction:column;overflow:hidden;
+  border-left:1px solid var(--bd);
+  transform:translateX(40px);opacity:0;transition:transform .22s,opacity .22s}
+.team-ov.open .team-panel{transform:none;opacity:1}
+.team-ph{padding:26px 32px 18px;border-bottom:1px solid var(--bd);flex-shrink:0;
+  display:flex;align-items:center;gap:14px}
+.team-ph h2{font-family:var(--fh);font-size:1.3rem;font-weight:800;flex:1;
+  background:linear-gradient(135deg,#fff 40%,#8890c8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.team-body{flex:1;overflow-y:auto;padding:28px 32px;
+  display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start}
+.team-tbl-wrap{min-width:0}
+.team-tbl-head{display:grid;grid-template-columns:1fr 110px 160px;gap:8px;
+  padding:0 14px 10px;font-size:.65rem;font-weight:700;color:var(--txd);
+  text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--bd)}
+.team-row{display:grid;grid-template-columns:1fr 110px 160px;gap:8px;align-items:center;
+  padding:12px 14px;border-radius:8px;transition:background .12s}
+.team-row:hover{background:var(--bg3)}
+.team-row+.team-row{border-top:1px solid var(--bd)}
+.team-name{font-size:.88rem;font-weight:600}
+.role-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.role-pill.admin{background:rgba(34,212,164,.15);color:#22d4a4;border:1px solid rgba(34,212,164,.25)}
+.role-pill.viewer{background:var(--bg4);color:var(--txd);border:1px solid var(--bd)}
+.team-acts{display:flex;gap:6px;justify-content:flex-end}
+.team-create-box{background:var(--bg3);border:1px solid var(--bd);border-radius:12px;
+  padding:24px;position:sticky;top:0}
+.team-create-box h3{font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:18px;color:var(--tx)}
+.tfi{width:100%;padding:10px 13px;border-radius:8px;border:1px solid var(--bd);
+  background:var(--bg4);color:var(--tx);font-size:.88rem;font-family:var(--fb);
+  margin-bottom:10px;transition:border-color .15s;box-sizing:border-box}
+.tfi:focus{outline:none;border-color:var(--l2)}
+.tfi::placeholder{color:var(--txm)}
+@media(max-width:700px){
+  .team-body{grid-template-columns:1fr;padding:18px}
+  .team-ph{padding:18px}
+  .team-tbl-head,.team-row{grid-template-columns:1fr 90px auto}
+  .team-create-box{position:static}
+}
 </style>
 </head>
 <body>
@@ -488,6 +532,9 @@ body.light{
       <button class="gear-btn admin-only" onclick="App.printPDF()" title="PDF exportieren" style="display:none">&#128438; PDF</button>
       <button class="gear-btn" onclick="Auth.logout()" title="Abmelden" style="background:var(--bg3);border-color:var(--bd);color:var(--txd)">
         &#128274; Abmelden
+      </button>
+            <button class="gear-btn admin-only" onclick="App.openTeam()" id="team-btn" style="color:#22d4a4;border-color:rgba(34,212,164,.25)">
+        &#128101; Team
       </button>
       <button class="gear-btn" onclick="App.openSettings()" id="gear-btn">
         &#9881; Einstellungen
