@@ -3297,7 +3297,7 @@ function renderLocationList() {
       <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px"
         onclick="App.openLocEdit(${id})">✎ Bearbeiten</button>
       <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
-        onclick="App.deleteLocation(${id})">\U0001f5d1</button>
+        onclick="App.deleteLocation(${id})">&#128465; Löschen</button>
     </div>`
   ).join('') || '<div style="color:var(--txm);padding:12px">Keine Locations</div>';
 }
@@ -3322,6 +3322,7 @@ App.createLocation = async function() {
 App.openLocEdit = function(id) {
   const loc = LOCS[id];
   if (!loc) return;
+  document.getElementById('loc-ov').classList.remove('open');
   document.getElementById('le-id').value = id;
   document.getElementById('le-name').value = loc.name || '';
   document.getElementById('le-short').value = loc.short || '';
@@ -3350,6 +3351,8 @@ App.openLocEdit = function(id) {
 App.closeLocEdit = function(e) {
   if (e && e.target !== document.getElementById('loc-edit-ov')) return;
   document.getElementById('loc-edit-ov').classList.remove('open');
+  document.getElementById('loc-ov').classList.add('open');
+  renderLocationList();
 };
 
 App._handleLocImage = async function(file) {
@@ -3391,8 +3394,9 @@ App.saveLocEdit = async function() {
   };
   try {
     await LocationsMgr.update(id, updates);
+    document.getElementById('loc-edit-ov').classList.remove('open');
+    document.getElementById('loc-ov').classList.add('open');
     LOCS[id] = {...currentLoc, id, ...updates};
-    App.closeLocEdit();
     renderLocationList();
     App.render();
   } catch(e) { err.textContent = 'Fehler: ' + e.message; err.style.display = ''; }
@@ -3425,7 +3429,7 @@ App.openLocInfo = function(locId) {
   if (loc.contact_name || loc.contact_phone) rows.push(`<div class="li-row"><span class="li-icon">&#128222;</span><div><div class="li-label">Ansprechpartner</div><div class="li-val">${loc.contact_name || ''}${loc.contact_phone ? ` &nbsp;<a href="tel:${loc.contact_phone}">${loc.contact_phone}</a>` : ''}</div></div></div>`);
   if (loc.capacity) rows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazität</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
   if (loc.notes) rows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
-  document.getElementById('li-body').innerHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem">Keine weiteren Infos hinterlegt.</div>';
+  document.getElementById('li-body').innerHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem;padding:4px 0">Noch keine Infos hinterlegt.<br><span style="font-size:.75rem">Admins können Infos unter &rarr; Locations verwalten hinzufügen.</span></div>';
   document.getElementById('loc-info-ov').classList.add('open');
 };
 
