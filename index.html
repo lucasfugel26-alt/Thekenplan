@@ -285,12 +285,14 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 
 /* ── SETTINGS PAGE ──────────────────────────────────── */
 .stg-page{position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;display:none}
-.stg-page-inner{max-width:580px;margin:0 auto;padding:28px 20px 48px}
+.stg-page-inner{max-width:960px;margin:0 auto;padding:28px 36px 56px}
 .stg-page-hdr{display:flex;align-items:center;gap:14px;margin-bottom:28px;border-bottom:1px solid var(--bd);padding-bottom:18px}
 .stg-back{font-size:.82rem;padding:7px 14px}
 .stg-page-title{font-family:var(--fh);font-size:1.3rem;font-weight:800}
+.stg-body{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;align-items:start}
+.stg-col-full{grid-column:1/-1}
 .stg-sec{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;
-  color:var(--txm);font-weight:700;margin:24px 0 10px;padding-bottom:6px;
+  color:var(--txm);font-weight:700;margin:28px 0 12px;padding-bottom:6px;
   border-bottom:1px solid var(--bd);display:block;width:100%}
 .stg-status{display:flex;align-items:center;gap:8px;background:var(--bg4);
   border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:14px}
@@ -299,8 +301,25 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .stg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
 .stg-field{display:flex;flex-direction:column;gap:4px}
 .stg-label{font-size:.72rem;color:var(--txm);font-weight:500}
-.stg-toggle{display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;user-select:none}
-.stg-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer}
+.stg-toggle{display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;user-select:none;
+  padding:8px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--bd)}
+.stg-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer;flex-shrink:0}
+.stg-toggles-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stg-status-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.stg-status-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;
+  background:var(--bg4);border-radius:10px;border:1px solid var(--bd)}
+.stg-status-card-top{display:flex;align-items:center;gap:8px}
+.stg-status-dot{width:18px;height:18px;border-radius:50%;flex-shrink:0}
+.stg-status-label{font-size:.85rem;font-weight:600;flex:1;word-break:break-word}
+.stg-status-del{background:none;border:none;cursor:pointer;color:var(--txm);font-size:.85rem;padding:2px 4px;
+  border-radius:4px;transition:color .15s}
+.stg-status-del:hover{color:var(--miss)}
+.stg-add-status{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
+@media(max-width:720px){
+  .stg-body{grid-template-columns:1fr}
+  .stg-page-inner{padding:18px 16px 48px}
+  .stg-toggles-grid{grid-template-columns:1fr}
+}
 .ev-card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35);
   border-color:var(--bda)}
 .ev-card[data-loc="1"]{border-left-color:var(--l1)}
@@ -859,67 +878,77 @@ body.light{
       <div class="stg-page-title">&#9881; Einstellungen</div>
     </div>
 
-    <div class="stg-status" id="stg-status-row">
+    <div class="stg-status stg-col-full" id="stg-status-row">
       <span class="sync-dot off" id="stg-dot"></span>
       <span id="stg-status-text">Nicht verbunden</span>
     </div>
 
-    <div class="stg-sec">Mein Account</div>
-    <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:14px 16px;font-size:.85rem;margin-bottom:12px"></div>
-    <div class="stg-subsec">Passwort &auml;ndern</div>
-    <div style="display:flex;flex-direction:column;gap:6px;max-width:320px">
-      <input class="fi" type="password" id="stg-pw1" placeholder="Neues Passwort (min. 6 Zeichen)">
-      <input class="fi" type="password" id="stg-pw2" placeholder="Passwort wiederholen">
-      <div id="stg-pw-msg" style="font-size:.75rem;display:none;padding:4px 0"></div>
-      <button class="btn btn-ghost" style="align-self:flex-start" onclick="App.changePassword()">Passwort &auml;ndern</button>
-    </div>
+    <div class="stg-body">
 
-    <div class="stg-sec">Erscheinungsbild</div>
-    <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
+      <!-- ── LINKE SPALTE ── -->
+      <div>
+        <div class="stg-sec">Mein Account</div>
+        <div id="stg-user-info" style="background:var(--bg4);border-radius:8px;padding:14px 16px;font-size:.85rem;margin-bottom:16px"></div>
+        <div class="stg-subsec">Passwort &auml;ndern</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <input class="fi" type="password" id="stg-pw1" placeholder="Neues Passwort (min. 6 Zeichen)">
+          <input class="fi" type="password" id="stg-pw2" placeholder="Passwort wiederholen">
+          <div id="stg-pw-msg" style="font-size:.75rem;display:none;padding:4px 0"></div>
+          <button class="btn btn-ghost" style="align-self:flex-start" onclick="App.changePassword()">Passwort &auml;ndern</button>
+        </div>
 
-    <div class="stg-sec">Standardwerte f&uuml;r neue Events</div>
-    <div class="stg-grid2">
-      <div class="stg-field">
-        <label class="stg-label">Standard-Location</label>
-        <select class="fi" id="stg-def-loc"></select>
+        <div class="stg-sec">Erscheinungsbild</div>
+        <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
+
+        <div class="stg-sec">Standardwerte f&uuml;r neue Events</div>
+        <div class="stg-grid2">
+          <div class="stg-field">
+            <label class="stg-label">Standard-Location</label>
+            <select class="fi" id="stg-def-loc"></select>
+          </div>
+          <div class="stg-field">
+            <label class="stg-label">Gastro-Start</label>
+            <input class="fi" type="time" id="stg-def-gastro">
+          </div>
+          <div class="stg-field">
+            <label class="stg-label">Schluss Show</label>
+            <input class="fi" type="time" id="stg-def-schluss">
+          </div>
+          <div class="stg-field">
+            <label class="stg-label">Belegungsende</label>
+            <input class="fi" type="time" id="stg-def-ende">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <button class="btn btn-ghost" onclick="Defaults.save()">Speichern</button>
+          <span id="stg-def-msg" style="font-size:.75rem;color:#22d4a4;display:none">&#10003; Gespeichert</span>
+        </div>
       </div>
-      <div class="stg-field">
-        <label class="stg-label">Gastro-Start</label>
-        <input class="fi" type="time" id="stg-def-gastro">
-      </div>
-      <div class="stg-field">
-        <label class="stg-label">Schluss Show</label>
-        <input class="fi" type="time" id="stg-def-schluss">
-      </div>
-      <div class="stg-field">
-        <label class="stg-label">Belegungsende</label>
-        <input class="fi" type="time" id="stg-def-ende">
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-      <button class="btn btn-ghost" onclick="Defaults.save()">Speichern</button>
-      <span id="stg-def-msg" style="font-size:.75rem;color:#22d4a4;display:none">&#10003; Gespeichert</span>
-    </div>
 
-    <div class="stg-sec">Event-Karten­felder</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <label class="stg-toggle"><input type="checkbox" id="stg-cf-becher" onchange="CardFields.save()"><span>Bechertyp-Banner anzeigen</span></label>
-      <label class="stg-toggle"><input type="checkbox" id="stg-cf-zeiten" onchange="CardFields.save()"><span>Zeitangaben anzeigen</span></label>
-      <label class="stg-toggle"><input type="checkbox" id="stg-cf-besucher" onchange="CardFields.save()"><span>Besucherzahl anzeigen</span></label>
-      <label class="stg-toggle"><input type="checkbox" id="stg-cf-notizen" onchange="CardFields.save()"><span>Notizen anzeigen</span></label>
-    </div>
+      <!-- ── RECHTE SPALTE ── -->
+      <div>
+        <div class="stg-sec">Event-Karten­felder</div>
+        <div class="stg-toggles-grid">
+          <label class="stg-toggle"><input type="checkbox" id="stg-cf-becher" onchange="CardFields.save()"><span>Bechertyp-Banner</span></label>
+          <label class="stg-toggle"><input type="checkbox" id="stg-cf-zeiten" onchange="CardFields.save()"><span>Zeitangaben</span></label>
+          <label class="stg-toggle"><input type="checkbox" id="stg-cf-besucher" onchange="CardFields.save()"><span>Besucherzahl</span></label>
+          <label class="stg-toggle"><input type="checkbox" id="stg-cf-notizen" onchange="CardFields.save()"><span>Notizen</span></label>
+        </div>
 
-    <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
-    <div id="stg-statuses" class="admin-only"></div>
-    <div style="display:flex;gap:6px;margin-top:10px" class="admin-only">
-      <input class="fi" type="text" id="stg-new-status-label" placeholder="Neuer Status-Name" style="flex:1">
-      <input class="fi" type="color" id="stg-new-status-color" value="#f5a623" style="width:44px;padding:4px">
-      <button class="btn btn-ghost" onclick="Config.addStatus()">&#43; Hinzuf&uuml;gen</button>
-    </div>
+        <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
+        <div id="stg-statuses" class="admin-only stg-status-cards"></div>
+        <div class="stg-add-status admin-only">
+          <input class="fi" type="text" id="stg-new-status-label" placeholder="Neuer Status-Name">
+          <input class="fi" type="color" id="stg-new-status-color" value="#f5a623" style="width:44px;padding:4px">
+          <button class="btn btn-ghost" onclick="Config.addStatus()">&#43; Hinzuf&uuml;gen</button>
+        </div>
 
-    <div class="stg-sec admin-only">Datensicherung</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
-      <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
+        <div class="stg-sec admin-only">Datensicherung</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
+          <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -3240,14 +3269,18 @@ const Import = {
 function renderStatusConfig() {
   const el = document.getElementById('stg-statuses');
   if (!el) return;
-  el.innerHTML = Config.data.staffStatuses.map((s,i) =>
-    `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
-      <span style="width:14px;height:14px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
-      <span style="flex:1;font-size:.82rem">${s.label}</span>
-      <button class="btn btn-ghost" style="font-size:.72rem;padding:3px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
-        onclick="Config.removeStatus('${s.id}')">&#128465;</button>
+  el.innerHTML = Config.data.staffStatuses.map(s =>
+    `<div class="stg-status-card">
+      <div class="stg-status-card-top">
+        <span class="stg-status-dot" style="background:${s.color}"></span>
+        <span class="stg-status-label">${s.label}</span>
+        <button class="stg-status-del" onclick="Config.removeStatus('${s.id}')" title="Entfernen">&#10005;</button>
+      </div>
+      <div style="height:4px;border-radius:2px;background:${s.color}33;overflow:hidden">
+        <div style="height:100%;width:100%;background:${s.color};opacity:.7;border-radius:2px"></div>
+      </div>
     </div>`
-  ).join('') || '<div style="color:var(--txm);font-size:.8rem;padding:8px 0">Keine Statusoptionen</div>';
+  ).join('') || '<div style="color:var(--txm);font-size:.8rem;padding:8px 0;grid-column:1/-1">Keine Statusoptionen</div>';
 }
 
 const LOC_PRESET_COLORS = ['#f5a623','#22d4a4','#e05aff','#ff6b6b','#4a9eff','#ff9f40','#a259ff','#00c875','#ff5c8a','#5ce1e6','#ffde59','#c9cbff'];
