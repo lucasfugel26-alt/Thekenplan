@@ -870,6 +870,9 @@ body.light{
     <button class="btn btn-danger" id="btn-miss" onclick="App.toggleMiss()" style="display:none">
       &#9888; Fehlende Besetzung
     </button>
+    <button class="btn btn-ghost" id="btn-my-shifts" onclick="App.toggleMyShifts()" style="display:none">
+      &#128100; Meine Schichten
+    </button>
     <button class="btn btn-ghost" onclick="App.resetFilters()">Alle anzeigen</button>
     <div class="spacer"></div>
     <span class="cnt" id="cnt"></span>
@@ -3380,21 +3383,18 @@ function buildCard(ev, conflictIds=new Set()){
 
 function updateStaffSel(){
   const sel=document.getElementById('filter-staff');
+  const myShiftsBtn=document.getElementById('btn-my-shifts');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
-  // Non-admin employees: lock filter to own name, hide dropdown
-  if(!isAdmin()&&myEmp){
+  // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle instead
+  if(!isAdmin()){
     sel.style.display='none';
-    S.filterStaff=myEmp.name;
-    return;
-  }
-  if(!isAdmin()&&!myEmp){
-    // Logged in but not linked to an employee — hide filter, show nothing
-    sel.style.display='none';
+    if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     return;
   }
 
-  // Admin: strictly only employees from the employees table, alphabetically
+  // Admins: full dropdown, no "Meine Schichten" button needed
+  if(myShiftsBtn) myShiftsBtn.style.display='none';
   sel.style.display='';
   const cur=sel.value;
   const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
@@ -3747,9 +3747,24 @@ const App={
     S.onlyMiss=!S.onlyMiss;
     document.getElementById('btn-miss').style.background=S.onlyMiss?'rgba(255,64,64,.3)':'';
     renderGrid();},
+  toggleMyShifts(){
+    const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
+    if(!myEmp) return;
+    const btn=document.getElementById('btn-my-shifts');
+    const active=S.filterStaff===myEmp.name;
+    S.filterStaff=active?'':myEmp.name;
+    if(btn){
+      btn.style.background=active?'':'rgba(34,212,164,.18)';
+      btn.style.borderColor=active?'':'rgba(34,212,164,.5)';
+      btn.style.color=active?'':'#22d4a4';
+    }
+    renderGrid();
+  },
+
   resetFilters(){S.filterLoc=0;S.search='';S.onlyMiss=false;
     document.getElementById('search-inp').value='';
     if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
+    else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
 
   /* Detail-Modal */
@@ -3871,14 +3886,12 @@ const App={
     };
     if(pw1.length < 6){ show('Mindestens 6 Zeichen erforderlich.', false); return; }
     if(pw1 !== pw2){ show('Passwörter stimmen nicht überein.', false); return; }
-    const btn=document.querySelector('#stg-page .btn[onclick*="changePassword"]');
-    if(btn){btn.disabled=true;btn.textContent='Speichern…';}
+    show('Speichern…', true);
     const { error } = await db.auth.updateUser({ password: pw1 });
-    if(btn){btn.disabled=false;btn.textContent='Passwort ändern';}
     if(error){ show('Fehler: ' + error.message, false); return; }
-    show('✓ Passwort erfolgreich geändert!', true);
     document.getElementById('stg-pw1').value = '';
     document.getElementById('stg-pw2').value = '';
+    show('✓ Passwort erfolgreich geändert!', true);
     setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
   },
 
@@ -4234,7 +4247,10 @@ const Auth = {
     }
   },
 
-  async logout(){await db.auth.signOut();},
+  async logout(){
+    await db.auth.signOut();
+    this._onSignOut(); // explicit fallback in case event fires late
+  },
 
   showScreen(){
     document.getElementById('pw-screen').style.display='flex';
