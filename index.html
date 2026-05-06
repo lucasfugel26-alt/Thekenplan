@@ -830,7 +830,7 @@ body.light{
         <span id="sync-label">Nicht verbunden</span>
         <span class="sync-spin">&#8635;</span>
       </button>
-      <button class="gear-btn" onclick="App.toggleTheme()" id="theme-btn" title="Hell/Dunkel">&#9790;</button>
+
       <button class="gear-btn admin-only" onclick="App.printPDF()" title="PDF exportieren" style="display:none">&#128438; PDF</button>
       <button class="gear-btn" onclick="Auth.logout()" title="Abmelden" style="background:var(--bg3);border-color:var(--bd);color:var(--txd)">
         &#128274; Abmelden
@@ -1050,7 +1050,7 @@ body.light{
         <div style="display:flex;flex-direction:column;gap:6px">
           <input class="fi" type="password" id="stg-pw1" placeholder="Neues Passwort (min. 6 Zeichen)">
           <input class="fi" type="password" id="stg-pw2" placeholder="Passwort wiederholen">
-          <div id="stg-pw-msg" style="font-size:.75rem;display:none;padding:4px 0"></div>
+          <div id="stg-pw-msg" style="font-size:.82rem;display:none;padding:8px 12px;border-radius:8px;margin-top:2px"></div>
           <button class="btn btn-ghost" style="align-self:flex-start" onclick="App.changePassword()">Passwort &auml;ndern</button>
         </div>
 
@@ -3706,9 +3706,9 @@ const App={
   _currentEvId:null,  /* ID des aktuell ge\u00f6ffneten Events im Detail-Modal */
 
   async init(){
-    if(localStorage.getItem('thekenplan_theme')==='light'){
+    // Light is default; only switch to dark when explicitly saved as dark
+    if(localStorage.getItem('thekenplan_theme')!=='dark'){
       document.body.classList.add('light');
-      const tb=document.getElementById('theme-btn');if(tb)tb.textContent='☀';
     }
     const loggedIn=await Auth.init();
     if(!loggedIn){
@@ -3857,7 +3857,6 @@ const App={
   toggleTheme(){
     const isLight=document.body.classList.toggle('light');
     localStorage.setItem('thekenplan_theme', isLight?'light':'dark');
-    document.getElementById('theme-btn').textContent=isLight?'☀':'☾';
   },
 
   printPDF(){
@@ -3868,15 +3867,24 @@ const App={
     const pw1 = document.getElementById('stg-pw1')?.value || '';
     const pw2 = document.getElementById('stg-pw2')?.value || '';
     const msg = document.getElementById('stg-pw-msg');
-    const show = (txt, color) => { if(msg){ msg.style.display=''; msg.style.color=color; msg.textContent=txt; } };
-    if(pw1.length < 6){ show('Mindestens 6 Zeichen erforderlich.', 'var(--miss)'); return; }
-    if(pw1 !== pw2){ show('Passwörter stimmen nicht überein.', 'var(--miss)'); return; }
+    const show = (txt, ok) => {
+      if(!msg) return;
+      msg.style.display='';
+      msg.style.background=ok?'rgba(34,212,164,.15)':'rgba(255,80,80,.12)';
+      msg.style.color=ok?'#22d4a4':'var(--miss)';
+      msg.textContent=txt;
+    };
+    if(pw1.length < 6){ show('Mindestens 6 Zeichen erforderlich.', false); return; }
+    if(pw1 !== pw2){ show('Passwörter stimmen nicht überein.', false); return; }
+    const btn=document.querySelector('#stg-page .btn[onclick*="changePassword"]');
+    if(btn){btn.disabled=true;btn.textContent='Speichern…';}
     const { error } = await db.auth.updateUser({ password: pw1 });
-    if(error){ show('Fehler: ' + error.message, 'var(--miss)'); return; }
-    show('✓ Passwort erfolgreich geändert!', '#22d4a4');
+    if(btn){btn.disabled=false;btn.textContent='Passwort ändern';}
+    if(error){ show('Fehler: ' + error.message, false); return; }
+    show('✓ Passwort erfolgreich geändert!', true);
     document.getElementById('stg-pw1').value = '';
     document.getElementById('stg-pw2').value = '';
-    setTimeout(() => { if(msg) msg.style.display='none'; }, 3000);
+    setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
   },
 
   exportJSON(){
@@ -3913,7 +3921,10 @@ const App={
     document.body.style.overflow='hidden';
     const info=document.getElementById('stg-user-info');
     if(currentProfile&&info){
-      info.innerHTML=`<div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${currentProfile.display_name}</div>
+      // Prefer full name from linked employee record
+      const linkedEmp=Employees.getAll().find(e=>e.profile_id===currentUser?.id);
+      const fullName=linkedEmp?.name||currentProfile.display_name||currentUser?.email;
+      info.innerHTML=`<div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${_esc(fullName)}</div>
         <div style="color:var(--txd);font-size:.78rem">${currentUser?.email}&nbsp;·&nbsp;
           <span style="color:${currentProfile.role==='admin'?'#22d4a4':'var(--txd)'}">
             ${currentProfile.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}
