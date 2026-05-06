@@ -77,13 +77,7 @@ export default async function handler(req, res) {
       const { email, display_name, redirect_to } = req.body;
       if (!email || !display_name) return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
 
-      // Try to create user first (noop if already exists)
-      await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-        body: JSON.stringify({ email, email_confirm: false, password: Math.random().toString(36) }),
-      });
-
+      // generate_link creates the user automatically if they don't exist yet
       const { ok, data: linkData, type: linkType } = await getMagicLink(email, redirect_to, serviceKey);
       if (!ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
 
