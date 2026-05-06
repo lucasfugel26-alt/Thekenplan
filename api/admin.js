@@ -37,11 +37,38 @@ export default async function handler(req, res) {
     const callerId = await getCallerUserId(token);
     if (!callerId) return res.status(401).json({ error: 'Ungültiger Token' });
 
+    const { action } = req.query;
+
+    // ── Eigene Kontaktdaten aktualisieren (kein Admin nötig) ─────────────────
+    if (action === 'updateEmployeeContact') {
+      const { email, phone } = req.body;
+      // Find the employee linked to this user
+      const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?profile_id=eq.${callerId}&select=id`, {
+        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+      });
+      const empData = await empRes.json();
+      if (!empData?.[0]?.id) return res.status(404).json({ error: 'Kein verknüpfter Mitarbeiter gefunden' });
+      const empId = empData[0].id;
+      const updRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${empId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ email: email || null, phone: phone || null }),
+      });
+      if (!updRes.ok) {
+        const err = await updRes.json().catch(() => ({}));
+        return res.status(400).json({ error: err.message || 'Fehler beim Speichern' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
     if (!(await isAdmin(callerId, serviceKey))) {
       return res.status(403).json({ error: 'Nur Admins erlaubt' });
     }
-
-    const { action } = req.query;
 
     // ── Zugang erstellen (mit temporärem Passwort) ───────────────────────────
     if (action === 'inviteUser') {
