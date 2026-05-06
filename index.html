@@ -3394,17 +3394,12 @@ function updateStaffSel(){
     return;
   }
 
-  // Admin: build dropdown from employees table (canonical, no duplicates)
+  // Admin: strictly only employees from the employees table, alphabetically
   sel.style.display='';
   const cur=sel.value;
-  const empNames=Employees.getAll().map(e=>e.name).sort();
-  // Also add any event name not in employees list (backwards compat)
-  const extra=new Set();
-  const pool=S.filterLoc?EVENTS.filter(e=>e.location===S.filterLoc):EVENTS;
-  pool.forEach(e=>allNames(e).forEach(n=>{ if(!empNames.includes(n)) extra.add(n); }));
-  const all=[...empNames,...[...extra].sort()];
+  const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
   sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
-    all.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
+    empNames.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
 }
 
 
