@@ -176,6 +176,7 @@ body.admin .ev-card:hover .card-acts{display:flex}
   background:var(--bg3);color:var(--txm);cursor:pointer;font-size:.68rem;
   font-family:var(--fb);transition:all .13s;white-space:nowrap}
 .ss-btn:hover{border-color:var(--bda);color:var(--txd)}
+.ss-btn.active{background:color-mix(in srgb,var(--sc,#22d4a4) 15%,transparent);border-color:color-mix(in srgb,var(--sc,#22d4a4) 45%,transparent);color:var(--sc,#22d4a4)}
 .ss-btn.active[data-sid="fehlt"]{background:rgba(255,64,64,.15);border-color:rgba(255,64,64,.45);color:var(--miss)}
 .ss-btn.active[data-sid="spaet"]{background:rgba(245,166,35,.15);border-color:rgba(245,166,35,.4);color:var(--l1)}
 .ss-btn.active[data-sid="ersatz"]{background:rgba(224,90,255,.15);border-color:rgba(224,90,255,.4);color:var(--l3)}
@@ -2605,6 +2606,7 @@ const Form={
   _buildStatusBtns(activeStatuses){
     return Config.data.staffStatuses.map(s=>
       `<button type="button" class="ss-btn${activeStatuses.includes(s.id)?' active':''}" data-sid="${s.id}"
+        style="--sc:${s.color||'#22d4a4'}"
         onclick="this.classList.toggle('active')">${s.label}</button>`
     ).join('');
   },
