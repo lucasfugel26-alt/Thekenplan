@@ -41,30 +41,43 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
     }
 
-    // generate_link creates the user + returns a one-time invite URL.
-    // Works even when Supabase SMTP is not configured or rate-limited.
-    const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+    // Try invite link first; if user already exists, fall back to recovery link.
+    let linkData, linkType = 'invite';
+    let linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
       body: JSON.stringify({ type: 'invite', email }),
     });
-    const linkData = await linkRes.json();
-    if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Anlegen' });
+    linkData = await linkRes.json();
+
+    if (!linkRes.ok) {
+      const msg = linkData.msg || linkData.message || '';
+      // User already registered — generate a password-recovery link instead
+      if (msg.toLowerCase().includes('already')) {
+        linkType = 'recovery';
+        linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+          body: JSON.stringify({ type: 'recovery', email }),
+        });
+        linkData = await linkRes.json();
+        if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
+      } else {
+        return res.status(400).json({ error: msg || 'Fehler beim Anlegen' });
+      }
+    }
 
     const userId = linkData.user?.id || linkData.id;
     if (!userId) return res.status(500).json({ error: 'Keine User-ID erhalten' });
 
+    // Upsert profile (may already exist if user was previously created)
     await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${serviceKey}`,
         apikey: serviceKey,
-        Prefer: 'return=minimal',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
       },
       body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
     });
@@ -73,6 +86,7 @@ export default async function handler(req, res) {
       id: userId,
       display_name,
       invite_link: linkData.action_link || null,
+      link_type: linkType,
     });
   }
 
