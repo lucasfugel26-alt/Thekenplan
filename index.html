@@ -2591,8 +2591,11 @@ const Employees = {
             onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>
         </td>`
       :'';
+    const ev=EVENTS.find(e=>e.id===s.event_id);
+    const locShort=ev?(LOCS[ev.location]?.short||'–'):'–';
     return `<tr class="${s.confirmed?'confirmed':''}${s.cancelled?' cancelled':''}">
       <td>${_fmtDate(s.event_date)}</td>
+      <td style="font-size:.75rem;color:var(--txm);font-weight:600">${_esc(locShort)}</td>
       <td>${_esc(s.event_name||'–')}</td>
       <td>${_esc(s.role||'–')}</td>
       <td class="${timeChanged?'act-time':''}">${st}</td>
@@ -2613,8 +2616,8 @@ const Employees = {
     const plannedH=future.reduce((sum,s)=>sum+Shifts.calcDuration(s.start_time,s.end_time),0);
     const confirmedH=past.filter(s=>s.confirmed).reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
     const fmtH=h=>h>0?(h%1===0?h+'h':h.toFixed(1)+'h'):'0h';
-    const thead=`<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th><th></th></tr></thead>`;
-    const theadNoAct=`<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th></tr></thead>`;
+    const thead=`<thead><tr><th>Datum</th><th>Ort</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th><th></th></tr></thead>`;
+    const theadNoAct=`<thead><tr><th>Datum</th><th>Ort</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th></tr></thead>`;
     let html='';
     if(future.length) {
       html+=`<div class="emp-shifts-head" style="margin-top:16px">
