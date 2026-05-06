@@ -3974,32 +3974,37 @@ const App={
   },
 
   async createEmployeeAccess(empId) {
-    const emp=Employees.getById(empId);
-    if(!emp?.email){alert('Bitte zuerst eine E-Mail-Adresse hinterlegen.');return;}
-    if(emp.profile_id){alert('Dieser Mitarbeiter hat bereits einen Zugang.');return;}
-    if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEine Einladungs-E-Mail wird automatisch gesendet.`))return;
-    const {data:{session}}=await db.auth.getSession();
-    const token=session?.access_token;
-    if(!token){alert('Nicht angemeldet.');return;}
-    const r=await fetch('/api/admin?action=inviteUser',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({email:emp.email,display_name:emp.display_name||emp.name})
-    });
-    const data=await r.json();
-    if(!r.ok){alert('Fehler: '+(data.error||'Unbekannt'));return;}
-    // Link employee to new auth user
-    await Employees.update(empId,{profile_id:data.id});
-    // Refresh detail
-    const shifts=await Shifts.loadForEmployee(empId);
-    const updated=Employees.getById(empId);
-    if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
-    const linkLabel=data.link_type==='recovery'?'Passwort-Reset-Link':'Einladungslink';
-    if(data.invite_link){
-      const copy=confirm(`Zugang erstellt!\n\n${linkLabel} generiert. Bitte diesen Link manuell an ${emp.name} schicken:\n\n${data.invite_link}\n\nLink in Zwischenablage kopieren?`);
-      if(copy) navigator.clipboard.writeText(data.invite_link).catch(()=>{});
-    } else {
-      alert(`Zugang erstellt.\n\n(Kein Link verfügbar — API-Felder: ${data._raw_keys?.join(', ')||'?'})`);
+    try {
+      const emp=Employees.getById(empId);
+      if(!emp?.email){alert('Bitte zuerst eine E-Mail-Adresse hinterlegen.');return;}
+      if(emp.profile_id){alert('Dieser Mitarbeiter hat bereits einen Zugang.');return;}
+      if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEin Einladungslink wird generiert.`))return;
+      const sess=await db.auth.getSession();
+      const token=sess.data?.session?.access_token;
+      if(!token){alert('Nicht angemeldet.');return;}
+      const r=await fetch('/api/admin?action=inviteUser',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({email:emp.email,display_name:emp.display_name||emp.name})
+      });
+      let data;
+      try{ data=await r.json(); }catch(e){ alert('Antwort konnte nicht gelesen werden: '+e.message); return; }
+      if(!r.ok){alert('Fehler ('+r.status+'): '+(data?.error||JSON.stringify(data)));return;}
+      // Link employee to new auth user
+      await Employees.update(empId,{profile_id:data.id});
+      // Refresh detail
+      const shifts=await Shifts.loadForEmployee(empId);
+      const updated=Employees.getById(empId);
+      if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
+      const linkLabel=data.link_type==='recovery'?'Passwort-Reset-Link':'Einladungslink';
+      if(data.invite_link){
+        const copy=confirm(`Zugang erstellt!\n\n${linkLabel}:\n\n${data.invite_link}\n\nLink in Zwischenablage kopieren?`);
+        if(copy) navigator.clipboard.writeText(data.invite_link).catch(()=>{});
+      } else {
+        alert(`Zugang erstellt.\n\n(Kein Link zurückgegeben. API-Felder: ${data._raw_keys?.join(', ')||JSON.stringify(Object.keys(data||{}))})`);
+      }
+    } catch(e) {
+      alert('Unerwarteter Fehler: '+e.message);
     }
   },
 
