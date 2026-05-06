@@ -1157,21 +1157,12 @@ body.light{
 
     <!-- Zugänge tab -->
     <div class="team-content" id="tcontent-acc" style="display:none">
-      <div class="team-access-wrap">
-        <div class="team-tbl-wrap">
-          <div class="team-tbl-head">
-            <span>Name</span><span>Rolle</span><span style="text-align:right">Aktionen</span>
-          </div>
-          <div id="team-table"></div>
+      <div style="padding:18px 24px;flex:1;overflow-y:auto">
+        <p style="font-size:.8rem;color:var(--txm);margin:0 0 14px">Zugänge werden über den Mitarbeiter-Tab erstellt. Hier kannst du Rollen verwalten und Zugänge mit Mitarbeitern verknüpfen.</p>
+        <div class="team-tbl-head" style="grid-template-columns:1fr 140px 1fr 180px">
+          <span>Name</span><span>Rolle</span><span>Mitarbeiter</span><span style="text-align:right">Aktionen</span>
         </div>
-        <div class="team-create-box">
-          <h3>&#43; Neuer Zugang</h3>
-          <input id="nu-name"  type="text"     class="tfi" placeholder="Name">
-          <input id="nu-email" type="email"    class="tfi" placeholder="E-Mail">
-          <input id="nu-pw"    type="password" class="tfi" placeholder="Passwort">
-          <div id="nu-err" style="color:var(--miss);font-size:.78rem;margin-bottom:8px;display:none"></div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="App.createUser()">&#43; Anlegen</button>
-        </div>
+        <div id="team-table"></div>
       </div>
     </div>
   </div>
@@ -3890,17 +3881,24 @@ const App={
     const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
     if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
     if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
+    const allEmps=Employees.getAll();
+    // employees not yet linked to any profile
+    const unlinkedEmps=allEmps.filter(e=>!e.profile_id);
     tbl.innerHTML=profiles.map(p=>{
-      const linkedEmp=Employees.getAll().find(e=>e.profile_id===p.id);
-      return `<div class="team-row" style="grid-template-columns:1fr 1fr 160px">
-        <div>
-          <div class="team-name">${p.display_name}</div>
-          ${linkedEmp?`<div style="font-size:.7rem;color:var(--txm);margin-top:2px">&#128101; ${_esc(linkedEmp.name)}</div>`
-            :`<div style="font-size:.7rem;color:var(--txm);margin-top:2px;font-style:italic">Kein Mitarbeiter verknüpft</div>`}
-        </div>
+      const linkedEmp=allEmps.find(e=>e.profile_id===p.id);
+      const isSelf=p.id===currentProfile?.id;
+      const empCol=linkedEmp
+        ?`<button class="btn btn-ghost" style="font-size:.75rem;padding:4px 10px" onclick="Employees.select('${linkedEmp.id}');App.showTeamTab('emp')">&#128101; ${_esc(linkedEmp.name)}</button>`
+        :`<select onchange="App.linkUserToEmployee('${p.id}',this.value)" style="font-size:.75rem;padding:4px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);max-width:180px">
+            <option value="">— zuweisen…</option>
+            ${unlinkedEmps.map(e=>`<option value="${e.id}">${_esc(e.name)}</option>`).join('')}
+          </select>`;
+      return `<div class="team-row" style="grid-template-columns:1fr 140px 1fr 180px">
+        <div class="team-name">${_esc(p.display_name)}</div>
         <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'&#128273; Admin':'&#128065; Mitarbeiter'}</span></div>
+        <div>${empCol}</div>
         <div class="team-acts">
-          ${p.id!==currentProfile?.id?`
+          ${!isSelf?`
             <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
               onclick="App.toggleUserRole('${p.id}','${p.role}')">${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
             <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
@@ -3909,6 +3907,18 @@ const App={
         </div>
       </div>`;
     }).join('');
+  },
+
+  async linkUserToEmployee(profileId, empId){
+    if(!empId)return;
+    const {error}=await db.from('employees').update({profile_id:profileId}).eq('id',empId);
+    if(error){alert('Fehler: '+error.message);return;}
+    await Employees.load();
+    await this._loadUsersList();
+  },
+
+  showTeamTab(tab){
+    Employees.showTab(tab);
   },
 
   async openTeam(){
@@ -3928,28 +3938,6 @@ const App={
     const newRole=currentRole==='admin'?'viewer':'admin';
     const {error}=await db.from('profiles').update({role:newRole}).eq('id',userId);
     if(error){alert('Fehler: '+error.message);return;}
-    await this._loadUsersList();
-  },
-    async createUser(){
-    const name =document.getElementById('nu-name').value.trim();
-    const email=document.getElementById('nu-email').value.trim();
-    const pw   =document.getElementById('nu-pw').value;
-    const errEl=document.getElementById('nu-err');
-    errEl.style.display='none';
-    if(!name||!email||!pw){errEl.textContent='Alle Felder ausfüllen.';errEl.style.display='';return;}
-    const {data:{session}}=await db.auth.getSession();
-    const token=session?.access_token;
-    if(!token){errEl.textContent='Nicht angemeldet.';errEl.style.display='';return;}
-    const r=await fetch('/api/admin?action=createUser',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({email,password:pw,display_name:name})
-    });
-    const data=await r.json();
-    if(!r.ok){errEl.textContent=data.error||'Fehler';errEl.style.display='';return;}
-    document.getElementById('nu-name').value='';
-    document.getElementById('nu-email').value='';
-    document.getElementById('nu-pw').value='';
     await this._loadUsersList();
   },
 
