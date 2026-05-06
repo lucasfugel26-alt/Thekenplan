@@ -3820,8 +3820,8 @@ const Profile = {
     const fmtH = h => h > 0 ? (h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h') : '0h';
     const plannedH = future.reduce((sum,s) => sum + Shifts.calcDuration(s.start_time, s.end_time), 0);
     const confirmedH = past.filter(s => s.confirmed).reduce((sum,s) => sum + Shifts.calcDuration(s.actual_start_time||s.start_time, s.actual_end_time||s.end_time), 0);
-    const colgroup = `<colgroup><col style="width:110px"><col><col style="width:130px"><col style="width:72px"><col style="width:72px"><col style="width:72px"><col style="width:120px"></colgroup>`;
-    const thead = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
+    const colgroup = `<colgroup><col style="width:110px"><col style="width:56px"><col><col style="width:130px"><col style="width:72px"><col style="width:72px"><col style="width:72px"><col style="width:120px"></colgroup>`;
+    const thead = `<thead><tr><th>Datum</th><th>Ort</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
     const tbl = body => `<table class="emp-shift-tbl" style="width:100%;table-layout:fixed">${colgroup}${thead}${body}</table>`;
     let html = '';
     if (future.length) {
@@ -3848,8 +3848,11 @@ const Profile = {
     const statusCell = isPast && s.confirmed
       ? `<td><span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span></td>`
       : `<td></td>`;
+    const ev = EVENTS.find(e => e.id === s.event_id);
+    const locShort = ev ? (LOCS[ev.location]?.short || '–') : '–';
     return `<tr class="${s.confirmed?'confirmed':''}">
       <td>${_fmtDate(s.event_date)}</td>
+      <td style="font-size:.75rem;color:var(--txm);font-weight:600">${_esc(locShort)}</td>
       <td>${_esc(s.event_name||'–')}</td>
       <td>${_esc(s.role||'–')}</td>
       <td class="${timeChanged?'act-time':''}">${st}</td>
