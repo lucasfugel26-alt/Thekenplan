@@ -793,12 +793,26 @@ body.light{
   <div class="pw-box">
     <div class="pw-logo">Thekenplan</div>
     <div class="pw-sub">Bitte mit deinem Account anmelden</div>
-       <form onsubmit="event.preventDefault();Auth.submit()">
+    <form onsubmit="event.preventDefault();Auth.submit()">
       <input type="email" id="pw-email" placeholder="E-Mail" autocomplete="email">
       <input type="password" id="pw-input" placeholder="Passwort" autocomplete="current-password">
       <button type="submit">Anmelden</button>
     </form>
     <div class="pw-err" id="pw-err"></div>
+  </div>
+</div>
+
+<!-- Passwort setzen (nach Einladungs-/Reset-Link) -->
+<div id="set-pw-screen" class="pw-screen" style="display:none">
+  <div class="pw-box">
+    <div class="pw-logo">Thekenplan</div>
+    <div class="pw-sub" id="set-pw-sub">Bitte wähle ein neues Passwort</div>
+    <form onsubmit="event.preventDefault();Auth.setNewPassword()">
+      <input type="password" id="set-pw-input" placeholder="Neues Passwort" autocomplete="new-password" minlength="8">
+      <input type="password" id="set-pw-confirm" placeholder="Passwort wiederholen" autocomplete="new-password">
+      <button type="submit" id="set-pw-btn">Passwort speichern</button>
+    </form>
+    <div class="pw-err" id="set-pw-err"></div>
   </div>
 </div>
 
@@ -3685,7 +3699,10 @@ const App={
       const tb=document.getElementById('theme-btn');if(tb)tb.textContent='☀';
     }
     const loggedIn=await Auth.init();
-    if(!loggedIn) Auth.showScreen();
+    if(!loggedIn){
+      Auth.showScreen();
+      Auth._checkUrlError();
+    }
   },
 
   async _start(){
@@ -4107,9 +4124,22 @@ const Auth = {
   async init() {
     const {data:{session}}=await db.auth.getSession();
     db.auth.onAuthStateChange(async(event,session)=>{
-      if(session&&!currentUser){
-        await this._onSignIn(session.user);
-      } else if(event==='SIGNED_OUT'){
+      if(event==='PASSWORD_RECOVERY'){
+        this._showSetPassword();
+        return;
+      }
+      if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
+        if(session&&document.getElementById('set-pw-screen').style.display!=='none') return; // wait for pw set
+        if(session&&!currentUser) await this._onSignIn(session.user);
+        return;
+      }
+      if(event==='USER_UPDATED'){
+        // Password was just set — sign in normally
+        if(session) await this._onSignIn(session.user);
+        document.getElementById('set-pw-screen').style.display='none';
+        return;
+      }
+      if(event==='SIGNED_OUT'){
         this._onSignOut();
       }
     });
@@ -4117,14 +4147,53 @@ const Auth = {
     return false;
   },
 
+  _showSetPassword(){
+    document.getElementById('pw-screen').style.display='none';
+    document.getElementById('app-root').style.display='none';
+    document.getElementById('set-pw-screen').style.display='flex';
+    document.getElementById('set-pw-err').textContent='';
+    document.getElementById('set-pw-input').value='';
+    document.getElementById('set-pw-confirm').value='';
+    setTimeout(()=>document.getElementById('set-pw-input')?.focus(),100);
+    // Clean the URL so the token isn't visible
+    history.replaceState(null,'',window.location.pathname);
+  },
+
+  async setNewPassword(){
+    const pw=document.getElementById('set-pw-input').value;
+    const pw2=document.getElementById('set-pw-confirm').value;
+    const err=document.getElementById('set-pw-err');
+    const btn=document.getElementById('set-pw-btn');
+    err.textContent='';
+    if(pw.length<8){err.textContent='Mindestens 8 Zeichen.';return;}
+    if(pw!==pw2){err.textContent='Passwörter stimmen nicht überein.';return;}
+    btn.disabled=true;btn.textContent='Speichern…';
+    const {error}=await db.auth.updateUser({password:pw});
+    btn.disabled=false;btn.textContent='Passwort speichern';
+    if(error){err.textContent='Fehler: '+error.message;return;}
+    // USER_UPDATED event will handle the sign-in
+  },
+
   async _onSignIn(user){
     currentUser=user;
     const {data}=await db.from('profiles').select('*').eq('id',user.id).single();
     currentProfile=data;
     document.getElementById('pw-screen').style.display='none';
+    document.getElementById('set-pw-screen').style.display='none';
     document.getElementById('app-root').style.display='block';
     applyAdminMode();
     App._start();
+  },
+
+  _checkUrlError(){
+    const hash=window.location.hash;
+    if(hash.includes('error_code=otp_expired')){
+      document.getElementById('pw-err').textContent='Der Link ist abgelaufen. Bitte einen neuen Link generieren lassen.';
+      history.replaceState(null,'',window.location.pathname);
+    } else if(hash.includes('error=access_denied')){
+      document.getElementById('pw-err').textContent='Ungültiger Link. Bitte einen neuen Link anfordern.';
+      history.replaceState(null,'',window.location.pathname);
+    }
   },
 
   _onSignOut(){
