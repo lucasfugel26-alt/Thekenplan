@@ -3977,28 +3977,24 @@ const App={
     const emp=Employees.getById(empId);
     if(!emp?.email){alert('Bitte zuerst eine E-Mail-Adresse hinterlegen.');return;}
     if(emp.profile_id){alert('Dieser Mitarbeiter hat bereits einen Zugang.');return;}
-    if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEine E-Mail zur Passwortvergabe wird automatisch gesendet.`))return;
+    if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEine Einladungs-E-Mail wird automatisch gesendet.`))return;
     const {data:{session}}=await db.auth.getSession();
     const token=session?.access_token;
     if(!token){alert('Nicht angemeldet.');return;}
-    // Random temp password — never shown, user sets own via email
-    const tmp=[...crypto.getRandomValues(new Uint8Array(18))].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20)+'Aa1!';
-    const r=await fetch('/api/admin?action=createUser',{
+    const r=await fetch('/api/admin?action=inviteUser',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({email:emp.email,password:tmp,display_name:emp.display_name||emp.name})
+      body:JSON.stringify({email:emp.email,display_name:emp.display_name||emp.name})
     });
     const data=await r.json();
     if(!r.ok){alert('Fehler: '+(data.error||'Unbekannt'));return;}
     // Link employee to new auth user
     await Employees.update(empId,{profile_id:data.id});
-    // Send password-reset email so user sets their own password
-    await db.auth.resetPasswordForEmail(emp.email,{redirectTo:window.location.origin});
     // Refresh detail
     const shifts=await Shifts.loadForEmployee(empId);
     const updated=Employees.getById(empId);
     if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
-    alert(`Zugang erstellt. ${emp.name} erhält eine E-Mail zur Passwortvergabe.`);
+    alert(`Zugang erstellt. ${emp.name} erhält eine Einladungs-E-Mail.`);
   },
 
   async resetEmployeePassword(empId) {

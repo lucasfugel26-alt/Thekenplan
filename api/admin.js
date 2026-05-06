@@ -35,23 +35,23 @@ export default async function handler(req, res) {
 
   const { action } = req.query;
 
-  if (action === 'createUser') {
-    const { email, password, display_name } = req.body;
-    if (!email || !password || !display_name) {
-      return res.status(400).json({ error: 'E-Mail, Passwort und Name erforderlich' });
+  if (action === 'inviteUser') {
+    const { email, display_name } = req.body;
+    if (!email || !display_name) {
+      return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
     }
 
-    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    const invRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/invite`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${serviceKey}`,
         apikey: serviceKey,
       },
-      body: JSON.stringify({ email, password, email_confirm: true }),
+      body: JSON.stringify({ email }),
     });
-    const created = await createRes.json();
-    if (!createRes.ok) return res.status(400).json({ error: created.msg || created.message || 'Fehler beim Anlegen' });
+    const invited = await invRes.json();
+    if (!invRes.ok) return res.status(400).json({ error: invited.msg || invited.message || 'Fehler beim Einladen' });
 
     await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
       method: 'POST',
@@ -61,10 +61,10 @@ export default async function handler(req, res) {
         apikey: serviceKey,
         Prefer: 'return=minimal',
       },
-      body: JSON.stringify({ id: created.id, display_name, role: 'viewer' }),
+      body: JSON.stringify({ id: invited.id, display_name, role: 'viewer' }),
     });
 
-    return res.status(200).json({ id: created.id, display_name });
+    return res.status(200).json({ id: invited.id, display_name });
   }
 
   if (action === 'deleteUser') {
