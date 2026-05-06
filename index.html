@@ -2497,7 +2497,7 @@ const Employees = {
       ${emp.profile_id
         ?`<span class="emp-status-pill aktiv" style="font-size:.72rem">&#10003; Aktiv</span>
           <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
-            onclick="App.resetEmployeePassword('${emp.id}')">&#128140; Passwort-Reset senden</button>`
+            onclick="App.resetEmployeePassword('${emp.id}')">&#128279; Reset-Link generieren</button>`
         :`<span style="font-size:.78rem;color:var(--txm)">Kein Zugang</span>
           ${emp.email
             ?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
@@ -3997,12 +3997,25 @@ const App={
   },
 
   async resetEmployeePassword(empId) {
-    const emp=Employees.getById(empId);
-    if(!emp?.email){alert('Keine E-Mail-Adresse hinterlegt.');return;}
-    if(!confirm(`Passwort-Reset für ${emp.name} (${emp.email}) senden?`))return;
-    const {error}=await db.auth.resetPasswordForEmail(emp.email,{redirectTo:window.location.origin});
-    if(error){alert('Fehler: '+error.message);return;}
-    alert(`E-Mail gesendet an ${emp.email}.`);
+    try {
+      const emp=Employees.getById(empId);
+      if(!emp?.email){alert('Keine E-Mail-Adresse hinterlegt.');return;}
+      if(!confirm(`Passwort-Reset-Link für ${emp.name} generieren?`))return;
+      const sess=await db.auth.getSession();
+      const token=sess.data?.session?.access_token;
+      if(!token){alert('Nicht angemeldet.');return;}
+      const r=await fetch('/api/admin?action=resetLink',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({email:emp.email,redirect_to:window.location.origin})
+      });
+      const data=await r.json();
+      if(!r.ok){alert('Fehler ('+r.status+'): '+(data.error||JSON.stringify(data)));return;}
+      const copy=confirm(`Passwort-Reset-Link für ${emp.name}:\n\n${data.link}\n\nLink in Zwischenablage kopieren?`);
+      if(copy) navigator.clipboard.writeText(data.link).catch(()=>{});
+    } catch(e){
+      alert('Unerwarteter Fehler: '+e.message);
+    }
   },
 
 };

@@ -97,7 +97,23 @@ export default async function handler(req, res) {
     });
   }
 
-  if (action === 'deleteUser') {
+  if (action === 'resetLink') {
+    const { email, redirect_to } = req.body;
+    if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
+
+    const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+      body: JSON.stringify({ type: 'recovery', email, redirect_to }),
+    });
+    const linkData = await linkRes.json();
+    if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
+
+    const link = linkData.action_link || linkData.properties?.action_link || null;
+    if (!link) return res.status(500).json({ error: 'Kein Link erhalten' });
+
+    return res.status(200).json({ link });
+  }
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId erforderlich' });
     if (userId === callerId) return res.status(400).json({ error: 'Du kannst dich nicht selbst löschen' });
