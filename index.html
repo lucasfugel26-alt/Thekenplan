@@ -754,6 +754,33 @@ body.light{
   .emp-hours-grid{grid-template-columns:1fr 1fr}
   .emp-form-grid{grid-template-columns:1fr}
 }
+/* ── HEUTE BUTTON ─── */
+.heute-btn{font-size:.72rem;padding:4px 10px;border-radius:6px;border:1px solid var(--bd);
+  background:var(--bg3);color:var(--txm);cursor:pointer;font-family:var(--fb);
+  transition:all .13s;white-space:nowrap}
+.heute-btn:hover{border-color:var(--l2);color:var(--l2)}
+/* ── SHIFT SECTIONS ─── */
+.shift-section-hdr{font-size:.72rem;font-weight:700;color:var(--txd);text-transform:uppercase;
+  letter-spacing:.07em;padding:14px 0 6px;border-bottom:2px solid var(--bd);margin-bottom:2px;
+  display:flex;align-items:center;gap:8px}
+.shift-planned-badge{font-size:.7rem;padding:2px 8px;border-radius:20px;
+  background:rgba(99,120,255,.15);color:#8899ff;border:1px solid rgba(99,120,255,.25)}
+.shift-confirmed-badge{font-size:.7rem;padding:2px 8px;border-radius:20px;
+  background:rgba(34,212,164,.12);color:#22d4a4;border:1px solid rgba(34,212,164,.25)}
+.emp-shift-tbl tr.confirmed td{background:rgba(34,212,164,.05)}
+.emp-shift-tbl td.act-time{color:#22d4a4;font-weight:600}
+.emp-shift-tbl .shift-edit-row td{background:var(--bg3);padding:10px}
+.shift-inline-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* ── ROLE MANAGEMENT ─── */
+.stg-role-row{display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-radius:8px;background:var(--bg3);border:1px solid var(--bd)}
+.stg-role-name{flex:1;font-size:.84rem;font-weight:600}
+.stg-role-acts{display:flex;gap:4px}
+.stg-role-acts button{padding:3px 8px;font-size:.75rem}
+#stg-roles{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+/* ── CANCEL BUTTON ─── */
+.ca-btn.canc{color:var(--l1)}
+.ca-btn.uncanc{color:#22d4a4}
 </style>
 </head>
 <body>
@@ -804,6 +831,7 @@ body.light{
         <div class="week-info">
           <div class="week-kw"    id="week-kw">&#8212;</div>
           <div class="week-range" id="week-range">&#8212;</div>
+          <button class="heute-btn" onclick="App.goToday()" title="Zur aktuellen Woche">Heute</button>
         </div>
         <button class="wbtn" onclick="App.nextWeek()"  title="N&auml;chste Woche (&#8594;)">&#8250;</button>
         <button class="wbtn" onclick="App.nextMonth()" title="N&auml;chster Monat">&#187;</button>
@@ -1074,6 +1102,13 @@ body.light{
           <button class="btn btn-ghost" onclick="Config.addStatus()">&#43; Hinzuf&uuml;gen</button>
         </div>
 
+        <div class="stg-sec admin-only">Mitarbeiterrollen</div>
+        <div id="stg-roles" class="admin-only"></div>
+        <div class="stg-add-status admin-only">
+          <input class="fi" type="text" id="stg-new-role-label" placeholder="Neue Rolle (z.&thinsp;B. Garderobe)">
+          <button class="btn btn-ghost" onclick="Config.addRole()">&#43; Hinzuf&uuml;gen</button>
+        </div>
+
         <div class="stg-sec admin-only">Datensicherung</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
           <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
@@ -1147,9 +1182,13 @@ body.light{
     <div class="emp-modal-body">
       <input type="hidden" id="em-id">
       <div class="emp-form-grid">
-        <div class="fg" style="grid-column:1/-1">
+        <div class="fg">
           <label>Name *</label>
           <input class="fi" id="em-name" type="text" placeholder="Vollständiger Name" oninput="Employees.autoKuerzel()">
+        </div>
+        <div class="fg">
+          <label>Anzeigename <span style="color:var(--txm);font-weight:400">(auf Karten, Standard: Vorname)</span></label>
+          <input class="fi" id="em-display-name" type="text" placeholder="Laura">
         </div>
         <div class="fg">
           <label>Kürzel &amp; Farbe</label>
@@ -2271,6 +2310,27 @@ const Config = {
       });
     } catch(e) { console.warn('[Config] saveCardFields error:', e.message); }
   },
+  addRole() {
+    const label=document.getElementById('stg-new-role-label')?.value.trim();
+    if(!label||this.data.employeeRoles.includes(label))return;
+    this.data.employeeRoles.push(label);
+    this.saveEmployeeRoles();
+    document.getElementById('stg-new-role-label').value='';
+    renderRolesConfig();
+  },
+  removeRole(idx) {
+    this.data.employeeRoles.splice(idx,1);
+    this.saveEmployeeRoles();
+    renderRolesConfig();
+  },
+  moveRole(idx, dir) {
+    const r=this.data.employeeRoles;
+    const n=idx+dir;
+    if(n<0||n>=r.length)return;
+    [r[idx],r[n]]=[r[n],r[idx]];
+    this.saveEmployeeRoles();
+    renderRolesConfig();
+  },
 };
 
 /* ============================================================
@@ -2450,32 +2510,154 @@ const Employees = {
         ${this._hoursGridHTML(istH, sollH, diff, 'month', period)}
       </div>
     </div>
-    <div class="emp-shifts-head">
-      <h4>&#128197; Schichten (${shifts.length})</h4>
+    ${this._shiftsHTML(shifts, emp.id)}`;
+  },
+
+  _shiftRow(s, past) {
+    const st=s.actual_start_time||s.start_time||'–';
+    const et=s.actual_end_time||s.end_time||'–';
+    const dur=Shifts.calcDuration(st,et);
+    const durStr=dur>0?(dur%1===0?dur+'h':dur.toFixed(1)+'h'):'–';
+    const becherIcon=s.bechertyp==='plastik'?'🥤':s.bechertyp==='glas'?'🍺':'–';
+    const timeChanged=past&&s.confirmed&&(s.actual_start_time||s.actual_end_time);
+    const confirmCell=past
+      ?`<td>${s.confirmed
+          ?`<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span>`
+          :`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px;white-space:nowrap"
+              onclick="Employees._openConfirmShift('${s.id}','${s.start_time||''}','${s.end_time||''}')">&#9998; Anpassen</button>`
+        }</td>`
+      :'';
+    return `<tr class="${s.confirmed?'confirmed':''}${s.cancelled?' cancelled':''}">
+      <td>${_fmtDate(s.event_date)}</td>
+      <td>${_esc(s.event_name||'–')}</td>
+      <td>${_esc(s.role||'–')}</td>
+      <td class="${timeChanged?'act-time':''}">${st}</td>
+      <td class="${timeChanged?'act-time':''}">${et}</td>
+      <td>${durStr}</td>
+      <td>${s.besucherzahl||'–'}</td>
+      <td style="font-size:.75rem">${_esc(s.veranstaltungsnummer||'–')}</td>
+      <td>${becherIcon}</td>
+      ${confirmCell}
+    </tr>`;
+  },
+
+  _shiftsHTML(shifts, empId) {
+    const today=new Date().toISOString().slice(0,10);
+    const future=shifts.filter(s=>s.event_date>=today&&!s.cancelled);
+    const past=shifts.filter(s=>s.event_date<today&&!s.cancelled);
+    const cancelled=shifts.filter(s=>s.cancelled);
+    const plannedH=future.reduce((sum,s)=>sum+Shifts.calcDuration(s.start_time,s.end_time),0);
+    const confirmedH=past.filter(s=>s.confirmed).reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
+    const fmtH=h=>h>0?(h%1===0?h+'h':h.toFixed(1)+'h'):'0h';
+    const thead=`<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th><th></th></tr></thead>`;
+    const theadNoAct=`<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th></tr></thead>`;
+    let html='';
+    if(future.length) {
+      html+=`<div class="emp-shifts-head" style="margin-top:16px">
+        <div class="shift-section-hdr">&#128197; Geplante Schichten (${future.length})
+          <span class="shift-planned-badge">${fmtH(plannedH)} geplant</span>
+        </div></div>
+        <table class="emp-shift-tbl">${theadNoAct}<tbody>${future.map(s=>this._shiftRow(s,false)).join('')}</tbody></table>`;
+    }
+    if(past.length) {
+      html+=`<div class="shift-section-hdr" style="margin-top:20px">&#128336; Vergangene Schichten (${past.length})
+        <span class="shift-confirmed-badge">${fmtH(confirmedH)} bestätigt</span>
+        <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 9px;margin-left:auto" onclick="Employees.exportPDF('${empId}')">&#128438; PDF</button>
+      </div>
+      <table class="emp-shift-tbl">${thead}<tbody>${past.map(s=>this._shiftRow(s,true)).join('')}</tbody></table>`;
+    }
+    if(!future.length&&!past.length)
+      html='<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>';
+    if(cancelled.length)
+      html+=`<div class="shift-section-hdr" style="margin-top:16px;opacity:.6">&#10007; Abgesagte Schichten (${cancelled.length})</div>
+      <table class="emp-shift-tbl">${theadNoAct}<tbody>${cancelled.map(s=>this._shiftRow(s,false)).join('')}</tbody></table>`;
+    return html;
+  },
+
+  _openConfirmShift(shiftId, origStart, origEnd) {
+    const currentStart=origStart, currentEnd=origEnd;
+    const modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML=`<div style="background:var(--bg2);border-radius:16px;border:1px solid var(--bd);padding:28px;width:min(420px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <h3 style="font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:18px">&#9998; Schicht anpassen &amp; bestätigen</h3>
+      <div class="frow">
+        <div class="fg"><label>Startzeit</label><input class="fi" type="time" id="_cs-start" value="${currentStart}"></div>
+        <div class="fg"><label>Endzeit</label><input class="fi" type="time" id="_cs-end" value="${currentEnd}"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+        <button class="btn btn-ghost" onclick="this.closest('[style*=fixed]').remove()">Abbrechen</button>
+        <button class="btn btn-primary" onclick="Employees._confirmShift('${shiftId}',document.getElementById('_cs-start').value,document.getElementById('_cs-end').value,this.closest('[style*=fixed]'))">&#10003; Bestätigen</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  },
+
+  async _confirmShift(shiftId, actualStart, actualEnd, overlay) {
+    try {
+      await Shifts.confirm(shiftId, actualStart, actualEnd);
+      overlay?.remove();
+      if(this._selected) {
+        const shifts=await Shifts.loadForEmployee(this._selected);
+        const emp=this.getById(this._selected);
+        if(emp) document.getElementById('emp-main').innerHTML=this._detailHTML(emp,shifts);
+      }
+    } catch(e) { alert('Fehler: '+e.message); }
+  },
+
+  exportPDF(empId) {
+    const emp=this.getById(empId);
+    if(!emp) return;
+    const shifts=Shifts._cache[empId]||[];
+    const today=new Date().toISOString().slice(0,10);
+    const past=shifts.filter(s=>s.event_date<today&&!s.cancelled);
+    const bg=emp.color||'#22d4a4';
+    const fg=_contrastColor(bg);
+    const fmtH=h=>h%1===0?h+'h':h.toFixed(1)+'h';
+    const totalH=past.reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
+    const confirmedH=past.filter(s=>s.confirmed).reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
+    const win=window.open('','_blank');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Schichtbericht – ${emp.name}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 20px;font-size:13px;color:#1a1a2e}
+      .badge{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;
+        background:${bg};color:${fg};font-weight:800;font-size:.9rem;vertical-align:middle}
+      h1{font-size:1.3rem;margin:8px 0 4px}
+      .meta{color:#666;font-size:.82rem;margin-bottom:20px}
+      .summary{display:flex;gap:16px;margin-bottom:20px}
+      .sum-box{border:1px solid #ddd;border-radius:8px;padding:10px 16px;text-align:center;flex:1}
+      .sum-val{font-size:1.3rem;font-weight:800}
+      .sum-lbl{font-size:.7rem;color:#888;margin-top:2px}
+      table{width:100%;border-collapse:collapse}
+      th{text-align:left;border-bottom:2px solid #ddd;padding:7px 8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#666}
+      td{padding:7px 8px;border-bottom:1px solid #eee;font-size:.82rem}
+      tr.confirmed td{background:#f0fdf8}
+      .tick{color:#16a34a;font-weight:700}
+      @media print{body{margin:0 16px}.no-print{display:none}}
+    </style></head><body>
+    <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:7px 16px;border-radius:7px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-size:.84rem">&#128438; Drucken / Als PDF speichern</button>
+    <p><span class="badge">${emp.kuerzel||'?'}</span> &nbsp;<strong style="font-size:1.1rem">${emp.name}</strong></p>
+    <h1>Schichtbericht – Vergangene Schichten</h1>
+    <div class="meta">Erstellt: ${new Date().toLocaleDateString('de-DE')} &nbsp;|&nbsp; Rolle: ${emp.default_role||'–'} &nbsp;|&nbsp; Soll: ${emp.soll_stunden||0}h/${emp.soll_period==='week'?'Woche':'Monat'}</div>
+    <div class="summary">
+      <div class="sum-box"><div class="sum-val">${past.length}</div><div class="sum-lbl">Schichten</div></div>
+      <div class="sum-box"><div class="sum-val">${fmtH(totalH)}</div><div class="sum-lbl">Gesamtstunden</div></div>
+      <div class="sum-box"><div class="sum-val" style="color:#16a34a">${fmtH(confirmedH)}</div><div class="sum-lbl">Bestätigt</div></div>
     </div>
-    ${shifts.length===0
-      ? '<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>'
-      : `<table class="emp-shift-tbl">
-          <thead><tr>
-            <th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Besucher</th><th>VNR</th><th>Becher</th>
-          </tr></thead>
-          <tbody>${shifts.map(s=>{
-            const dur=Shifts.calcDuration(s.start_time,s.end_time);
-            const becherIcon=s.bechertyp==='plastik'?'🥤':s.bechertyp==='glas'?'🍺':'–';
-            return `<tr>
-              <td>${_fmtDate(s.event_date)}</td>
-              <td>${_esc(s.event_name||'–')}</td>
-              <td>${_esc(s.role||'–')}</td>
-              <td>${s.start_time||'–'}</td>
-              <td>${s.end_time||'–'}</td>
-              <td>${dur>0?(dur%1===0?dur+'h':dur.toFixed(1)+'h'):'–'}</td>
-              <td>${s.besucherzahl||'–'}</td>
-              <td style="font-size:.75rem">${_esc(s.veranstaltungsnummer||'–')}</td>
-              <td>${becherIcon}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>`
-    }`;
+    <table><thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th></tr></thead>
+    <tbody>${past.map(s=>{
+      const st=s.actual_start_time||s.start_time||'–';
+      const et=s.actual_end_time||s.end_time||'–';
+      const dur=Shifts.calcDuration(st,et);
+      return `<tr class="${s.confirmed?'confirmed':''}">
+        <td>${_fmtDate(s.event_date)}</td><td>${s.event_name||'–'}</td><td>${s.role||'–'}</td>
+        <td>${st}</td><td>${et}</td><td>${dur?fmtH(dur):'–'}</td>
+        <td>${s.confirmed?'<span class="tick">&#10003; Bestätigt</span>':'Offen'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>
+    </body></html>`);
+    win.document.close();
   },
 
   _hoursGridHTML(ist, soll, diff, mode, empPeriod) {
@@ -2548,6 +2730,7 @@ const Employees = {
     document.getElementById('em-name').value='';
     document.getElementById('em-kuerzel').value='';
     document.getElementById('em-color').value='#22d4a4';
+    document.getElementById('em-display-name').value='';
     document.getElementById('em-email').value='';
     document.getElementById('em-phone').value='';
     document.getElementById('em-status').value='aktiv';
@@ -2567,6 +2750,7 @@ const Employees = {
     document.getElementById('em-name').value=e.name||'';
     document.getElementById('em-kuerzel').value=e.kuerzel||'';
     document.getElementById('em-color').value=e.color||'#22d4a4';
+    document.getElementById('em-display-name').value=e.display_name||'';
     document.getElementById('em-email').value=e.email||'';
     document.getElementById('em-phone').value=e.phone||'';
     document.getElementById('em-status').value=e.status||'aktiv';
@@ -2591,12 +2775,15 @@ const Employees = {
   autoKuerzel() {
     const name=document.getElementById('em-name').value.trim();
     const kEl=document.getElementById('em-kuerzel');
-    if(kEl.value) { this.updateBadgePreview(); return; }
-    const parts=name.split(/\s+/).filter(Boolean);
-    let k='';
-    if(parts.length>=2) k=(parts[0][0]+(parts[parts.length-1][0]||'')).toUpperCase();
-    else if(parts.length===1) k=parts[0].slice(0,2).toUpperCase();
-    kEl.value=k;
+    if(!kEl.value) {
+      const parts=name.split(/\s+/).filter(Boolean);
+      let k='';
+      if(parts.length>=2) k=(parts[0][0]+(parts[parts.length-1][0]||'')).toUpperCase();
+      else if(parts.length===1) k=parts[0].slice(0,2).toUpperCase();
+      kEl.value=k;
+    }
+    const dnEl=document.getElementById('em-display-name');
+    if(dnEl&&!dnEl.value) dnEl.value=name.split(/\s+/)[0]||'';
     this.updateBadgePreview();
   },
 
@@ -2617,6 +2804,7 @@ const Employees = {
       name,
       kuerzel: document.getElementById('em-kuerzel').value.trim().toUpperCase()||name.slice(0,2).toUpperCase(),
       color: document.getElementById('em-color').value||'#22d4a4',
+      display_name: document.getElementById('em-display-name').value.trim()||name.split(/\s+/)[0]||name,
       email: document.getElementById('em-email').value.trim()||null,
       phone: document.getElementById('em-phone').value.trim()||null,
       default_role: document.getElementById('em-role').value||null,
@@ -2716,7 +2904,21 @@ const Shifts = {
   sumHours(shifts, from, to) {
     return shifts
       .filter(s=>!from||!to||(s.event_date>=from&&s.event_date<=to))
-      .reduce((sum,s)=>sum+this.calcDuration(s.start_time,s.end_time),0);
+      .filter(s=>!s.cancelled)
+      .reduce((sum,s)=>sum+this.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
+  },
+
+  async confirm(shiftId, actualStart, actualEnd) {
+    const {error}=await db.from('shifts').update({
+      confirmed:true,
+      actual_start_time:actualStart||null,
+      actual_end_time:actualEnd||null,
+    }).eq('id',shiftId);
+    if(error) throw error;
+    Object.values(this._cache).forEach(arr=>{
+      const s=arr.find(x=>x.id===shiftId);
+      if(s){s.confirmed=true;s.actual_start_time=actualStart;s.actual_end_time=actualEnd;}
+    });
   },
 
   async syncFromEvent(ev) {
@@ -3119,6 +3321,7 @@ function buildCard(ev, conflictIds=new Set()){
   card.innerHTML=`
     <div class="card-acts">
       <button class="ca-btn" title="Bearbeiten" onclick="event.stopPropagation();App.editEventById('${ev.id}')">&#9998;</button>
+      <button class="ca-btn ${ev.cancelled?'uncanc':'canc'}" title="${ev.cancelled?'Reaktivieren':'Absagen'}" onclick="event.stopPropagation();App.${ev.cancelled?'un':''}cancelEventById('${ev.id}')">${ev.cancelled?'&#8617;':'&#10007;'}</button>
       <button class="ca-btn del" title="L&ouml;schen" onclick="event.stopPropagation();App.deleteEventById('${ev.id}')">&#128465;</button>
     </div>
     <div class="ev-top-row">
@@ -3469,6 +3672,7 @@ const App={
   },
 
   render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
+  goToday(){S.monday=monday(new Date());this.render();},
   prevWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()-7);this.render();},
   nextWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()+7);this.render();},
   prevMonth(){
@@ -3551,6 +3755,25 @@ const App={
     const idx=EVENTS.findIndex(e=>e.id===id);
     if(idx!==-1)EVENTS.splice(idx,1);
     Cloud.push();
+    db.from('shifts').delete().eq('event_id',id).then(()=>{});
+    this.render();
+  },
+
+  cancelEventById(id){
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev||!confirm(`"${ev.event}" absagen?\n\nAlle verkn\u00fcpften Schichten werden als abgesagt markiert.`))return;
+    ev.cancelled=true;
+    Cloud.push();
+    db.from('shifts').update({cancelled:true}).eq('event_id',id).then(()=>{});
+    this.render();
+  },
+
+  uncancelEventById(id){
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev)return;
+    ev.cancelled=false;
+    Cloud.push();
+    db.from('shifts').update({cancelled:false}).eq('event_id',id).then(()=>{});
     this.render();
   },
 
@@ -3634,6 +3857,7 @@ const App={
           </span></div>`;
     }
     renderStatusConfig();
+    renderRolesConfig();
     Defaults.loadIntoSettings();
     CardFields.loadIntoSettings();
     if(isAdmin())await this._loadUsersList();
@@ -4018,6 +4242,23 @@ function renderStatusConfig() {
       </div>
     </div>`
   ).join('') || '<div style="color:var(--txm);font-size:.8rem;padding:8px 0;grid-column:1/-1">Keine Statusoptionen</div>';
+}
+
+function renderRolesConfig() {
+  const el=document.getElementById('stg-roles');
+  if(!el)return;
+  const roles=Config.data.employeeRoles;
+  el.innerHTML=roles.length===0
+    ?'<div style="color:var(--txm);font-size:.8rem;padding:8px 0">Keine Rollen definiert</div>'
+    :roles.map((r,i)=>`
+      <div class="stg-role-row">
+        <span class="stg-role-name">${_esc(r)}</span>
+        <div class="stg-role-acts">
+          <button class="btn btn-ghost" onclick="Config.moveRole(${i},-1)" ${i===0?'disabled':''}>&#8593;</button>
+          <button class="btn btn-ghost" onclick="Config.moveRole(${i},1)" ${i===roles.length-1?'disabled':''}>&#8595;</button>
+          <button class="btn btn-ghost" style="color:var(--miss)" onclick="Config.removeRole(${i})">&#10005;</button>
+        </div>
+      </div>`).join('');
 }
 
 const LOC_PRESET_COLORS = ['#f5a623','#22d4a4','#e05aff','#ff6b6b','#4a9eff','#ff9f40','#a259ff','#00c875','#ff5c8a','#5ce1e6','#ffde59','#c9cbff'];
