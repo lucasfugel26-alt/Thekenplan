@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   const { action } = req.query;
 
   if (action === 'inviteUser') {
-    const { email, display_name } = req.body;
+    const { email, display_name, redirect_to } = req.body;
     if (!email || !display_name) {
       return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
     }
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     let linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-      body: JSON.stringify({ type: 'invite', email }),
+      body: JSON.stringify({ type: 'invite', email, redirect_to }),
     });
     linkData = await linkRes.json();
 
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-          body: JSON.stringify({ type: 'recovery', email }),
+          body: JSON.stringify({ type: 'recovery', email, redirect_to }),
         });
         linkData = await linkRes.json();
         if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });

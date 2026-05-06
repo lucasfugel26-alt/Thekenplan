@@ -3985,7 +3985,7 @@ const App={
       const r=await fetch('/api/admin?action=inviteUser',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({email:emp.email,display_name:emp.display_name||emp.name})
+        body:JSON.stringify({email:emp.email,display_name:emp.display_name||emp.name,redirect_to:window.location.origin})
       });
       let data;
       try{ data=await r.json(); }catch(e){ alert('Antwort konnte nicht gelesen werden: '+e.message); return; }
