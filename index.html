@@ -3786,37 +3786,32 @@ const Profile = {
     const fmtH = h => h > 0 ? (h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h') : '0h';
     const plannedH = future.reduce((sum,s) => sum + Shifts.calcDuration(s.start_time, s.end_time), 0);
     const confirmedH = past.filter(s => s.confirmed).reduce((sum,s) => sum + Shifts.calcDuration(s.actual_start_time||s.start_time, s.actual_end_time||s.end_time), 0);
-    const theadNoAct = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th></tr></thead>`;
     const thead = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
     let html = '';
     if (future.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128197; Geplante Schichten (${future.length})
         <span class="shift-planned-badge">${fmtH(plannedH)} geplant</span></div>
-        <table class="emp-shift-tbl">${theadNoAct}<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody></table>`;
+        <table class="emp-shift-tbl">${thead}<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody></table>`;
     }
     if (past.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128336; Vergangene Schichten (${past.length})
         <span class="shift-confirmed-badge">${fmtH(confirmedH)} best&auml;tigt</span></div>
-        <table class="emp-shift-tbl">${thead}<tbody>${past.map(s => this._shiftRow(s, true, empId)).join('')}</tbody></table>`;
+        <table class="emp-shift-tbl">${thead}<tbody>${past.map(s => this._shiftRow(s, true)).join('')}</tbody></table>`;
     }
     if (!future.length && !past.length)
       html = '<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>';
     return html;
   },
 
-  _shiftRow(s, isPast, empId) {
+  _shiftRow(s, isPast) {
     const st = s.actual_start_time || s.start_time || '–';
     const et = s.actual_end_time || s.end_time || '–';
     const dur = Shifts.calcDuration(st, et);
     const durStr = dur > 0 ? (dur % 1 === 0 ? dur + 'h' : dur.toFixed(1) + 'h') : '–';
     const timeChanged = isPast && s.confirmed && (s.actual_start_time || s.actual_end_time);
-    const confirmCell = isPast
-      ? `<td>${s.confirmed
-          ? `<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span>`
-          : `<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px;white-space:nowrap"
-              onclick="Profile._openConfirmShift('${s.id}','${s.start_time||''}','${s.end_time||''}','${empId}')">&#9998; Anpassen</button>`
-        }</td>`
-      : '';
+    const statusCell = isPast && s.confirmed
+      ? `<td><span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span></td>`
+      : `<td></td>`;
     return `<tr class="${s.confirmed?'confirmed':''}">
       <td>${_fmtDate(s.event_date)}</td>
       <td>${_esc(s.event_name||'–')}</td>
@@ -3824,7 +3819,7 @@ const Profile = {
       <td class="${timeChanged?'act-time':''}">${st}</td>
       <td class="${timeChanged?'act-time':''}">${et}</td>
       <td>${durStr}</td>
-      ${confirmCell}
+      ${statusCell}
     </tr>`;
   },
 
