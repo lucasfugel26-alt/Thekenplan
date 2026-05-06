@@ -304,12 +304,14 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .stg-toggle{display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;user-select:none;
   padding:8px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--bd)}
 .stg-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer;flex-shrink:0}
-.stg-cf-table{width:100%;border-collapse:separate;border-spacing:0}
-.stg-cf-table th{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--txm);
-  font-weight:700;padding:0 0 10px;text-align:center}
-.stg-cf-table th:first-child{text-align:left}
-.stg-cf-table td{padding:8px 0;border-bottom:1px solid var(--bd);font-size:.85rem;vertical-align:middle}
-.stg-cf-table td:not(:first-child){text-align:center}
+.stg-cf-table{width:100%}
+.stg-cf-hdr,.stg-cf-row{display:grid;grid-template-columns:1fr 90px 110px;align-items:center}
+.stg-cf-hdr{padding-bottom:8px;border-bottom:2px solid var(--bd);margin-bottom:2px}
+.stg-cf-hdr span{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--txm);font-weight:700;text-align:center}
+.stg-cf-hdr span:first-child{text-align:left}
+.stg-cf-row{padding:9px 0;border-bottom:1px solid var(--bd);font-size:.85rem}
+.stg-cf-row span{text-align:center}
+.stg-cf-row span:first-child{text-align:left}
 .stg-cf-table input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer}
 .stg-status-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px}
 .stg-status-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;
@@ -934,35 +936,33 @@ body.light{
       <!-- ── RECHTE SPALTE ── -->
       <div>
         <div class="stg-sec admin-only">Event-Karten­felder</div>
-        <table class="stg-cf-table admin-only">
-          <thead><tr>
-            <th>Feld</th>
-            <th>Admin-Karte</th>
-            <th>Mitarbeiter</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td>Bechertyp-Banner</td>
-              <td><input type="checkbox" id="stg-cf-becher-show" onchange="CardFields.save()"></td>
-              <td><input type="checkbox" id="stg-cf-becher-staff" onchange="CardFields.save()"></td>
-            </tr>
-            <tr>
-              <td>Zeitangaben</td>
-              <td><input type="checkbox" id="stg-cf-zeiten-show" onchange="CardFields.save()"></td>
-              <td><input type="checkbox" id="stg-cf-zeiten-staff" onchange="CardFields.save()"></td>
-            </tr>
-            <tr>
-              <td>Besucherzahl</td>
-              <td><input type="checkbox" id="stg-cf-besucher-show" onchange="CardFields.save()"></td>
-              <td><input type="checkbox" id="stg-cf-besucher-staff" onchange="CardFields.save()"></td>
-            </tr>
-            <tr>
-              <td>Notizen</td>
-              <td><input type="checkbox" id="stg-cf-notizen-show" onchange="CardFields.save()"></td>
-              <td><input type="checkbox" id="stg-cf-notizen-staff" onchange="CardFields.save()"></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="stg-cf-table admin-only">
+          <div class="stg-cf-hdr">
+            <span>Feld</span>
+            <span>Admin-Karte</span>
+            <span>Mitarbeiter</span>
+          </div>
+          <div class="stg-cf-row">
+            <span>Bechertyp-Banner</span>
+            <span><input type="checkbox" id="stg-cf-becher-show" onchange="CardFields.save()"></span>
+            <span><input type="checkbox" id="stg-cf-becher-staff" onchange="CardFields.save()"></span>
+          </div>
+          <div class="stg-cf-row">
+            <span>Zeitangaben</span>
+            <span><input type="checkbox" id="stg-cf-zeiten-show" onchange="CardFields.save()"></span>
+            <span><input type="checkbox" id="stg-cf-zeiten-staff" onchange="CardFields.save()"></span>
+          </div>
+          <div class="stg-cf-row">
+            <span>Besucherzahl</span>
+            <span><input type="checkbox" id="stg-cf-besucher-show" onchange="CardFields.save()"></span>
+            <span><input type="checkbox" id="stg-cf-besucher-staff" onchange="CardFields.save()"></span>
+          </div>
+          <div class="stg-cf-row">
+            <span>Notizen</span>
+            <span><input type="checkbox" id="stg-cf-notizen-show" onchange="CardFields.save()"></span>
+            <span><input type="checkbox" id="stg-cf-notizen-staff" onchange="CardFields.save()"></span>
+          </div>
+        </div>
 
         <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
         <div id="stg-statuses" class="admin-only stg-status-cards"></div>
