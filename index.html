@@ -1168,6 +1168,30 @@ body.light{
   </div>
 </div>
 
+<!-- Link copy modal -->
+<div id="link-modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg);border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="link-modal-title" style="margin:0;font-size:1rem"></h3>
+      <button onclick="App._closeLinkModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--txm);padding:4px">&#10005;</button>
+    </div>
+    <p id="link-modal-desc" style="font-size:.82rem;color:var(--txm);margin:0 0 12px"></p>
+    <div style="position:relative">
+      <input id="link-modal-input" type="text" readonly
+        style="width:100%;padding:10px 44px 10px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);font-size:.75rem;box-sizing:border-box;cursor:text"
+        onclick="this.select()">
+      <button onclick="App._copyLink()" title="Kopieren"
+        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--acc);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.85rem">
+        &#128203;
+      </button>
+    </div>
+    <p id="link-modal-copied" style="font-size:.78rem;color:var(--acc);margin:8px 0 0;display:none">&#10003; In Zwischenablage kopiert</p>
+    <div style="margin-top:18px;text-align:right">
+      <button onclick="App._closeLinkModal()" class="btn btn-primary" style="padding:8px 20px">Schließen</button>
+    </div>
+  </div>
+</div>
+
 <!-- Employee create/edit modal -->
 <div class="emp-modal-ov" id="emp-modal-ov" onclick="if(event.target===this)Employees.closeModal()">
   <div class="emp-modal">
@@ -3967,8 +3991,7 @@ const App={
       if(!emp?.email){alert('Bitte zuerst eine E-Mail-Adresse hinterlegen.');return;}
       if(emp.profile_id){alert('Dieser Mitarbeiter hat bereits einen Zugang.');return;}
       if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEin Einladungslink wird generiert.`))return;
-      const sess=await db.auth.getSession();
-      const token=sess.data?.session?.access_token;
+      const token=await this._getToken();
       if(!token){alert('Nicht angemeldet.');return;}
       const r=await fetch('/api/admin?action=inviteUser',{
         method:'POST',
@@ -3978,18 +4001,15 @@ const App={
       let data;
       try{ data=await r.json(); }catch(e){ alert('Antwort konnte nicht gelesen werden: '+e.message); return; }
       if(!r.ok){alert('Fehler ('+r.status+'): '+(data?.error||JSON.stringify(data)));return;}
-      // Link employee to new auth user
       await Employees.update(empId,{profile_id:data.id});
-      // Refresh detail
       const shifts=await Shifts.loadForEmployee(empId);
       const updated=Employees.getById(empId);
       if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
-      const linkLabel=data.link_type==='recovery'?'Passwort-Reset-Link':'Einladungslink';
       if(data.invite_link){
-        const copy=confirm(`Zugang erstellt!\n\n${linkLabel}:\n\n${data.invite_link}\n\nLink in Zwischenablage kopieren?`);
-        if(copy) navigator.clipboard.writeText(data.invite_link).catch(()=>{});
+        const label=data.link_type==='recovery'?'Passwort-Reset-Link':'Einladungslink';
+        this._showLinkModal(label,`Diesen Link an ${emp.name} weiterschicken (${emp.email}):`,data.invite_link);
       } else {
-        alert(`Zugang erstellt.\n\n(Kein Link zurückgegeben. API-Felder: ${data._raw_keys?.join(', ')||JSON.stringify(Object.keys(data||{}))})`);
+        alert(`Zugang erstellt — kein Link zurückgegeben. API-Felder: ${data._raw_keys?.join(', ')||JSON.stringify(Object.keys(data||{}))}`);
       }
     } catch(e) {
       alert('Unerwarteter Fehler: '+e.message);
@@ -4001,8 +4021,7 @@ const App={
       const emp=Employees.getById(empId);
       if(!emp?.email){alert('Keine E-Mail-Adresse hinterlegt.');return;}
       if(!confirm(`Passwort-Reset-Link für ${emp.name} generieren?`))return;
-      const sess=await db.auth.getSession();
-      const token=sess.data?.session?.access_token;
+      const token=await this._getToken();
       if(!token){alert('Nicht angemeldet.');return;}
       const r=await fetch('/api/admin?action=resetLink',{
         method:'POST',
@@ -4011,10 +4030,52 @@ const App={
       });
       const data=await r.json();
       if(!r.ok){alert('Fehler ('+r.status+'): '+(data.error||JSON.stringify(data)));return;}
-      const copy=confirm(`Passwort-Reset-Link für ${emp.name}:\n\n${data.link}\n\nLink in Zwischenablage kopieren?`);
-      if(copy) navigator.clipboard.writeText(data.link).catch(()=>{});
+      this._showLinkModal('Passwort-Reset-Link',`Diesen Link an ${emp.name} weiterschicken:`,data.link);
     } catch(e){
       alert('Unerwarteter Fehler: '+e.message);
+    }
+  },
+
+  async _getToken(){
+    const sess=await db.auth.getSession();
+    return sess.data?.session?.access_token||null;
+  },
+
+  _showLinkModal(title,desc,link){
+    document.getElementById('link-modal-title').textContent=title;
+    document.getElementById('link-modal-desc').textContent=desc;
+    const inp=document.getElementById('link-modal-input');
+    inp.value=link;
+    document.getElementById('link-modal-copied').style.display='none';
+    const ov=document.getElementById('link-modal-ov');
+    ov.style.display='flex';
+    setTimeout(()=>inp.select(),80);
+  },
+
+  _closeLinkModal(){
+    document.getElementById('link-modal-ov').style.display='none';
+  },
+
+  _copyLink(){
+    const val=document.getElementById('link-modal-input').value;
+    const copied=document.getElementById('link-modal-copied');
+    // Fallback copy using textarea — works on all browsers including iOS Safari
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=val;
+      ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copied.style.display='';
+      setTimeout(()=>copied.style.display='none',2500);
+    }catch(e){
+      // Last resort: modern API
+      navigator.clipboard?.writeText(val).then(()=>{
+        copied.style.display='';
+        setTimeout(()=>copied.style.display='none',2500);
+      }).catch(()=>alert('Bitte den Link manuell markieren und kopieren.'));
     }
   },
 
@@ -4022,6 +4083,8 @@ const App={
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    const linkModal=document.getElementById('link-modal-ov');
+    if(linkModal&&linkModal.style.display==='flex'){App._closeLinkModal();return;}
     const empModal=document.getElementById('emp-modal-ov');
     if(empModal&&empModal.classList.contains('open')){Employees.closeModal();return;}
     const teamOv=document.getElementById('team-ov');
