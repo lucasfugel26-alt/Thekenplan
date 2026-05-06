@@ -3994,7 +3994,12 @@ const App={
     const shifts=await Shifts.loadForEmployee(empId);
     const updated=Employees.getById(empId);
     if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
-    alert(`Zugang erstellt. ${emp.name} erhält eine Einladungs-E-Mail.`);
+    if(data.invite_link){
+      const copy=confirm(`Zugang erstellt!\n\nEin Einladungslink wurde generiert. Sollte keine E-Mail ankommen, kannst du den Link manuell weiterschicken:\n\n${data.invite_link}\n\nLink in Zwischenablage kopieren?`);
+      if(copy) navigator.clipboard.writeText(data.invite_link).catch(()=>{});
+    } else {
+      alert(`Zugang erstellt. ${emp.name} erhält eine Einladungs-E-Mail.`);
+    }
   },
 
   async resetEmployeePassword(empId) {

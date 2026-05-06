@@ -41,17 +41,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
     }
 
-    const invRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/invite`, {
+    // generate_link creates the user + returns a one-time invite URL.
+    // Works even when Supabase SMTP is not configured or rate-limited.
+    const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${serviceKey}`,
         apikey: serviceKey,
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ type: 'invite', email }),
     });
-    const invited = await invRes.json();
-    if (!invRes.ok) return res.status(400).json({ error: invited.msg || invited.message || 'Fehler beim Einladen' });
+    const linkData = await linkRes.json();
+    if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Anlegen' });
+
+    const userId = linkData.user?.id || linkData.id;
+    if (!userId) return res.status(500).json({ error: 'Keine User-ID erhalten' });
 
     await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
       method: 'POST',
@@ -61,10 +66,14 @@ export default async function handler(req, res) {
         apikey: serviceKey,
         Prefer: 'return=minimal',
       },
-      body: JSON.stringify({ id: invited.id, display_name, role: 'viewer' }),
+      body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
     });
 
-    return res.status(200).json({ id: invited.id, display_name });
+    return res.status(200).json({
+      id: userId,
+      display_name,
+      invite_link: linkData.action_link || null,
+    });
   }
 
   if (action === 'deleteUser') {
