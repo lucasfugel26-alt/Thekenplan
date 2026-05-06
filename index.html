@@ -304,7 +304,13 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .stg-toggle{display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;user-select:none;
   padding:8px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--bd)}
 .stg-toggle input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer;flex-shrink:0}
-.stg-toggles-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stg-cf-table{width:100%;border-collapse:separate;border-spacing:0}
+.stg-cf-table th{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--txm);
+  font-weight:700;padding:0 0 10px;text-align:center}
+.stg-cf-table th:first-child{text-align:left}
+.stg-cf-table td{padding:8px 0;border-bottom:1px solid var(--bd);font-size:.85rem;vertical-align:middle}
+.stg-cf-table td:not(:first-child){text-align:center}
+.stg-cf-table input[type=checkbox]{width:16px;height:16px;accent-color:#22d4a4;cursor:pointer}
 .stg-status-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px}
 .stg-status-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;
   background:var(--bg4);border-radius:10px;border:1px solid var(--bd)}
@@ -928,12 +934,35 @@ body.light{
       <!-- ── RECHTE SPALTE ── -->
       <div>
         <div class="stg-sec admin-only">Event-Karten­felder</div>
-        <div class="stg-toggles-grid admin-only">
-          <label class="stg-toggle"><input type="checkbox" id="stg-cf-becher" onchange="CardFields.save()"><span>Bechertyp-Banner</span></label>
-          <label class="stg-toggle"><input type="checkbox" id="stg-cf-zeiten" onchange="CardFields.save()"><span>Zeitangaben</span></label>
-          <label class="stg-toggle"><input type="checkbox" id="stg-cf-besucher" onchange="CardFields.save()"><span>Besucherzahl</span></label>
-          <label class="stg-toggle"><input type="checkbox" id="stg-cf-notizen" onchange="CardFields.save()"><span>Notizen</span></label>
-        </div>
+        <table class="stg-cf-table admin-only">
+          <thead><tr>
+            <th>Feld</th>
+            <th>Admin-Karte</th>
+            <th>Mitarbeiter</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td>Bechertyp-Banner</td>
+              <td><input type="checkbox" id="stg-cf-becher-show" onchange="CardFields.save()"></td>
+              <td><input type="checkbox" id="stg-cf-becher-staff" onchange="CardFields.save()"></td>
+            </tr>
+            <tr>
+              <td>Zeitangaben</td>
+              <td><input type="checkbox" id="stg-cf-zeiten-show" onchange="CardFields.save()"></td>
+              <td><input type="checkbox" id="stg-cf-zeiten-staff" onchange="CardFields.save()"></td>
+            </tr>
+            <tr>
+              <td>Besucherzahl</td>
+              <td><input type="checkbox" id="stg-cf-besucher-show" onchange="CardFields.save()"></td>
+              <td><input type="checkbox" id="stg-cf-besucher-staff" onchange="CardFields.save()"></td>
+            </tr>
+            <tr>
+              <td>Notizen</td>
+              <td><input type="checkbox" id="stg-cf-notizen-show" onchange="CardFields.save()"></td>
+              <td><input type="checkbox" id="stg-cf-notizen-staff" onchange="CardFields.save()"></td>
+            </tr>
+          </tbody>
+        </table>
 
         <div class="stg-sec admin-only">Statusoptionen (Bar-Besetzung)</div>
         <div id="stg-statuses" class="admin-only stg-status-cards"></div>
@@ -1986,6 +2015,12 @@ const Config = {
       {id:"spaet",   label:"kommt zu spät", color:"#f5a623"},
       {id:"ersatz",  label:"braucht Ersatz", color:"#e05aff"},
     ],
+    cardFields: {
+      becher:   {show:true,  staff:true},
+      zeiten:   {show:true,  staff:true},
+      besucher: {show:false, staff:false},
+      notizen:  {show:true,  staff:true},
+    },
   },
   async load() {
     try {
@@ -1994,6 +2029,9 @@ const Config = {
       (data||[]).forEach(row => {
         if (row.key === 'staff_statuses' && Array.isArray(row.value)) {
           this.data.staffStatuses = row.value;
+        }
+        if (row.key === 'card_fields' && row.value && typeof row.value === 'object') {
+          this.data.cardFields = {...this.data.cardFields, ...row.value};
         }
       });
     } catch(e) { console.warn('[Config] using defaults:', e.message); }
@@ -2020,6 +2058,14 @@ const Config = {
     this.data.staffStatuses = this.data.staffStatuses.filter(s => s.id !== id);
     this.save();
     renderStatusConfig();
+  },
+  async saveCardFields() {
+    try {
+      await db.from('app_config').upsert({
+        key:'card_fields', value:this.data.cardFields,
+        updated_at:new Date().toISOString()
+      });
+    } catch(e) { console.warn('[Config] saveCardFields error:', e.message); }
   },
 };
 
@@ -2404,7 +2450,7 @@ function buildCard(ev, conflictIds=new Set()){
       <span class="stime${isFehlt?' mt':''}">${t}</span></div>`);
   });
 
-  const cf=CardFields.get();
+  const cf=CardFields.forRole();
   const bechertyp=ev.bechertyp||(ev.plastik?'plastik':null);
   const becherBanner=cf.becher&&!ev.cancelled&&!ev.relocated
     ?(bechertyp==='plastik'?`<div class="plastik-banner">&#129347; Nur Plastikbecher!</div>`
@@ -2679,28 +2725,39 @@ const Defaults = {
 };
 
 const CardFields = {
-  _key: 'theken_card_fields',
-  _def: { becher:true, zeiten:true, besucher:false, notizen:true },
-  get() {
-    try { return {...this._def, ...JSON.parse(localStorage.getItem(this._key)||'{}')}; } catch { return this._def; }
+  get() { return Config.data.cardFields; },
+  forRole() {
+    const cf = this.get();
+    const adm = isAdmin();
+    return {
+      becher:   adm ? cf.becher.show   : cf.becher.staff,
+      zeiten:   adm ? cf.zeiten.show   : cf.zeiten.staff,
+      besucher: adm ? cf.besucher.show : cf.besucher.staff,
+      notizen:  adm ? cf.notizen.show  : cf.notizen.staff,
+    };
   },
   save() {
     const cb = id => document.getElementById(id)?.checked ?? true;
-    localStorage.setItem(this._key, JSON.stringify({
-      becher:   cb('stg-cf-becher'),
-      zeiten:   cb('stg-cf-zeiten'),
-      besucher: cb('stg-cf-besucher'),
-      notizen:  cb('stg-cf-notizen'),
-    }));
+    Config.data.cardFields = {
+      becher:   {show:cb('stg-cf-becher-show'),   staff:cb('stg-cf-becher-staff')},
+      zeiten:   {show:cb('stg-cf-zeiten-show'),   staff:cb('stg-cf-zeiten-staff')},
+      besucher: {show:cb('stg-cf-besucher-show'), staff:cb('stg-cf-besucher-staff')},
+      notizen:  {show:cb('stg-cf-notizen-show'),  staff:cb('stg-cf-notizen-staff')},
+    };
+    Config.saveCardFields();
     App.render();
   },
   loadIntoSettings() {
     const cf = this.get();
-    const set = (id, val) => { const el=document.getElementById(id); if(el) el.checked=val; };
-    set('stg-cf-becher',   cf.becher);
-    set('stg-cf-zeiten',   cf.zeiten);
-    set('stg-cf-besucher', cf.besucher);
-    set('stg-cf-notizen',  cf.notizen);
+    const set = (id,val) => { const el=document.getElementById(id); if(el) el.checked=val; };
+    set('stg-cf-becher-show',    cf.becher.show);
+    set('stg-cf-becher-staff',   cf.becher.staff);
+    set('stg-cf-zeiten-show',    cf.zeiten.show);
+    set('stg-cf-zeiten-staff',   cf.zeiten.staff);
+    set('stg-cf-besucher-show',  cf.besucher.show);
+    set('stg-cf-besucher-staff', cf.besucher.staff);
+    set('stg-cf-notizen-show',   cf.notizen.show);
+    set('stg-cf-notizen-staff',  cf.notizen.staff);
   }
 };
 
