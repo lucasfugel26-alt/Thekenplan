@@ -2702,17 +2702,19 @@ const Shifts = {
       await db.from('shifts').delete().eq('event_id',ev.id);
       const rows=[];
       (ev.barStaff||[]).forEach(s=>{
-        if(!s.employeeId) return;
+        const empId=s.employeeId||(s.name?Employees.getByName(s.name)?.id:null);
+        if(!empId) return;
         rows.push({
-          employee_id:s.employeeId, event_id:ev.id,
+          employee_id:empId, event_id:ev.id,
           event_name:ev.event, event_date:ev.date,
           role:s.role||'Thekenkraft',
           start_time:s.ov||ev.startGastro||null,
           end_time:ev.belegungsende||null,
         });
       });
-      if(ev.prodL?.employeeId) rows.push({
-        employee_id:ev.prodL.employeeId, event_id:ev.id,
+      const plEmpId=ev.prodL?.employeeId||(ev.prodL?.name?Employees.getByName(ev.prodL.name)?.id:null);
+      if(plEmpId) rows.push({
+        employee_id:plEmpId, event_id:ev.id,
         event_name:ev.event, event_date:ev.date,
         role:'Produktionsleiter',
         start_time:ev.prodL.startTime||null,
