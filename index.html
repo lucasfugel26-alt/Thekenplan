@@ -2604,7 +2604,7 @@ const Employees = {
   },
 
   _shiftsHTML(shifts, empId) {
-    const today=new Date().toISOString().slice(0,10);
+    const today=lds(new Date());
     const future=shifts.filter(s=>s.event_date>=today&&!s.cancelled);
     const past=shifts.filter(s=>s.event_date<today&&!s.cancelled);
     const cancelled=shifts.filter(s=>s.cancelled);
@@ -2670,7 +2670,7 @@ const Employees = {
     const emp=this.getById(empId);
     if(!emp) return;
     const shifts=Shifts._cache[empId]||[];
-    const today=new Date().toISOString().slice(0,10);
+    const today=lds(new Date());
     const past=shifts.filter(s=>s.event_date<today&&!s.cancelled);
     const bg=emp.color||'#22d4a4';
     const fg=_contrastColor(bg);
@@ -3780,7 +3780,7 @@ const Profile = {
   },
 
   _shiftsHTML(shifts, empId) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = lds(new Date());
     const future = shifts.filter(s => s.event_date >= today && !s.cancelled);
     const past = shifts.filter(s => s.event_date < today && !s.cancelled);
     const fmtH = h => h > 0 ? (h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h') : '0h';
