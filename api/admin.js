@@ -17,40 +17,11 @@ async function isAdmin(userId, serviceKey) {
   return data?.[0]?.role === 'admin';
 }
 
-async function generateLink(type, email, redirectTo, serviceKey) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
-      apikey: serviceKey,
-    },
-    body: JSON.stringify({ type, email, redirect_to: redirectTo }),
-  });
-  const data = await res.json();
-  return { ok: res.ok, data };
-}
-
-function extractLink(data) {
-  return data.action_link
-    || data.properties?.action_link
-    || data.data?.action_link
-    || null;
-}
-
-// Create or re-invite a user and return a magic link they can use to sign in
-// and set their password. Magic links work for both confirmed and unconfirmed
-// email addresses, making them reliable for initial account setup.
-async function getMagicLink(email, redirectTo, serviceKey) {
-  // Try magiclink (works for all users, confirms email on click)
-  let { ok, data } = await generateLink('magiclink', email, redirectTo, serviceKey);
-  if (ok) return { ok: true, data, type: 'magiclink' };
-
-  // Fallback: if user somehow can't get a magiclink, try recovery
-  ({ ok, data } = await generateLink('recovery', email, redirectTo, serviceKey));
-  if (ok) return { ok: true, data, type: 'recovery' };
-
-  return { ok: false, data, type: null };
+function makeTempPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  return pw + '!2';
 }
 
 export default async function handler(req, res) {
@@ -72,18 +43,48 @@ export default async function handler(req, res) {
 
     const { action } = req.query;
 
-    // ── Zugang erstellen ─────────────────────────────────────────────────────
+    // ── Zugang erstellen (mit temporärem Passwort) ───────────────────────────
     if (action === 'inviteUser') {
-      const { email, display_name, redirect_to } = req.body;
+      const { email, display_name } = req.body;
       if (!email || !display_name) return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
 
-      // generate_link creates the user automatically if they don't exist yet
-      const { ok, data: linkData, type: linkType } = await getMagicLink(email, redirect_to, serviceKey);
-      if (!ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
+      const tempPassword = makeTempPassword();
 
-      const userId = linkData.user?.id || linkData.id;
-      if (!userId) return res.status(500).json({ error: 'Keine User-ID erhalten' });
+      // Create user with confirmed email and temp password
+      const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+        body: JSON.stringify({ email, password: tempPassword, email_confirm: true }),
+      });
+      const created = await createRes.json();
 
+      let userId;
+      if (createRes.ok) {
+        userId = created.id;
+      } else {
+        // User already exists — update password to new temp password
+        const msg = created.msg || created.message || '';
+        if (!msg.toLowerCase().includes('already')) {
+          return res.status(400).json({ error: msg || 'Fehler beim Anlegen' });
+        }
+        // Find existing user by email via profiles or list
+        const listRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, {
+          headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+        });
+        const listData = await listRes.json();
+        const existing = (listData.users || []).find(u => u.email === email);
+        if (!existing) return res.status(400).json({ error: 'Benutzer nicht gefunden' });
+        userId = existing.id;
+
+        // Reset password to new temp password
+        await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+          body: JSON.stringify({ password: tempPassword }),
+        });
+      }
+
+      // Upsert profile
       await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
@@ -95,26 +96,30 @@ export default async function handler(req, res) {
         body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
       });
 
-      return res.status(200).json({
-        id: userId,
-        display_name,
-        invite_link: extractLink(linkData),
-        link_type: linkType,
-      });
+      return res.status(200).json({ id: userId, display_name, temp_password: tempPassword });
     }
 
-    // ── Reset-Link generieren ─────────────────────────────────────────────────
+    // ── Temporäres Passwort zurücksetzen ─────────────────────────────────────
     if (action === 'resetLink') {
-      const { email, redirect_to } = req.body;
+      const { email } = req.body;
       if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
 
-      const { ok, data: linkData } = await getMagicLink(email, redirect_to, serviceKey);
-      if (!ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
+      const tempPassword = makeTempPassword();
 
-      const link = extractLink(linkData);
-      if (!link) return res.status(500).json({ error: 'Kein Link erhalten' });
+      const listRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, {
+        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+      });
+      const listData = await listRes.json();
+      const existing = (listData.users || []).find(u => u.email === email);
+      if (!existing) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
 
-      return res.status(200).json({ link });
+      await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${existing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+        body: JSON.stringify({ password: tempPassword }),
+      });
+
+      return res.status(200).json({ temp_password: tempPassword });
     }
 
     // ── Benutzer löschen ──────────────────────────────────────────────────────
