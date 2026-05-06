@@ -17,117 +17,115 @@ async function isAdmin(userId, serviceKey) {
   return data?.[0]?.role === 'admin';
 }
 
+async function generateLink(type, email, redirectTo, serviceKey) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+    body: JSON.stringify({ type, email, redirect_to: redirectTo }),
+  });
+  const data = await res.json();
+  return { ok: res.ok, data };
+}
+
+function extractLink(data) {
+  return data.action_link || data.properties?.action_link || data.data?.action_link || null;
+}
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  try {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) return res.status(500).json({ error: 'Service key nicht konfiguriert' });
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) return res.status(500).json({ error: 'Service key nicht konfiguriert' });
 
-  const token = (req.headers.authorization || '').replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Nicht angemeldet' });
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Nicht angemeldet' });
 
-  const callerId = await getCallerUserId(token);
-  if (!callerId) return res.status(401).json({ error: 'Ungültiger Token' });
+    const callerId = await getCallerUserId(token);
+    if (!callerId) return res.status(401).json({ error: 'Ungültiger Token' });
 
-  if (!(await isAdmin(callerId, serviceKey))) {
-    return res.status(403).json({ error: 'Nur Admins erlaubt' });
-  }
-
-  const { action } = req.query;
-
-  if (action === 'inviteUser') {
-    const { email, display_name, redirect_to } = req.body;
-    if (!email || !display_name) {
-      return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
+    if (!(await isAdmin(callerId, serviceKey))) {
+      return res.status(403).json({ error: 'Nur Admins erlaubt' });
     }
 
-    // Try invite link first; if user already exists, fall back to recovery link.
-    let linkData, linkType = 'invite';
-    let linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-      body: JSON.stringify({ type: 'invite', email, redirect_to }),
-    });
-    linkData = await linkRes.json();
+    const { action } = req.query;
 
-    if (!linkRes.ok) {
-      const msg = linkData.msg || linkData.message || '';
-      // User already registered — generate a password-recovery link instead
-      if (msg.toLowerCase().includes('already')) {
+    // ── Zugang erstellen ────────────────────────────────────────────────────
+    if (action === 'inviteUser') {
+      const { email, display_name, redirect_to } = req.body;
+      if (!email || !display_name) return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
+
+      let { ok, data: linkData } = await generateLink('invite', email, redirect_to, serviceKey);
+      let linkType = 'invite';
+
+      if (!ok) {
+        const msg = linkData.msg || linkData.message || '';
+        if (!msg.toLowerCase().includes('already')) {
+          return res.status(400).json({ error: msg || 'Fehler beim Anlegen' });
+        }
+        // User exists → recovery link
         linkType = 'recovery';
-        linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-          body: JSON.stringify({ type: 'recovery', email, redirect_to }),
-        });
-        linkData = await linkRes.json();
-        if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
-      } else {
-        return res.status(400).json({ error: msg || 'Fehler beim Anlegen' });
+        ({ ok, data: linkData } = await generateLink('recovery', email, redirect_to, serviceKey));
+        if (!ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
       }
+
+      const userId = linkData.user?.id || linkData.id;
+      if (!userId) return res.status(500).json({ error: 'Keine User-ID erhalten' });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
+      });
+
+      return res.status(200).json({
+        id: userId,
+        display_name,
+        invite_link: extractLink(linkData),
+        link_type: linkType,
+      });
     }
 
-    const userId = linkData.user?.id || linkData.id;
-    if (!userId) return res.status(500).json({ error: 'Keine User-ID erhalten' });
+    // ── Reset-Link generieren ────────────────────────────────────────────────
+    if (action === 'resetLink') {
+      const { email, redirect_to } = req.body;
+      if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
 
-    // Upsert profile (may already exist if user was previously created)
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-        Prefer: 'resolution=merge-duplicates,return=minimal',
-      },
-      body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
-    });
+      const { ok, data: linkData } = await generateLink('recovery', email, redirect_to, serviceKey);
+      if (!ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
 
-    // action_link may be top-level or nested under properties depending on Supabase version
-    const inviteLink = linkData.action_link
-      || linkData.properties?.action_link
-      || linkData.data?.action_link
-      || null;
+      const link = extractLink(linkData);
+      if (!link) return res.status(500).json({ error: 'Kein Link erhalten' });
 
-    return res.status(200).json({
-      id: userId,
-      display_name,
-      invite_link: inviteLink,
-      link_type: linkType,
-      _raw_keys: Object.keys(linkData), // temporary debug — remove once confirmed working
-    });
-  }
-
-  if (action === 'resetLink') {
-    const { email, redirect_to } = req.body;
-    if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
-
-    const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-      body: JSON.stringify({ type: 'recovery', email, redirect_to }),
-    });
-    const linkData = await linkRes.json();
-    if (!linkRes.ok) return res.status(400).json({ error: linkData.msg || linkData.message || 'Fehler beim Link-Generieren' });
-
-    const link = linkData.action_link || linkData.properties?.action_link || null;
-    if (!link) return res.status(500).json({ error: 'Kein Link erhalten' });
-
-    return res.status(200).json({ link });
-  }
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId erforderlich' });
-    if (userId === callerId) return res.status(400).json({ error: 'Du kannst dich nicht selbst löschen' });
-
-    const delRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-    });
-    if (!delRes.ok) {
-      const err = await delRes.json().catch(() => ({}));
-      return res.status(400).json({ error: err.message || 'Fehler beim Löschen' });
+      return res.status(200).json({ link });
     }
-    return res.status(200).json({ success: true });
-  }
 
-  return res.status(400).json({ error: 'Unbekannte Aktion' });
+    // ── Benutzer löschen ─────────────────────────────────────────────────────
+    if (action === 'deleteUser') {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId erforderlich' });
+      if (userId === callerId) return res.status(400).json({ error: 'Du kannst dich nicht selbst löschen' });
+
+      const delRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+      });
+      if (!delRes.ok) {
+        const err = await delRes.json().catch(() => ({}));
+        return res.status(400).json({ error: err.message || 'Fehler beim Löschen' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'Unbekannte Aktion' });
+
+  } catch (err) {
+    console.error('admin handler error:', err);
+    return res.status(500).json({ error: err.message || 'Interner Fehler' });
+  }
 }
