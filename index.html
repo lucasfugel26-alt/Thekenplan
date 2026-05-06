@@ -2615,12 +2615,13 @@ const Form={
     this.staffRows++;
     const n=this.staffRows;
     const statuses=s.statuses||(s.miss?['fehlt']:[]);
+    const defaultTime=s.ov||(document.getElementById('f-start')?.value||'');
     const div=document.createElement('div');
     div.className='staff-entry-row';
     div.id=`srow-${n}`;
     div.innerHTML=`<span class="se-pos">${n}</span>
       <input class="fi" type="text" placeholder="Name" id="sn-${n}" value="${s.name||''}" style="flex:2">
-      <input class="fi" type="time" id="st-${n}" value="${s.ov||''}" style="width:88px" title="Manuelle Startzeit">
+      <input class="fi" type="time" id="st-${n}" value="${defaultTime}" style="width:88px" title="Manuelle Startzeit">
       <div class="se-statuses">${this._buildStatusBtns(statuses)}</div>
       <button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`;
     document.getElementById('f-staff-rows').appendChild(div);
