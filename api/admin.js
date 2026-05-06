@@ -82,11 +82,18 @@ export default async function handler(req, res) {
       body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
     });
 
+    // action_link may be top-level or nested under properties depending on Supabase version
+    const inviteLink = linkData.action_link
+      || linkData.properties?.action_link
+      || linkData.data?.action_link
+      || null;
+
     return res.status(200).json({
       id: userId,
       display_name,
-      invite_link: linkData.action_link || null,
+      invite_link: inviteLink,
       link_type: linkType,
+      _raw_keys: Object.keys(linkData), // temporary debug — remove once confirmed working
     });
   }
 

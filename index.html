@@ -3999,7 +3999,7 @@ const App={
       const copy=confirm(`Zugang erstellt!\n\n${linkLabel} generiert. Bitte diesen Link manuell an ${emp.name} schicken:\n\n${data.invite_link}\n\nLink in Zwischenablage kopieren?`);
       if(copy) navigator.clipboard.writeText(data.invite_link).catch(()=>{});
     } else {
-      alert(`Zugang erstellt. ${emp.name} erhält eine Einladungs-E-Mail.`);
+      alert(`Zugang erstellt.\n\n(Kein Link verfügbar — API-Felder: ${data._raw_keys?.join(', ')||'?'})`);
     }
   },
 
