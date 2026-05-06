@@ -3888,11 +3888,18 @@ const App={
     if(pw1 !== pw2){ show('Passwörter stimmen nicht überein.', false); return; }
     show('Speichern…', true);
     const { error } = await db.auth.updateUser({ password: pw1 });
-    if(error){ show('Fehler: ' + error.message, false); return; }
-    document.getElementById('stg-pw1').value = '';
-    document.getElementById('stg-pw2').value = '';
-    show('✓ Passwort erfolgreich geändert!', true);
-    setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
+    // Re-fetch element in case DOM was touched during the await
+    const msgEl = document.getElementById('stg-pw-msg');
+    const showFresh = (txt, ok) => {
+      if(!msgEl) return;
+      msgEl.style.display=''; msgEl.style.background=ok?'rgba(34,212,164,.15)':'rgba(255,80,80,.12)';
+      msgEl.style.color=ok?'#22d4a4':'var(--miss)'; msgEl.textContent=txt;
+    };
+    if(error){ showFresh('Fehler: '+error.message, false); return; }
+    document.getElementById('stg-pw1').value='';
+    document.getElementById('stg-pw2').value='';
+    showFresh('✓ Passwort erfolgreich geändert!', true);
+    setTimeout(()=>{ const el=document.getElementById('stg-pw-msg'); if(el) el.style.display='none'; }, 5000);
   },
 
   exportJSON(){
@@ -4162,8 +4169,12 @@ const Auth = {
         return;
       }
       if(event==='USER_UPDATED'){
-        if(session) await this._onSignIn(session.user);
+        const stgOpen=document.getElementById('stg-page')?.style.display!=='none';
         document.getElementById('set-pw-screen').style.display='none';
+        // Always update currentUser so the new session token is used for signOut etc.
+        if(session) currentUser=session.user;
+        // Only re-render the full app if settings page is not open
+        if(!stgOpen&&session) await this._onSignIn(session.user);
         return;
       }
       if(event==='SIGNED_OUT') this._onSignOut();
