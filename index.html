@@ -2587,6 +2587,10 @@ const Form={
     document.getElementById('f-gastro').value=ev.startGastro||'';
     document.getElementById('f-schluss').value=ev.schlussShow||'';
     document.getElementById('f-ende').value=ev.belegungsende||'';
+    const bv=document.getElementById('f-besucher');if(bv)bv.value=ev.besucherzahl??'';
+    const vnr=document.getElementById('f-vnr');if(vnr)vnr.value=ev.veranstaltungsnummer||ev.veranstaltungsnr||ev.vnr||'';
+    const becherVal=ev.bechertyp||(ev.plastik?'plastik':'unbekannt');
+    this.setBecher(document.querySelector(`.bt-btn[data-val="${becherVal}"]`));
     /* Besetzungszeilen aufbauen */
     document.getElementById('f-staff-rows').innerHTML='';
     ev.barStaff.forEach(s=>this._addStaffRowData(s));
