@@ -900,8 +900,8 @@ body.light{
         <div class="stg-sec">Erscheinungsbild</div>
         <button class="btn btn-ghost" onclick="App.toggleTheme()">&#9790; / &#9728; Hell / Dunkel</button>
 
-        <div class="stg-sec">Standardwerte f&uuml;r neue Events</div>
-        <div class="stg-grid2">
+        <div class="stg-sec admin-only">Standardwerte f&uuml;r neue Events</div>
+        <div class="stg-grid2 admin-only">
           <div class="stg-field">
             <label class="stg-label">Standard-Location</label>
             <select class="fi" id="stg-def-loc"></select>
@@ -919,7 +919,7 @@ body.light{
             <input class="fi" type="time" id="stg-def-ende">
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px" class="admin-only">
           <button class="btn btn-ghost" onclick="Defaults.save()">Speichern</button>
           <span id="stg-def-msg" style="font-size:.75rem;color:#22d4a4;display:none">&#10003; Gespeichert</span>
         </div>
@@ -927,8 +927,8 @@ body.light{
 
       <!-- ── RECHTE SPALTE ── -->
       <div>
-        <div class="stg-sec">Event-Karten­felder</div>
-        <div class="stg-toggles-grid">
+        <div class="stg-sec admin-only">Event-Karten­felder</div>
+        <div class="stg-toggles-grid admin-only">
           <label class="stg-toggle"><input type="checkbox" id="stg-cf-becher" onchange="CardFields.save()"><span>Bechertyp-Banner</span></label>
           <label class="stg-toggle"><input type="checkbox" id="stg-cf-zeiten" onchange="CardFields.save()"><span>Zeitangaben</span></label>
           <label class="stg-toggle"><input type="checkbox" id="stg-cf-besucher" onchange="CardFields.save()"><span>Besucherzahl</span></label>
