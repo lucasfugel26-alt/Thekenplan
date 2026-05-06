@@ -2443,7 +2443,7 @@ const Employees = {
     const {data,error} = await db.from('employees').insert(emp).select().single();
     if(error) throw error;
     this._rows.push(data);
-    this._rows.sort((a,b)=>a.name.localeCompare(b.name));
+    this._rows.sort((a,b)=>{const r=(a.default_role||'').localeCompare(b.default_role||'','de');return r!==0?r:a.name.localeCompare(b.name,'de');});
     return data;
   },
   async update(id, updates) {
@@ -2480,6 +2480,9 @@ const Employees = {
       if(sf && e.status!==sf) return false;
       if(q && !e.name.toLowerCase().includes(q) && !(e.default_role||'').toLowerCase().includes(q)) return false;
       return true;
+    }).sort((a,b)=>{
+      const r=(a.default_role||'').localeCompare(b.default_role||'','de');
+      return r!==0?r:a.name.localeCompare(b.name,'de');
     });
     list.innerHTML=rows.length===0
       ? '<div style="padding:16px;font-size:.8rem;color:var(--txm);text-align:center">Keine Mitarbeiter</div>'
