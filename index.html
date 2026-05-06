@@ -2583,11 +2583,13 @@ const Employees = {
     const becherIcon=s.bechertyp==='plastik'?'🥤':s.bechertyp==='glas'?'🍺':'–';
     const timeChanged=past&&s.confirmed&&(s.actual_start_time||s.actual_end_time);
     const confirmCell=past
-      ?`<td>${s.confirmed
-          ?`<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span>`
-          :`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px;white-space:nowrap"
-              onclick="Employees._openConfirmShift('${s.id}','${s.start_time||''}','${s.end_time||''}')">&#9998; Anpassen</button>`
-        }</td>`
+      ?`<td style="white-space:nowrap">
+          ${s.confirmed?`<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span> `:''}
+          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px" title="Anpassen"
+            onclick="Employees._openConfirmShift('${s.id}','${s.actual_start_time||s.start_time||''}','${s.actual_end_time||s.end_time||''}')">&#9998;</button>
+          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 6px;color:var(--miss);border-color:rgba(255,80,80,.3)" title="L&ouml;schen"
+            onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>
+        </td>`
       :'';
     return `<tr class="${s.confirmed?'confirmed':''}${s.cancelled?' cancelled':''}">
       <td>${_fmtDate(s.event_date)}</td>
@@ -2664,6 +2666,38 @@ const Employees = {
         if(emp) document.getElementById('emp-main').innerHTML=this._detailHTML(emp,shifts);
       }
     } catch(e) { alert('Fehler: '+e.message); }
+  },
+
+  async _deleteShift(shiftId, eventId, employeeId) {
+    if(!confirm('Schicht wirklich löschen? Sie wird auch aus der Veranstaltung entfernt.')) return;
+    const {error}=await db.from('shifts').delete().eq('id',shiftId);
+    if(error){alert('Fehler: '+error.message);return;}
+    // Remove from event barStaff / prodL
+    const ev=EVENTS.find(e=>e.id===eventId);
+    if(ev){
+      const isProdL=ev.prodL&&(ev.prodL.employeeId===employeeId||Employees.getByName(ev.prodL.name)?.id===employeeId);
+      if(isProdL){
+        ev.prodL=null;
+      } else {
+        ev.barStaff=(ev.barStaff||[]).filter(s=>{
+          const sid=s.employeeId||Employees.getByName(s.name)?.id;
+          return sid!==employeeId;
+        });
+        ev.barStaff.forEach((s,i)=>s.pos=i+1);
+      }
+      await Cloud.push();
+      App.render();
+    }
+    // Update local cache
+    Object.values(Shifts._cache).forEach(arr=>{
+      const idx=arr.findIndex(s=>s.id===shiftId);
+      if(idx!==-1) arr.splice(idx,1);
+    });
+    if(this._selected){
+      const shifts=await Shifts.loadForEmployee(this._selected);
+      const emp=this.getById(this._selected);
+      if(emp) document.getElementById('emp-main').innerHTML=this._detailHTML(emp,shifts);
+    }
   },
 
   exportPDF(empId) {
@@ -3786,17 +3820,19 @@ const Profile = {
     const fmtH = h => h > 0 ? (h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h') : '0h';
     const plannedH = future.reduce((sum,s) => sum + Shifts.calcDuration(s.start_time, s.end_time), 0);
     const confirmedH = past.filter(s => s.confirmed).reduce((sum,s) => sum + Shifts.calcDuration(s.actual_start_time||s.start_time, s.actual_end_time||s.end_time), 0);
+    const colgroup = `<colgroup><col style="width:110px"><col><col style="width:130px"><col style="width:72px"><col style="width:72px"><col style="width:72px"><col style="width:120px"></colgroup>`;
     const thead = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
+    const tbl = body => `<table class="emp-shift-tbl" style="width:100%;table-layout:fixed">${colgroup}${thead}${body}</table>`;
     let html = '';
     if (future.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128197; Geplante Schichten (${future.length})
         <span class="shift-planned-badge">${fmtH(plannedH)} geplant</span></div>
-        <table class="emp-shift-tbl">${thead}<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody></table>`;
+        ${tbl(`<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody>`)}`;
     }
     if (past.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128336; Vergangene Schichten (${past.length})
         <span class="shift-confirmed-badge">${fmtH(confirmedH)} best&auml;tigt</span></div>
-        <table class="emp-shift-tbl">${thead}<tbody>${past.map(s => this._shiftRow(s, true)).join('')}</tbody></table>`;
+        ${tbl(`<tbody>${past.map(s => this._shiftRow(s, true)).join('')}</tbody>`)}`;
     }
     if (!future.length && !past.length)
       html = '<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>';
