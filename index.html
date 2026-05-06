@@ -781,6 +781,11 @@ body.light{
 /* ── CANCEL BUTTON ─── */
 .ca-btn.canc{color:var(--l1)}
 .ca-btn.uncanc{color:#22d4a4}
+/* ── ACCESS ROW ─── */
+.emp-access-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:12px 16px;background:var(--bg3);border:1px solid var(--bd);
+  border-radius:10px;margin-bottom:18px}
+.emp-access-label{font-size:.78rem;font-weight:700;color:var(--txd);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -2496,6 +2501,20 @@ const Employees = {
       ${sollLabel?`<span class="emp-det-meta-item">&#8987; Soll: ${sollLabel}</span>`:''}
       ${isAdmin()&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
     </div>
+    ${isAdmin()?`<div class="emp-access-row">
+      <span class="emp-access-label">&#128273; Zugang</span>
+      ${emp.profile_id
+        ?`<span class="emp-status-pill aktiv" style="font-size:.72rem">&#10003; Aktiv</span>
+          <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
+            onclick="App.resetEmployeePassword('${emp.id}')">&#128140; Passwort-Reset senden</button>`
+        :`<span style="font-size:.78rem;color:var(--txm)">Kein Zugang</span>
+          ${emp.email
+            ?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
+                onclick="App.createEmployeeAccess('${emp.id}')">&#43; Zugang erstellen</button>`
+            :`<span style="font-size:.72rem;color:var(--txm);font-style:italic">(E&#8209;Mail erforderlich)</span>`
+          }`
+      }
+    </div>`:''}
     <div class="emp-hours-card">
       <div class="emp-hours-head">
         <h4>&#9203; Stunden</h4>
@@ -3871,10 +3890,15 @@ const App={
     const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
     if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
     if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
-    tbl.innerHTML=profiles.map(p=>`
-      <div class="team-row">
-        <div><div class="team-name">${p.display_name}</div></div>
-        <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}</span></div>
+    tbl.innerHTML=profiles.map(p=>{
+      const linkedEmp=Employees.getAll().find(e=>e.profile_id===p.id);
+      return `<div class="team-row" style="grid-template-columns:1fr 1fr 160px">
+        <div>
+          <div class="team-name">${p.display_name}</div>
+          ${linkedEmp?`<div style="font-size:.7rem;color:var(--txm);margin-top:2px">&#128101; ${_esc(linkedEmp.name)}</div>`
+            :`<div style="font-size:.7rem;color:var(--txm);margin-top:2px;font-style:italic">Kein Mitarbeiter verknüpft</div>`}
+        </div>
+        <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'&#128273; Admin':'&#128065; Mitarbeiter'}</span></div>
         <div class="team-acts">
           ${p.id!==currentProfile?.id?`
             <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
@@ -3883,7 +3907,8 @@ const App={
               onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>
           `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   },
 
   async openTeam(){
@@ -3946,6 +3971,43 @@ const App={
   closeSettings(){
     document.getElementById('stg-page').style.display='none';
     document.body.style.overflow='';
+  },
+
+  async createEmployeeAccess(empId) {
+    const emp=Employees.getById(empId);
+    if(!emp?.email){alert('Bitte zuerst eine E-Mail-Adresse hinterlegen.');return;}
+    if(emp.profile_id){alert('Dieser Mitarbeiter hat bereits einen Zugang.');return;}
+    if(!confirm(`Zugang für ${emp.name} (${emp.email}) erstellen?\n\nEine E-Mail zur Passwortvergabe wird automatisch gesendet.`))return;
+    const {data:{session}}=await db.auth.getSession();
+    const token=session?.access_token;
+    if(!token){alert('Nicht angemeldet.');return;}
+    // Random temp password — never shown, user sets own via email
+    const tmp=[...crypto.getRandomValues(new Uint8Array(18))].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20)+'Aa1!';
+    const r=await fetch('/api/admin?action=createUser',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({email:emp.email,password:tmp,display_name:emp.display_name||emp.name})
+    });
+    const data=await r.json();
+    if(!r.ok){alert('Fehler: '+(data.error||'Unbekannt'));return;}
+    // Link employee to new auth user
+    await Employees.update(empId,{profile_id:data.id});
+    // Send password-reset email so user sets their own password
+    await db.auth.resetPasswordForEmail(emp.email,{redirectTo:window.location.origin});
+    // Refresh detail
+    const shifts=await Shifts.loadForEmployee(empId);
+    const updated=Employees.getById(empId);
+    if(updated) document.getElementById('emp-main').innerHTML=Employees._detailHTML(updated,shifts);
+    alert(`Zugang erstellt. ${emp.name} erhält eine E-Mail zur Passwortvergabe.`);
+  },
+
+  async resetEmployeePassword(empId) {
+    const emp=Employees.getById(empId);
+    if(!emp?.email){alert('Keine E-Mail-Adresse hinterlegt.');return;}
+    if(!confirm(`Passwort-Reset für ${emp.name} (${emp.email}) senden?`))return;
+    const {error}=await db.auth.resetPasswordForEmail(emp.email,{redirectTo:window.location.origin});
+    if(error){alert('Fehler: '+error.message);return;}
+    alert(`E-Mail gesendet an ${emp.email}.`);
   },
 
 };
