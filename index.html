@@ -4121,20 +4121,33 @@ document.addEventListener('keydown',e=>{
    SUPABASE AUTH
    ============================================================ */
 const Auth = {
+  // Capture URL hash type before Supabase processes and clears it
+  _initialHashType: new URLSearchParams(window.location.hash.replace(/^#/,'?')).get('type'),
+
   async init() {
     const {data:{session}}=await db.auth.getSession();
     db.auth.onAuthStateChange(async(event,session)=>{
       if(event==='PASSWORD_RECOVERY'){
-        this._showSetPassword();
+        this._showSetPassword('Neues Passwort wählen');
         return;
       }
-      if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
-        if(session&&document.getElementById('set-pw-screen').style.display!=='none') return; // wait for pw set
+      if(event==='SIGNED_IN'){
+        // Magic link sign-in → user needs to set a password
+        if(this._initialHashType==='magiclink'){
+          this._initialHashType=null;
+          if(session) { currentUser=session.user; }
+          this._showSetPassword('Willkommen! Bitte wähle ein Passwort für deinen Account.');
+          return;
+        }
+        if(session&&document.getElementById('set-pw-screen').style.display!=='none') return;
+        if(session&&!currentUser) await this._onSignIn(session.user);
+        return;
+      }
+      if(event==='TOKEN_REFRESHED'){
         if(session&&!currentUser) await this._onSignIn(session.user);
         return;
       }
       if(event==='USER_UPDATED'){
-        // Password was just set — sign in normally
         if(session) await this._onSignIn(session.user);
         document.getElementById('set-pw-screen').style.display='none';
         return;
@@ -4147,16 +4160,16 @@ const Auth = {
     return false;
   },
 
-  _showSetPassword(){
+  _showSetPassword(subtitle){
     document.getElementById('pw-screen').style.display='none';
     document.getElementById('app-root').style.display='none';
     document.getElementById('set-pw-screen').style.display='flex';
     document.getElementById('set-pw-err').textContent='';
     document.getElementById('set-pw-input').value='';
     document.getElementById('set-pw-confirm').value='';
-    setTimeout(()=>document.getElementById('set-pw-input')?.focus(),100);
-    // Clean the URL so the token isn't visible
+    if(subtitle) document.getElementById('set-pw-sub').textContent=subtitle;
     history.replaceState(null,'',window.location.pathname);
+    setTimeout(()=>document.getElementById('set-pw-input')?.focus(),100);
   },
 
   async setNewPassword(){
