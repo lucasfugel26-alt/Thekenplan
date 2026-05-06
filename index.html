@@ -623,6 +623,9 @@ body.light{
       <button class="gear-btn admin-only" onclick="App.openLocations()" style="color:var(--l1);border-color:rgba(245,166,35,.25)">
         &#128205; Locations
       </button>
+      <button class="gear-btn" id="profil-btn" onclick="Profile.open()" style="display:none">
+        &#128100; Mein Profil
+      </button>
       <button class="gear-btn" onclick="App.openSettings()" id="gear-btn">
         &#9881; Einstellungen
       </button>
@@ -848,6 +851,19 @@ CREATE POLICY "read_locations" ON locations FOR SELECT USING (true);
 CREATE POLICY "admin_locations" ON locations FOR ALL USING (true);
 CREATE POLICY "read_config" ON app_config FOR SELECT USING (true);
 CREATE POLICY "admin_config" ON app_config FOR ALL USING (true);</code>
+    </div>
+  </div>
+</div>
+
+<!-- ── MEIN PROFIL PAGE ── -->
+<div class="stg-page" id="profil-page">
+  <div class="stg-page-inner">
+    <div class="stg-page-hdr">
+      <button class="btn btn-ghost stg-back" onclick="Profile.close()">&#8592; Zur&uuml;ck</button>
+      <div class="stg-page-title">&#128100; Mein Profil</div>
+    </div>
+    <div id="profil-content">
+      <div style="color:var(--txm);font-size:.82rem;padding:18px 0">Lade…</div>
     </div>
   </div>
 </div>
@@ -2256,12 +2272,27 @@ function buildCard(ev, conflictIds=new Set()){
 }
 
 function updateStaffSel(){
-  const sel=document.getElementById('filter-staff');const cur=sel.value;
-  const names=new Set();
-  const pool=S.filterLoc?EVENTS.filter(e=>e.location===S.filterLoc):EVENTS;
-  pool.forEach(e=>allNames(e).forEach(n=>names.add(n)));
+  const sel=document.getElementById('filter-staff');
+  const myShiftsBtn=document.getElementById('btn-my-shifts');
+  const profilBtn=document.getElementById('profil-btn');
+  const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
+
+  // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
+  if(!isAdmin()){
+    sel.style.display='none';
+    if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
+    if(profilBtn) profilBtn.style.display=myEmp?'':'none';
+    return;
+  }
+
+  // Admins: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
+  if(myShiftsBtn) myShiftsBtn.style.display='none';
+  if(profilBtn) profilBtn.style.display='none';
+  sel.style.display='';
+  const cur=sel.value;
+  const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
   sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
-    [...names].sort().map(n=>`<option${n===cur?' selected':''}>${n}</option>`).join('');
+    empNames.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
 }
 
 
@@ -2452,6 +2483,236 @@ const Form={
       this.init(this.currentLoc);
     }
   }
+};
+
+/* ============================================================
+   DEFAULTS & CARD FIELDS
+   ============================================================ */
+const Defaults = {
+  _key: 'theken_defaults',
+  get() {
+    try { return JSON.parse(localStorage.getItem(this._key)||'{}'); } catch { return {}; }
+  },
+  applyToForm() {
+    const d = this.get();
+    if(d.gastro) { const el=document.getElementById('f-gastro'); if(el) el.value=d.gastro; }
+    if(d.schluss) { const el=document.getElementById('f-schluss'); if(el) el.value=d.schluss; }
+    if(d.ende)   { const el=document.getElementById('f-ende');   if(el) el.value=d.ende; }
+    if(d.loc)    { const el=document.getElementById('f-loc');    if(el && el.querySelector(`option[value="${d.loc}"]`)) el.value=d.loc; }
+  },
+  save() {
+    const v = k => document.getElementById(k)?.value || '';
+    const d = { loc: v('stg-def-loc'), gastro: v('stg-def-gastro'), schluss: v('stg-def-schluss'), ende: v('stg-def-ende') };
+    localStorage.setItem(this._key, JSON.stringify(d));
+    const msg = document.getElementById('stg-def-msg');
+    if(msg){ msg.style.display=''; setTimeout(()=>msg.style.display='none', 2000); }
+  },
+  loadIntoSettings() {
+    const d = this.get();
+    const locSel = document.getElementById('stg-def-loc');
+    if(locSel) {
+      locSel.innerHTML = Object.values(LOCS).map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+      if(d.loc) locSel.value = d.loc;
+    }
+    const set = (id, val) => { const el=document.getElementById(id); if(el&&val) el.value=val; };
+    set('stg-def-gastro', d.gastro);
+    set('stg-def-schluss', d.schluss);
+    set('stg-def-ende', d.ende);
+  }
+};
+
+const CardFields = {
+  get() { return Config.data.cardFields; },
+  forRole() {
+    const cf = this.get();
+    const adm = isAdmin();
+    return {
+      becher:   adm ? cf.becher.show   : cf.becher.staff,
+      zeiten:   adm ? cf.zeiten.show   : cf.zeiten.staff,
+      besucher: adm ? cf.besucher.show : cf.besucher.staff,
+      notizen:  adm ? cf.notizen.show  : cf.notizen.staff,
+    };
+  },
+  save() {
+    const cb = id => document.getElementById(id)?.checked ?? true;
+    Config.data.cardFields = {
+      becher:   {show:cb('stg-cf-becher-show'),   staff:cb('stg-cf-becher-staff')},
+      zeiten:   {show:cb('stg-cf-zeiten-show'),   staff:cb('stg-cf-zeiten-staff')},
+      besucher: {show:cb('stg-cf-besucher-show'), staff:cb('stg-cf-besucher-staff')},
+      notizen:  {show:cb('stg-cf-notizen-show'),  staff:cb('stg-cf-notizen-staff')},
+    };
+    Config.saveCardFields();
+    App.render();
+  },
+  loadIntoSettings() {
+    const cf = this.get();
+    const set = (id,val) => { const el=document.getElementById(id); if(el) el.checked=val; };
+    set('stg-cf-becher-show',    cf.becher.show);
+    set('stg-cf-becher-staff',   cf.becher.staff);
+    set('stg-cf-zeiten-show',    cf.zeiten.show);
+    set('stg-cf-zeiten-staff',   cf.zeiten.staff);
+    set('stg-cf-besucher-show',  cf.besucher.show);
+    set('stg-cf-besucher-staff', cf.besucher.staff);
+    set('stg-cf-notizen-show',   cf.notizen.show);
+    set('stg-cf-notizen-staff',  cf.notizen.staff);
+  }
+};
+
+/* ============================================================
+   MEIN PROFIL
+   ============================================================ */
+const Profile = {
+  _empId: null,
+
+  async open() {
+    const myEmp = currentUser ? Employees.getAll().find(e => e.profile_id === currentUser.id) : null;
+    if (!myEmp) return;
+    this._empId = myEmp.id;
+    document.getElementById('profil-page').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    await this._render(myEmp);
+  },
+
+  close() {
+    document.getElementById('profil-page').style.display = 'none';
+    document.body.style.overflow = '';
+  },
+
+  async _render(emp) {
+    const shifts = await Shifts.loadForEmployee(emp.id);
+    const bg = emp.color || '#22d4a4';
+    const fg = _contrastColor(bg);
+    const now = new Date();
+    const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+    const istH = Shifts.sumHours(shifts, `${y}-${m}-01`, `${y}-${m}-31`);
+    const period = emp.soll_period || 'month';
+    const rawSoll = Number(emp.soll_stunden) || 0;
+    const sollH = period === 'week' ? Math.round(rawSoll * 4.33 * 2) / 2 : rawSoll;
+    const diff = istH - sollH;
+    document.getElementById('profil-content').innerHTML = `
+      <div class="emp-det-head">
+        <span class="emp-badge lg" style="background:${bg};color:${fg}">${emp.kuerzel||'?'}</span>
+        <h3>${_esc(emp.name)}</h3>
+        <span class="emp-status-pill ${emp.status||'aktiv'}">${emp.status||'aktiv'}</span>
+      </div>
+      ${emp.default_role ? `<div class="emp-det-meta"><span class="emp-det-meta-item">&#127970; ${_esc(emp.default_role)}</span></div>` : ''}
+      <div style="background:var(--bg3);border-radius:12px;padding:20px;margin:18px 0 8px">
+        <div class="stg-subsec" style="margin-top:0;margin-bottom:12px">Kontaktdaten</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg">
+            <label>E-Mail <span style="color:var(--txm);font-weight:400;font-size:.75rem">(nur Kontakt, kein Login)</span></label>
+            <input class="fi" id="profil-email" type="email" value="${_esc(emp.email||'')}">
+          </div>
+          <div class="fg">
+            <label>Telefon</label>
+            <input class="fi" id="profil-phone" type="tel" value="${_esc(emp.phone||'')}">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+          <button class="btn btn-ghost" onclick="Profile.saveContact('${emp.id}')">Speichern</button>
+          <span id="profil-save-msg" style="font-size:.78rem;display:none;color:#22d4a4">&#10003; Gespeichert</span>
+          <span id="profil-err-msg" style="font-size:.78rem;display:none;color:var(--miss)"></span>
+        </div>
+      </div>
+      <div class="emp-hours-card">
+        <div class="emp-hours-head"><h4>&#9203; Stunden diesen Monat</h4></div>
+        <div class="emp-hours-grid">${Employees._hoursGridHTML(istH, sollH, diff, 'month', period)}</div>
+      </div>
+      <div id="profil-shifts">${this._shiftsHTML(shifts, emp.id)}</div>`;
+  },
+
+  _shiftsHTML(shifts, empId) {
+    const today = new Date().toISOString().slice(0, 10);
+    const future = shifts.filter(s => s.event_date >= today && !s.cancelled);
+    const past = shifts.filter(s => s.event_date < today && !s.cancelled);
+    const fmtH = h => h > 0 ? (h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h') : '0h';
+    const plannedH = future.reduce((sum,s) => sum + Shifts.calcDuration(s.start_time, s.end_time), 0);
+    const confirmedH = past.filter(s => s.confirmed).reduce((sum,s) => sum + Shifts.calcDuration(s.actual_start_time||s.start_time, s.actual_end_time||s.end_time), 0);
+    const theadNoAct = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th></tr></thead>`;
+    const thead = `<thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
+    let html = '';
+    if (future.length) {
+      html += `<div class="shift-section-hdr" style="margin-top:20px">&#128197; Geplante Schichten (${future.length})
+        <span class="shift-planned-badge">${fmtH(plannedH)} geplant</span></div>
+        <table class="emp-shift-tbl">${theadNoAct}<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody></table>`;
+    }
+    if (past.length) {
+      html += `<div class="shift-section-hdr" style="margin-top:20px">&#128336; Vergangene Schichten (${past.length})
+        <span class="shift-confirmed-badge">${fmtH(confirmedH)} best&auml;tigt</span></div>
+        <table class="emp-shift-tbl">${thead}<tbody>${past.map(s => this._shiftRow(s, true, empId)).join('')}</tbody></table>`;
+    }
+    if (!future.length && !past.length)
+      html = '<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>';
+    return html;
+  },
+
+  _shiftRow(s, isPast, empId) {
+    const st = s.actual_start_time || s.start_time || '–';
+    const et = s.actual_end_time || s.end_time || '–';
+    const dur = Shifts.calcDuration(st, et);
+    const durStr = dur > 0 ? (dur % 1 === 0 ? dur + 'h' : dur.toFixed(1) + 'h') : '–';
+    const timeChanged = isPast && s.confirmed && (s.actual_start_time || s.actual_end_time);
+    const confirmCell = isPast
+      ? `<td>${s.confirmed
+          ? `<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span>`
+          : `<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px;white-space:nowrap"
+              onclick="Profile._openConfirmShift('${s.id}','${s.start_time||''}','${s.end_time||''}','${empId}')">&#9998; Anpassen</button>`
+        }</td>`
+      : '';
+    return `<tr class="${s.confirmed?'confirmed':''}">
+      <td>${_fmtDate(s.event_date)}</td>
+      <td>${_esc(s.event_name||'–')}</td>
+      <td>${_esc(s.role||'–')}</td>
+      <td class="${timeChanged?'act-time':''}">${st}</td>
+      <td class="${timeChanged?'act-time':''}">${et}</td>
+      <td>${durStr}</td>
+      ${confirmCell}
+    </tr>`;
+  },
+
+  _openConfirmShift(shiftId, origStart, origEnd, empId) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML = `<div style="background:var(--bg2);border-radius:16px;border:1px solid var(--bd);padding:28px;width:min(420px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <h3 style="font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:18px">&#9998; Schicht anpassen &amp; best&auml;tigen</h3>
+      <div class="frow">
+        <div class="fg"><label>Startzeit</label><input class="fi" type="time" id="_pcs-start" value="${origStart}"></div>
+        <div class="fg"><label>Endzeit</label><input class="fi" type="time" id="_pcs-end" value="${origEnd}"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+        <button class="btn btn-ghost" onclick="this.closest('[style*=fixed]').remove()">Abbrechen</button>
+        <button class="btn btn-primary" onclick="Profile._confirmShift('${shiftId}',document.getElementById('_pcs-start').value,document.getElementById('_pcs-end').value,'${empId}',this.closest('[style*=fixed]'))">&#10003; Best&auml;tigen</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  },
+
+  async _confirmShift(shiftId, actualStart, actualEnd, empId, overlay) {
+    try {
+      await Shifts.confirm(shiftId, actualStart, actualEnd);
+      overlay?.remove();
+      const emp = Employees.getById(empId);
+      if (emp) await this._render(emp);
+    } catch(e) { alert('Fehler: ' + e.message); }
+  },
+
+  async saveContact(empId) {
+    const email = (document.getElementById('profil-email').value || '').trim();
+    const phone = (document.getElementById('profil-phone').value || '').trim();
+    const { error } = await db.from('employees').update({ email, phone }).eq('id', empId);
+    const errEl = document.getElementById('profil-err-msg');
+    if (error) {
+      if (errEl) { errEl.textContent = 'Fehler: ' + error.message; errEl.style.display = 'inline'; }
+      return;
+    }
+    if (errEl) errEl.style.display = 'none';
+    await Employees.load();
+    const msg = document.getElementById('profil-save-msg');
+    if (msg) {
+      msg.style.display = 'inline';
+      setTimeout(() => { const m = document.getElementById('profil-save-msg'); if (m) m.style.display = 'none'; }, 2500);
+    }
+  },
 };
 
 /* ============================================================
@@ -2728,7 +2989,19 @@ const App={
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    document.querySelectorAll('.ov.open').forEach(o=>o.classList.remove('open'));
+    const linkModal=document.getElementById('link-modal-ov');
+    if(linkModal&&linkModal.style.display==='flex'){App._closeLinkModal();return;}
+    const empModal=document.getElementById('emp-modal-ov');
+    if(empModal&&empModal.classList.contains('open')){Employees.closeModal();return;}
+    const teamOv=document.getElementById('team-ov');
+    if(teamOv&&teamOv.classList.contains('open')){App.closeTeam();return;}
+    const profilPage=document.getElementById('profil-page');
+    if(profilPage&&profilPage.style.display!=='none'){Profile.close();return;}
+    const stgPage=document.getElementById('stg-page');
+    if(stgPage&&stgPage.style.display!=='none'){App.closeSettings();return;}
+    const infoOv=document.getElementById('loc-info-ov');
+    if(infoOv&&infoOv.classList.contains('open')){App.closeLocInfo();return;}
+    document.querySelectorAll('.ov.open,.loc-info-ov.open').forEach(o=>o.classList.remove('open'));
     document.body.style.overflow='';
   }
   if(e.key==='ArrowLeft' &&!document.querySelector('.ov.open'))App.prevWeek();
