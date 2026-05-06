@@ -723,6 +723,7 @@ body.light{
     <div class="m-sh">Besetzung</div>
     <div class="m-slist" id="m-slist"></div>
     <div id="m-note"></div>
+    <div id="m-loc-info"></div>
     <div class="m-actions admin-only">
       <button class="btn btn-edit"   onclick="App.editEvent()">&#9998; Bearbeiten</button>
       <button class="btn btn-del"    onclick="App.confirmDelete()">&#128465; L&ouml;schen</button>
@@ -2444,6 +2445,16 @@ function openDet(ev){
   document.getElementById('m-slist').innerHTML=rows.join('');
   document.getElementById('m-note').innerHTML=ev.notes
     ?`<div class="m-sh">Bemerkungen</div><div class="m-note">${ev.notes}</div>`:'';
+  const locInfoEl=document.getElementById('m-loc-info');
+  if(locInfoEl){
+    const liRows=[];
+    if(loc?.image)liRows.push(`<img src="${loc.image}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:4px">`);
+    if(loc?.address)liRows.push(`<div class="li-row"><span class="li-icon">&#128205;</span><div><div class="li-label">Adresse</div><div class="li-val">${loc.address}${loc.maps_url?` &nbsp;<a href="${loc.maps_url}" target="_blank" rel="noopener">&#128506; Karte</a>`:''}</div></div></div>`);
+    if(loc?.contact_name||loc?.contact_phone)liRows.push(`<div class="li-row"><span class="li-icon">&#128222;</span><div><div class="li-label">Ansprechpartner</div><div class="li-val">${loc.contact_name||''}${loc.contact_phone?` &nbsp;<a href="tel:${loc.contact_phone}">${loc.contact_phone}</a>`:''}</div></div></div>`);
+    if(loc?.capacity)liRows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazit&auml;t</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
+    if(loc?.notes)liRows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
+    locInfoEl.innerHTML=liRows.length?`<div class="m-sh">Location</div><div class="loc-info-body" style="padding:2px 0 10px">${liRows.join('')}</div>`:'';
+  }
   document.getElementById('det-ov').classList.add('open');
   document.body.style.overflow='hidden';
 }
