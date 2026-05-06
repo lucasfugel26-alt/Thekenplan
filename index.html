@@ -3379,12 +3379,32 @@ function buildCard(ev, conflictIds=new Set()){
 }
 
 function updateStaffSel(){
-  const sel=document.getElementById('filter-staff');const cur=sel.value;
-  const names=new Set();
+  const sel=document.getElementById('filter-staff');
+  const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
+
+  // Non-admin employees: lock filter to own name, hide dropdown
+  if(!isAdmin()&&myEmp){
+    sel.style.display='none';
+    S.filterStaff=myEmp.name;
+    return;
+  }
+  if(!isAdmin()&&!myEmp){
+    // Logged in but not linked to an employee — hide filter, show nothing
+    sel.style.display='none';
+    return;
+  }
+
+  // Admin: build dropdown from employees table (canonical, no duplicates)
+  sel.style.display='';
+  const cur=sel.value;
+  const empNames=Employees.getAll().map(e=>e.name).sort();
+  // Also add any event name not in employees list (backwards compat)
+  const extra=new Set();
   const pool=S.filterLoc?EVENTS.filter(e=>e.location===S.filterLoc):EVENTS;
-  pool.forEach(e=>allNames(e).forEach(n=>names.add(n)));
+  pool.forEach(e=>allNames(e).forEach(n=>{ if(!empNames.includes(n)) extra.add(n); }));
+  const all=[...empNames,...[...extra].sort()];
   sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
-    [...names].sort().map(n=>`<option${n===cur?' selected':''}>${n}</option>`).join('');
+    all.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
 }
 
 
@@ -3732,9 +3752,9 @@ const App={
     S.onlyMiss=!S.onlyMiss;
     document.getElementById('btn-miss').style.background=S.onlyMiss?'rgba(255,64,64,.3)':'';
     renderGrid();},
-  resetFilters(){S.filterLoc=0;S.filterStaff='';S.search='';S.onlyMiss=false;
+  resetFilters(){S.filterLoc=0;S.search='';S.onlyMiss=false;
     document.getElementById('search-inp').value='';
-    document.getElementById('filter-staff').value='';
+    if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
     renderGrid();renderLocBtns();},
 
   /* Detail-Modal */
