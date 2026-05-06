@@ -137,6 +137,12 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fb);min-height:100vh
 /* Bearbeitungs-Elemente sind standardmäßig versteckt */
 .admin-only{display:none!important}
 body.admin .admin-only{display:inline-flex!important}
+body.admin .stg-cf-table.admin-only{display:block!important}
+body.admin .stg-cf-table .stg-cf-hdr,body.admin .stg-cf-table .stg-cf-row{display:flex!important}
+body.admin .stg-add-status.admin-only{display:grid!important}
+body.admin .stg-status-cards.admin-only{display:grid!important}
+body.admin .stg-grid2.admin-only{display:grid!important}
+body.admin .stg-toggles-grid.admin-only{display:grid!important}
 /* Karten-Buttons nur im Admin-Modus beim Hover */
 .ev-card:hover .card-acts{display:none}
 body.admin .ev-card:hover .card-acts{display:flex}
