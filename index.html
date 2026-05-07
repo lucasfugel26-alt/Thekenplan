@@ -263,11 +263,11 @@ body.admin .ev-card:hover .card-acts{display:flex}
 .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 /* Location Info Sheet */
 .loc-info-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
-  z-index:300;display:none;align-items:flex-end;justify-content:center}
+  z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
 .loc-info-ov.open{display:flex}
-.loc-info-sheet{background:var(--bg2);border:1px solid var(--bd);border-top-left-radius:18px;
-  border-top-right-radius:18px;width:min(600px,100%);max-height:85vh;overflow-y:auto;
-  padding:20px 22px 32px;transform:translateY(30px);opacity:0;transition:transform .22s,opacity .22s}
+.loc-info-sheet{background:var(--bg2);border:1px solid var(--bd);border-radius:18px;
+  width:min(600px,100%);max-height:85vh;overflow-y:auto;
+  padding:20px 22px 32px;transform:translateY(20px);opacity:0;transition:transform .22s,opacity .22s}
 .loc-info-ov.open .loc-info-sheet{transform:none;opacity:1}
 .loc-info-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .loc-info-name{font-family:var(--fh);font-size:1.1rem;font-weight:800}
@@ -3252,7 +3252,7 @@ function renderLocBtns(){
         <span class="loc-dot" style="background:${loc.color}"></span>${loc.short}</button>`;
     }).join('')+
     (S.filterLoc!==0?`<button class="loc-btn" onclick="App.openLocInfo(${S.filterLoc})"
-      style="color:var(--txm);margin-left:4px" title="Location-Infos anzeigen">&#128139; Location-Infos</button>`:'');
+      style="color:var(--txm);margin-left:4px" title="Location-Infos anzeigen">&#8505; Location-Infos</button>`:'');
 }
 
 function getWeek(filtered=true){
