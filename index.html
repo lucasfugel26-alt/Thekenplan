@@ -386,6 +386,9 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .ev-besucher{font-size:.7rem;color:var(--txm);margin:3px 0}
 .ev-note{margin-top:5px;font-size:.68rem;color:var(--txm);font-style:italic;
   line-height:1.35;border-top:1px solid var(--bd);padding-top:4px}
+.ev-note.has-briefing{color:var(--miss)}
+.ev-briefing-btn{display:inline-block;margin-top:5px;padding:2px 8px;font-size:.65rem;font-style:normal;
+  font-weight:600;color:#fff;background:var(--miss);border-radius:20px;cursor:pointer;border:none;line-height:1.6}
 
 
 /* ── DETAIL MODAL ────────────────────────────────────── */
@@ -3439,7 +3442,8 @@ function buildCard(ev, conflictIds=new Set()){
     ${besucherBadge}
     ${cf.zeiten&&((!ev.relocated&&!ev.cancelled)||ev.startGastro)?`<div class="ev-time">${ev.startGastro||'\u2013'} \u2013 ${ev.schlussShow||'\u2013'} <span>\xB7 Ende ${ev.belegungsende||'\u2013'}</span></div>`:''}
     <div class="slist">${rows.join('')}</div>
-    ${cf.notizen&&ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}`;
+    ${cf.notizen&&ev.notes?`<div class="ev-note${ev.staff_briefing?' has-briefing':''}">${ev.notes}</div>`:''}
+    ${ev.staff_briefing?`<button class="ev-briefing-btn" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">&#9432; Weitere Infos</button>`:''}`;
   card.addEventListener('click',()=>App.openDet(ev));
   return card;
 }
