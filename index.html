@@ -476,8 +476,8 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .chat-msg.mine{align-items:flex-end}
 .chat-meta{font-size:.6rem;color:var(--txm);padding:0 2px}
 .chat-bubble{padding:7px 12px;border-radius:12px;font-size:.8rem;line-height:1.45;
-  background:var(--bg4);max-width:85%;word-break:break-word}
-.chat-msg.mine .chat-bubble{background:#252860;border-radius:12px 12px 4px 12px}
+  background:var(--bg4);color:var(--tx);max-width:85%;word-break:break-word}
+.chat-msg.mine .chat-bubble{background:#3b40c4;color:#fff;border-radius:12px 12px 4px 12px}
 .chat-msg:not(.mine) .chat-bubble{border-radius:12px 12px 12px 4px}
 .chat-input-row{display:flex;gap:7px;margin-top:8px}
 .chat-inp{flex:1;background:var(--bg4);border:1px solid var(--bd);color:var(--tx);
@@ -4768,11 +4768,7 @@ const Chat={
   _evId:null,
 
   canAccess(ev){
-    if(!currentUser)return false;
-    if(isAdmin())return true;
-    const myName=currentProfile?.display_name?.toLowerCase();
-    if(!myName)return false;
-    return[...allNames(ev)].some(n=>n.toLowerCase()===myName);
+    return !!currentUser;
   },
 
   renderSection(ev){
