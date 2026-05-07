@@ -530,36 +530,90 @@ body.light{
   --tx:#1a1c28;--txd:#5a5e7a;--txm:#9095b0;
 }
   
+/* ── HAM MENU ─────────────────────────────────────────── */
+#ham-btn{display:none;align-items:center;justify-content:center;
+  width:36px;height:36px;background:var(--bg3);border:1px solid var(--bd);
+  border-radius:8px;color:var(--tx);font-size:1.15rem;cursor:pointer;flex-shrink:0}
+#ham-btn:hover{background:var(--bg4)}
+#ham-overlay{position:fixed;inset:0;z-index:499;display:none;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(3px)}
+#ham-overlay.open{display:block}
+#ham-menu{position:fixed;top:0;right:0;bottom:0;width:min(270px,80vw);
+  background:var(--bg2);border-left:1px solid var(--bd);z-index:500;
+  transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow-y:auto}
+#ham-menu.open{transform:translateX(0)}
+.ham-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 16px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.ham-hdr-title{font-family:var(--fh);font-size:.95rem;font-weight:800}
+.ham-close{background:var(--bg4);border:none;color:var(--txd);border-radius:6px;
+  width:28px;height:28px;cursor:pointer;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center}
+.ham-sync-row{display:flex;align-items:center;gap:9px;padding:12px 16px;
+  font-size:.8rem;color:var(--txd);cursor:pointer;transition:background .15s;
+  border:none;background:none;width:100%;text-align:left}
+.ham-sync-row:hover{background:var(--bg3)}
+.ham-item{display:flex;align-items:center;gap:10px;padding:11px 16px;
+  font-size:.9rem;cursor:pointer;transition:background .15s;
+  border:none;background:none;color:var(--tx);width:100%;text-align:left}
+.ham-item:hover{background:var(--bg3)}
+.ham-danger{color:var(--miss)!important}
+.ham-div{height:1px;background:var(--bd);margin:6px 0}
+/* Mobile missing badge */
+#mob-miss{display:none;width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  align-items:center;justify-content:center;
+  background:var(--missb);border:1px solid rgba(255,64,64,.3);
+  color:var(--miss);font-size:1.1rem;cursor:pointer}
+/* Modal handle bar */
+.modal-handle{width:40px;height:4px;background:var(--bda);border-radius:2px;
+  margin:0 auto 14px;display:none}
+
 /* ── MOBILE ──────────────────────────────────────────── */
 @media(max-width:700px){
   html{font-size:15px}
-  .app{padding:0 10px 40px}
-  .app-header{flex-direction:column;align-items:stretch;gap:10px;padding:14px 0 12px}
-  .app-header > div:last-child{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%}
-  .app-title h1{font-size:1.25rem}
+  .app{padding:0 10px 60px}
+  /* Sticky header */
+  .app-header{position:sticky;top:0;z-index:90;background:var(--bg);
+    flex-direction:column;align-items:stretch;gap:8px;
+    padding:10px 10px 8px;margin:0 -10px;border-bottom:1px solid var(--bd)}
+  /* Title row: title flex:1, ham btn right */
+  .app-title{display:flex;align-items:center}
+  .app-title h1{font-size:1.2rem;flex:1}
   .app-title p{display:none}
+  #ham-btn{display:flex!important}
+  /* Hide all gear/sync buttons — accessed via ham menu */
+  .gear-btn,.btn-sync{display:none!important}
+  /* Week nav full width */
+  #header-right{width:100%}
   .week-nav{flex:1;justify-content:space-between}
   .week-info{flex:1}
-  .sync-row{font-size:.65rem;padding:4px 8px}
-  #gear-btn{font-size:.75rem;padding:5px 9px;color:var(--txm);border-color:var(--bd)}
-  .gear-btn[onclick="Auth.logout()"]{font-size:.75rem;padding:5px 9px}
+  /* Location row scrollable */
   .loc-row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
     padding-bottom:6px;margin-bottom:12px;scrollbar-width:none}
   .loc-row::-webkit-scrollbar{display:none}
   .loc-btn{white-space:nowrap;flex-shrink:0}
-  .controls{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:14px}
-  .ctrl-input,.ctrl-select{width:100%;font-size:.9rem;padding:9px 12px}
-  .spacer{display:none}
-  .cnt{display:none}
-  .ev-card{padding:11px 13px}
-  .ev-name{font-size:.92rem;white-space:normal}
+  /* Controls: compact row layout */
+  .controls{flex-direction:row;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:12px}
+  .ctrl-input{flex:1;min-width:130px;font-size:.9rem;padding:9px 12px}
+  #filter-staff,.btn-mob-hide,.spacer,.cnt{display:none!important}
+  #mob-miss{display:none} /* shown via JS when hasMiss */
+  #btn-my-shifts{flex-shrink:0}
+  /* Cards */
+  .ev-card{padding:10px 12px}
+  .ev-name{font-size:.9rem;white-space:normal}
   .d-num{font-size:1.15rem}
   .d-name{font-size:.75rem}
-  .modal{max-width:100%;max-height:88vh;border-radius:var(--r) var(--r) 0 0;
+  /* Modal: slide from bottom */
+  .modal{max-width:100%;max-height:92vh;border-radius:16px 16px 0 0;
     position:fixed;bottom:0;left:0;right:0;margin:0;width:100%}
   .ov{align-items:flex-end;padding:0}
   .ov.open .modal{transform:none}
   .m-times{grid-template-columns:1fr 1fr}
+  .modal-handle{display:block}
+  /* Touch targets */
+  .btn{min-height:40px}
+  .wbtn{width:34px;height:34px}
+  .loc-btn{min-height:36px}
 }
 /* ── PRINT / PDF STYLES ──────────────────────────────── */
 @media print{
@@ -879,8 +933,9 @@ body.light{
     <div class="app-title">
       <h1>Thekenplan</h1>
       <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
+      <button id="ham-btn" onclick="Ham.toggle()" title="Menü">&#9776;</button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div id="header-right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button class="btn-sync" id="sync-btn" onclick="App.syncNow()" title="Daten synchronisieren">
         <span class="sync-dot off" id="sync-dot"></span>
         <span id="sync-label">Nicht verbunden</span>
@@ -929,15 +984,16 @@ body.light{
     <button class="btn btn-danger" id="btn-miss" onclick="App.toggleMiss()" style="display:none">
       &#9888; Fehlende Besetzung
     </button>
+    <button id="mob-miss" onclick="App.toggleMiss()" title="Fehlende Besetzung">&#9888;</button>
     <button class="btn btn-ghost" id="btn-my-shifts" onclick="App.toggleMyShifts()" style="display:none">
       &#128100; Meine Schichten
     </button>
-    <button class="btn btn-ghost" onclick="App.resetFilters()">Alle anzeigen</button>
-    <button class="btn btn-ghost" onclick="SF.active=true;renderGrid()" title="Alle Veranstaltungen durchsuchen und filtern">&#128269; Alle Events</button>
+    <button class="btn btn-ghost btn-mob-hide" onclick="App.resetFilters()">Alle anzeigen</button>
+    <button class="btn btn-ghost btn-mob-hide" onclick="SF.active=true;renderGrid()" title="Alle Veranstaltungen durchsuchen und filtern">&#128269; Alle Events</button>
     <div class="spacer"></div>
     <span class="cnt" id="cnt"></span>
     <div style="width:1px;height:22px;background:var(--bd)"></div>
-    <button class="btn btn-ghost admin-only" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
+    <button class="btn btn-ghost admin-only btn-mob-hide" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
     <button class="btn btn-primary admin-only" onclick="App.openEntry(S.filterLoc||1)" title="Neues Event erstellen">&#43; Event erstellen</button>
   </div>
 
@@ -947,9 +1003,33 @@ body.light{
   <!-- ── UPLOAD SECTION ── -->
 </div><!-- /app -->
 
+<!-- ── HAM MENU ── -->
+<div id="ham-overlay" onclick="Ham.close()"></div>
+<div id="ham-menu">
+  <div class="ham-hdr">
+    <span class="ham-hdr-title">Thekenplan</span>
+    <button class="ham-close" onclick="Ham.close()">&#10005;</button>
+  </div>
+  <button class="ham-sync-row" onclick="App.syncNow();Ham.close()">
+    <span class="sync-dot off" id="sync-dot-m"></span>
+    <span id="sync-label-m">Nicht verbunden</span>
+    <span style="margin-left:auto;opacity:.45">&#8635;</span>
+  </button>
+  <div class="ham-div"></div>
+  <button class="ham-item" id="ham-profil" onclick="Profile.open();Ham.close()" style="display:none">&#128100; Mein Profil</button>
+  <button class="ham-item" onclick="App.openSettings();Ham.close()">&#9881; Einstellungen</button>
+  <div class="ham-div admin-only"></div>
+  <button class="ham-item admin-only" onclick="App.openTeam();Ham.close()">&#128101; Team</button>
+  <button class="ham-item admin-only" onclick="App.openLocations();Ham.close()">&#128205; Locations</button>
+  <button class="ham-item admin-only" onclick="App.printPDF();Ham.close()">&#128438; PDF</button>
+  <div class="ham-div"></div>
+  <button class="ham-item ham-danger" onclick="Auth.logout()">&#128274; Abmelden</button>
+</div>
+
 <!-- ── DETAIL MODAL ── -->
 <div class="ov" id="det-ov" onclick="App.closeDet(event)">
   <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
     <div class="m-bar" id="m-bar"></div>
     <button class="m-x" onclick="App.closeDet()">&#10005;</button>
     <div class="m-title" id="m-title"></div>
@@ -3162,12 +3242,14 @@ const Cloud = {
   isConfigured() { return !!currentUser; },
 
   setSyncStatus(state, text) {
-    ['sync-dot','stg-dot'].forEach(id=>{
+    ['sync-dot','stg-dot','sync-dot-m'].forEach(id=>{
       const el=document.getElementById(id);
       if(el){el.className='sync-dot '+state;}
     });
-    const lbl=document.getElementById('sync-label');
-    if(lbl)lbl.textContent=text;
+    ['sync-label','sync-label-m'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.textContent=text;
+    });
     const stgl=document.getElementById('stg-status-text');
     if(stgl)stgl.textContent=text;
     const btn=document.getElementById('sync-btn');
@@ -3497,6 +3579,8 @@ function renderGrid(){
   document.getElementById('cnt').textContent=tot?`${tot} Event${tot>1?'s':''} diese Woche`:'';
   const hasMiss=all.some(e=>e.missingStaff);
   document.getElementById('btn-miss').style.display=hasMiss?'':'none';
+  const mobMiss=document.getElementById('mob-miss');
+  if(mobMiss)mobMiss.style.display=(window.innerWidth<=700&&hasMiss)?'flex':'none';
 }
 
 function buildCard(ev, conflictIds=new Set()){
@@ -3581,12 +3665,15 @@ function updateStaffSel(){
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
   // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
+  const hamProfil=document.getElementById('ham-profil');
   if(!isAdmin()){
     sel.style.display='none';
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
+    if(hamProfil) hamProfil.style.display=myEmp?'':'none';
     return;
   }
+  if(hamProfil) hamProfil.style.display='none';
 
   // Admins: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
   if(myShiftsBtn) myShiftsBtn.style.display='none';
@@ -4072,6 +4159,14 @@ const App={
     applyAdminMode();
     document.getElementById('search-inp').addEventListener('input',e=>{S.search=e.target.value.trim();renderGrid();});
     document.getElementById('filter-staff').addEventListener('change',e=>{S.filterStaff=e.target.value;renderGrid();});
+    /* Swipe to navigate weeks on mobile */
+    let _tx=0;
+    const grid=document.getElementById('week-grid');
+    grid.addEventListener('touchstart',e=>{_tx=e.touches[0].clientX;},{passive:true});
+    grid.addEventListener('touchend',e=>{
+      const dx=e.changedTouches[0].clientX-_tx;
+      if(Math.abs(dx)>60&&Math.abs(dx)<300){dx>0?App.prevWeek():App.nextWeek();}
+    },{passive:true});
     /* Locations + Config + Employees parallel laden */
     await Promise.all([LocationsMgr.load(), Config.load(), Employees.load()]);
     if(EVENTS.length>0){this.render();}
@@ -4626,6 +4721,24 @@ const Auth = {
     document.getElementById('pw-screen').style.display='flex';
     setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
   }
+};
+
+/* ============================================================
+   HAM MENU
+   ============================================================ */
+const Ham={
+  toggle(){
+    const menu=document.getElementById('ham-menu');
+    const ov=document.getElementById('ham-overlay');
+    const open=menu.classList.toggle('open');
+    ov.classList.toggle('open',open);
+    document.body.style.overflow=open?'hidden':'';
+  },
+  close(){
+    document.getElementById('ham-menu').classList.remove('open');
+    document.getElementById('ham-overlay').classList.remove('open');
+    document.body.style.overflow='';
+  },
 };
 
 /* ============================================================
