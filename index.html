@@ -485,6 +485,48 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .chat-inp:focus{outline:none;border-color:var(--bda)}
 .chat-empty{font-size:.75rem;color:var(--txd);font-style:italic;padding:6px 0}
 
+/* ── KALENDER ANSICHT ─────────────────────────────────── */
+.view-toggle-btn{display:none;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:8px;background:var(--bg3);
+  border:1px solid var(--bd);color:var(--txd);cursor:pointer;font-size:.9rem;
+  flex-shrink:0;transition:all .15s}
+.view-toggle-btn.cal-active{background:rgba(59,64,196,.2);border-color:#4a50d4;color:#8890c8}
+@media(max-width:700px){.view-toggle-btn{display:flex}}
+.cal-wrap{padding:2px 8px 0}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:1px}
+.cal-dow{text-align:center;font-size:.58rem;font-weight:700;color:var(--txm);
+  text-transform:uppercase;padding:5px 0}
+.cal-body{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-cell{border-radius:7px;padding:4px 1px 3px;cursor:pointer;
+  min-height:46px;display:flex;flex-direction:column;align-items:center;
+  gap:2px;transition:background .12s}
+.cal-cell:hover{background:var(--bg3)}
+.cal-cell.cal-other .cal-num{color:var(--txm)}
+.cal-cell.cal-today .cal-num{background:#3b40c4;color:#fff;border-radius:50%;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-cell.cal-sel{background:var(--bg3);outline:1px solid var(--bda)}
+.cal-num{font-size:.75rem;font-weight:600;min-width:22px;text-align:center;padding:1px 0;line-height:1.4}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cal-more{font-size:.46rem;color:var(--txm);line-height:1}
+/* Day events panel */
+.cdp{margin:10px 8px 0;border-top:1px solid var(--bd);padding-top:10px;padding-bottom:8px}
+.cdp-title{font-size:.68rem;font-weight:700;color:var(--txd);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.cdp-ev{display:flex;align-items:center;gap:9px;padding:9px 11px;
+  background:var(--bg3);border-radius:10px;margin-bottom:5px;cursor:pointer;
+  border-left:3px solid transparent;transition:background .13s}
+.cdp-ev:hover{background:var(--bg4)}
+.cdp-main{flex:1;min-width:0}
+.cdp-name{font-weight:700;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdp-name.cancelled{text-decoration:line-through;opacity:.5}
+.cdp-meta{display:flex;gap:5px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.cdp-loc{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:10px}
+.cdp-staff{font-size:.67rem;color:var(--txm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.cdp-note{font-size:.64rem;color:var(--miss);font-style:italic;margin-top:2px}
+.cdp-time{font-size:.73rem;color:var(--txd);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cdp-empty{text-align:center;color:var(--txm);font-size:.78rem;font-style:italic;padding:14px 0}
+
 /* ── ENTRY MODAL ─────────────────────────────────────── */
 .entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
   padding:0;width:min(900px,96vw);max-height:92vh;display:flex;flex-direction:column;
@@ -936,6 +978,7 @@ body.light{
     <div class="app-title">
       <h1>Thekenplan</h1>
       <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
+      <button class="view-toggle-btn" id="view-toggle-btn" onclick="App.toggleView()" title="Kalenderansicht">&#128197;</button>
       <button id="ham-btn" onclick="Ham.toggle()" title="Menü">&#9776;</button>
     </div>
     <div id="header-right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -3366,6 +3409,10 @@ const S={
   filterStaff:'',
   search:'',
   onlyMiss:false,
+  viewMode:'week',   /* 'week' | 'calendar' */
+  calYear:new Date().getFullYear(),
+  calMonth:new Date().getMonth(),
+  calDay:null,
 };
 /* Search filter state */
 const SF={
@@ -3381,6 +3428,14 @@ const SF={
    RENDERING
    ============================================================ */
 function renderHeader(){
+  const btn=document.getElementById('view-toggle-btn');
+  if(S.viewMode==='calendar'){
+    document.getElementById('week-kw').textContent=`${MONS[S.calMonth]} ${S.calYear}`;
+    document.getElementById('week-range').textContent='';
+    if(btn)btn.classList.add('cal-active');
+    return;
+  }
+  if(btn)btn.classList.remove('cal-active');
   const mon=S.monday,sun=new Date(mon);sun.setDate(sun.getDate()+6);
   const fmt=d=>`${String(d.getDate()).padStart(2,'0')}. ${MONS[d.getMonth()]}`;
   document.getElementById('week-kw').textContent=`KW ${isoWeek(mon)} \xB7 ${mon.getFullYear()}`;
@@ -3532,11 +3587,77 @@ function renderConflictPanel(conflicts){
     </div>`).join('');
 }
 
+function renderCalendar(){
+  const grid=document.getElementById('week-grid');
+  const todayS=lds(new Date());
+  const yr=S.calYear,mo=S.calMonth;
+  const firstDow=(new Date(yr,mo,1).getDay()+6)%7; // 0=Mon
+  const daysInMo=new Date(yr,mo+1,0).getDate();
+  const daysInPrev=new Date(yr,mo,0).getDate();
+  const cells=[];
+  for(let i=firstDow-1;i>=0;i--)cells.push({d:daysInPrev-i,m:mo-1,y:yr,other:true});
+  for(let d=1;d<=daysInMo;d++)cells.push({d,m:mo,y:yr,other:false});
+  while(cells.length%7!==0){
+    const n=cells.length-daysInMo-firstDow+1;
+    cells.push({d:n,m:mo+1,y:yr,other:true});
+  }
+  const evByDate={};
+  EVENTS.forEach(ev=>{
+    if(S.filterLoc&&ev.location!==S.filterLoc)return;
+    if(!evByDate[ev.date])evByDate[ev.date]=[];
+    evByDate[ev.date].push(ev);
+  });
+  const DOW=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let html=`<div class="cal-wrap">
+    <div class="cal-dow-row">${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}</div>
+    <div class="cal-body">`;
+  cells.forEach(cell=>{
+    const fixM=(cell.m+12)%12;const fixY=cell.m<0?cell.y-1:cell.m>11?cell.y+1:cell.y;
+    const ds=`${fixY}-${String(fixM+1).padStart(2,'0')}-${String(cell.d).padStart(2,'0')}`;
+    const evs=evByDate[ds]||[];
+    const cls=['cal-cell',cell.other?'cal-other':'',ds===todayS?'cal-today':'',ds===S.calDay?'cal-sel':''].filter(Boolean).join(' ');
+    const dots=evs.slice(0,4).map(ev=>{const c=(LOCS[ev.location]||{}).color||'var(--txm)';return`<span class="cal-dot" style="background:${c}"></span>`;}).join('');
+    const more=evs.length>4?`<div class="cal-more">+${evs.length-4}</div>`:'';
+    html+=`<div class="${cls}" onclick="CalV.selectDay('${ds}')">
+      <div class="cal-num">${cell.d}</div>
+      ${evs.length?`<div class="cal-dots">${dots}${more}</div>`:''}
+    </div>`;
+  });
+  html+=`</div></div>`;
+  if(S.calDay){
+    const dayEvs=(evByDate[S.calDay]||[]).sort((a,b)=>(a.startGastro||'').localeCompare(b.startGastro||''));
+    const dObj=new Date(S.calDay+'T12:00');
+    const lbl=`${DAYS[weekdayIdx(S.calDay)]}, ${dObj.getDate()}. ${MONS[dObj.getMonth()]}`;
+    html+=`<div class="cdp"><div class="cdp-title">${lbl}</div>${
+      dayEvs.length?dayEvs.map(ev=>{
+        const loc=LOCS[ev.location]||{};
+        return`<div class="cdp-ev" style="border-left-color:${loc.color||'var(--bd)'}" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">
+          <div class="cdp-main">
+            <div class="cdp-name${ev.cancelled?' cancelled':''}">${_esc(ev.event)}</div>
+            <div class="cdp-meta">
+              <span class="cdp-loc" style="background:${loc.color||'#888'}18;color:${loc.color||'var(--txd)'}">${loc.short||''}</span>
+              <span class="cdp-staff">${[...allNames(ev)].slice(0,3).join(' · ')||'–'}</span>
+            </div>
+            ${ev.notes?`<div class="cdp-note">${_esc(ev.notes)}</div>`:''}
+          </div>
+          <div class="cdp-time">${ev.startGastro||'–'}</div>
+        </div>`;
+      }).join(''):`<div class="cdp-empty">Kein Event</div>`
+    }</div>`;
+  }
+  grid.innerHTML=html;
+}
+
+const CalV={
+  selectDay(ds){S.calDay=S.calDay===ds?null:ds;renderGrid();}
+};
+
 function renderGrid(){
   const isSearchMode=S.search!==''||SF.active;
   const weekNav=document.getElementById('week-nav');
   if(weekNav)weekNav.style.display=isSearchMode?'none':'';
   if(isSearchMode){renderSearch();return;}
+  if(S.viewMode==='calendar'){renderCalendar();return;}
   const grid=document.getElementById('week-grid');
   const vis=getWeek(true),all=getWeek(false);
   const todayS=lds(new Date());
@@ -4183,14 +4304,46 @@ const App={
   },
 
   render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
-  goToday(){S.monday=monday(new Date());this.render();},
-  prevWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()-7);this.render();},
-  nextWeek(){S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()+7);this.render();},
+  toggleView(){
+    S.viewMode=S.viewMode==='week'?'calendar':'week';
+    if(S.viewMode==='calendar'){
+      S.calYear=S.monday.getFullYear();
+      S.calMonth=S.monday.getMonth();
+      S.calDay=null;
+    }
+    this.render();
+  },
+  calPrev(){
+    S.calMonth--;
+    if(S.calMonth<0){S.calMonth=11;S.calYear--;}
+    S.calDay=null;
+    renderGrid();renderHeader();
+  },
+  calNext(){
+    S.calMonth++;
+    if(S.calMonth>11){S.calMonth=0;S.calYear++;}
+    S.calDay=null;
+    renderGrid();renderHeader();
+  },
+  goToday(){
+    if(S.viewMode==='calendar'){S.calYear=new Date().getFullYear();S.calMonth=new Date().getMonth();S.calDay=null;renderGrid();renderHeader();return;}
+    S.monday=monday(new Date());this.render();
+  },
+  prevWeek(){
+    if(S.viewMode==='calendar'){this.calPrev();return;}
+    S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()-7);this.render();
+  },
+  nextWeek(){
+    if(S.viewMode==='calendar'){this.calNext();return;}
+    S.monday=new Date(S.monday);S.monday.setDate(S.monday.getDate()+7);this.render();
+  },
   prevMonth(){
+    if(S.viewMode==='calendar'){this.calPrev();return;}
     const d=new Date(S.monday);d.setMonth(d.getMonth()-1);
     S.monday=monday(d);this.render();
   },
   nextMonth(){
+    if(S.viewMode==='calendar'){this.calNext();return;}
     const d=new Date(S.monday);d.setMonth(d.getMonth()+1);
     S.monday=monday(d);this.render();
   },
