@@ -505,17 +505,19 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .cal-cell{border-radius:7px;padding:4px 1px 3px;cursor:pointer;
   min-height:46px;display:flex;flex-direction:column;align-items:center;
   gap:2px;transition:background .12s}
+/* week-grid in calendar mode must not be a 7-col grid */
+.week-grid.cal-mode{display:block!important}
 @media(min-width:701px){
-  .cal-cell{min-height:72px;padding:6px 4px 4px;align-items:flex-start}
-  .cal-num{font-size:.9rem!important;padding:1px 7px!important;min-width:28px!important;text-align:center}
-  .cal-dots{flex-wrap:wrap;gap:4px!important;padding:0 4px}
-  .cal-dot{width:7px!important;height:7px!important;border-radius:50%!important}
-  .cal-desktop-wrap{display:grid;grid-template-columns:3fr 2fr;gap:24px;align-items:flex-start;width:100%}
-  .cal-desktop-wrap .cal-wrap{min-width:0}
-  .cal-body{gap:4px}
-  .cal-cell{min-height:90px;padding:8px 6px 5px}
-  .cdp{margin:0;border-top:none;border-left:1px solid var(--bd);padding:0 0 0 20px;
-    max-height:580px;overflow-y:auto}
+  .cal-wrap{padding:2px 0 0}
+  .cal-body{gap:5px}
+  .cal-cell{min-height:90px;padding:8px 8px 5px;align-items:flex-start}
+  .cal-num{font-size:.95rem!important;min-width:30px;text-align:center}
+  .cal-dots{flex-wrap:wrap;gap:4px!important;padding:0 2px}
+  .cal-dot{width:8px!important;height:8px!important;border-radius:50%!important}
+  .cal-dow{font-size:.7rem;padding:6px 0}
+  .cdp{margin:16px 0 0}
+  .cdp-ev{padding:11px 14px}
+  .cdp-name{font-size:.95rem}
 }
 .cal-cell:hover{background:var(--bg3)}
 .cal-cell.cal-other .cal-num{color:var(--txm)}
@@ -3668,12 +3670,8 @@ function renderCalendar(){
     }</div>`;
   };
 
-  const isDesktop=window.innerWidth>700;
-  if(isDesktop){
-    grid.innerHTML=`<div class="cal-desktop-wrap">${html}${buildDayPanel()}</div>`;
-  } else {
-    grid.innerHTML=html+(S.calDay?buildDayPanel():'');
-  }
+  grid.classList.add('cal-mode');
+  grid.innerHTML=html+(S.calDay?buildDayPanel():'');
 }
 
 const CalV={
@@ -3684,9 +3682,10 @@ function renderGrid(){
   const isSearchMode=S.search!==''||SF.active;
   const weekNav=document.getElementById('week-nav');
   if(weekNav)weekNav.style.display=isSearchMode?'none':'';
-  if(isSearchMode){renderSearch();return;}
+  if(isSearchMode){document.getElementById('week-grid').classList.remove('cal-mode');renderSearch();return;}
   if(S.viewMode==='calendar'){renderCalendar();return;}
   const grid=document.getElementById('week-grid');
+  grid.classList.remove('cal-mode');
   const vis=getWeek(true),all=getWeek(false);
   const todayS=lds(new Date());
   grid.innerHTML='';
