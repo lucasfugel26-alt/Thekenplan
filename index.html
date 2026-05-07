@@ -3630,7 +3630,9 @@ const Form={
     const bechertyp=activeBecher?activeBecher.dataset.val:'unbekannt';
     const bv=document.getElementById('f-besucher');
     const vnr=document.getElementById('f-vnr');
+    const existing=this.mode==='edit'?(EVENTS.find(e=>e.id===this.editId)||{}):{};
     return{
+      ...existing,
       id:this.mode==='edit'?this.editId:uid(),
       date:document.getElementById('f-date').value,
       location:Number(document.getElementById('f-loc').value),
