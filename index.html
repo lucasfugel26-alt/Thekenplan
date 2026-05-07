@@ -384,9 +384,8 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .stime{font-variant-numeric:tabular-nums;color:var(--txd)}
 .stime.mt{color:var(--miss)}
 .ev-besucher{font-size:.7rem;color:var(--txm);margin:3px 0}
-.ev-note{margin-top:5px;font-size:.68rem;color:var(--txm);font-style:italic;
+.ev-note{margin-top:5px;font-size:.68rem;color:var(--miss);font-style:italic;
   line-height:1.35;border-top:1px solid var(--bd);padding-top:4px}
-.ev-note.has-briefing{color:var(--miss)}
 .ev-briefing-btn{display:inline-block;margin-top:5px;padding:2px 8px;font-size:.65rem;font-style:normal;
   font-weight:600;color:#fff;background:var(--miss);border-radius:20px;cursor:pointer;border:none;line-height:1.6}
 
@@ -430,12 +429,61 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .m-sname.miss{color:var(--miss);font-style:italic}
 .m-stime{font-variant-numeric:tabular-nums;font-size:.8rem;color:var(--txd)}
 .m-note{background:var(--bg4);border-radius:8px;padding:9px 13px;
-  font-size:.8rem;color:var(--txd);font-style:italic;line-height:1.5;margin-top:8px}
+  font-size:.8rem;color:var(--miss);font-style:italic;line-height:1.5;margin-top:8px}
 .m-briefing-facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px 0 8px}
 .m-briefing-text{margin-top:8px;padding:10px 14px;background:var(--bg3);border-radius:8px;
   font-size:.85rem;line-height:1.55;white-space:pre-wrap;border:1px solid var(--bd)}
 .m-briefing-text.important{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);
   border-left:3px solid var(--l1)}
+
+/* ── GLOBAL SEARCH ───────────────────────────────────── */
+.srch-panel{padding:0 0 20px}
+.srch-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.srch-back{background:var(--bg2);border:1px solid var(--bd);color:var(--txd);
+  border-radius:8px;padding:6px 14px;font-size:.8rem;cursor:pointer;transition:all .15s}
+.srch-back:hover{color:var(--tx);border-color:var(--bda)}
+.srch-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+  padding:10px 0 14px;border-bottom:1px solid var(--bd);margin-bottom:14px}
+.sf-label{font-size:.7rem;color:var(--txd);font-weight:600;white-space:nowrap}
+.sf-chip{padding:4px 11px;border-radius:20px;border:1px solid var(--bd);
+  background:var(--bg2);color:var(--txd);font-size:.75rem;cursor:pointer;
+  transition:all .15s;font-family:var(--fb)}
+.sf-chip:hover{border-color:var(--bda);color:var(--tx)}
+.sf-chip.active{background:rgba(59,64,196,.2);border-color:#4a50d4;color:var(--tx)}
+.sf-date{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);
+  border-radius:8px;padding:4px 10px;font-size:.75rem;font-family:var(--fb)}
+.sf-date:focus{outline:none;border-color:var(--bda)}
+.srch-divider{width:1px;height:20px;background:var(--bd);margin:0 4px}
+.srch-count{font-size:.75rem;color:var(--txd);margin-bottom:10px}
+.srch-results{display:flex;flex-direction:column;gap:5px}
+.srch-row{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  cursor:pointer;transition:all .15s;flex-wrap:wrap}
+.srch-row:hover{background:var(--bg3);border-color:var(--bda);transform:translateX(2px)}
+.srch-date{font-size:.72rem;color:var(--txd);min-width:105px;flex-shrink:0}
+.srch-name{font-family:var(--fh);font-weight:700;font-size:.88rem;flex:1;min-width:100px}
+.srch-name.cancelled{text-decoration:line-through;opacity:.5}
+.srch-loc{font-size:.68rem;padding:2px 9px;border-radius:12px;font-weight:700;flex-shrink:0}
+.srch-status{font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;flex-shrink:0}
+.srch-note{font-size:.7rem;color:var(--miss);font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+
+/* ── EVENT CHAT ──────────────────────────────────────── */
+.chat-section{margin-top:14px;border-top:1px solid var(--bd);padding-top:12px}
+.chat-msgs{display:flex;flex-direction:column;gap:7px;max-height:220px;
+  overflow-y:auto;padding:2px 0 6px}
+.chat-msg{display:flex;flex-direction:column;gap:3px}
+.chat-msg.mine{align-items:flex-end}
+.chat-meta{font-size:.6rem;color:var(--txm);padding:0 2px}
+.chat-bubble{padding:7px 12px;border-radius:12px;font-size:.8rem;line-height:1.45;
+  background:var(--bg4);max-width:85%;word-break:break-word}
+.chat-msg.mine .chat-bubble{background:#252860;border-radius:12px 12px 4px 12px}
+.chat-msg:not(.mine) .chat-bubble{border-radius:12px 12px 12px 4px}
+.chat-input-row{display:flex;gap:7px;margin-top:8px}
+.chat-inp{flex:1;background:var(--bg4);border:1px solid var(--bd);color:var(--tx);
+  border-radius:8px;padding:8px 12px;font-family:var(--fb);font-size:.82rem}
+.chat-inp:focus{outline:none;border-color:var(--bda)}
+.chat-empty{font-size:.75rem;color:var(--txd);font-style:italic;padding:6px 0}
 
 /* ── ENTRY MODAL ─────────────────────────────────────── */
 .entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
@@ -855,7 +903,7 @@ body.light{
       <button class="gear-btn" onclick="App.openSettings()" id="gear-btn">
         &#9881; Einstellungen
       </button>
-      <div class="week-nav">
+      <div class="week-nav" id="week-nav">
         <button class="wbtn" onclick="App.prevMonth()" title="Vorheriger Monat">&#171;</button>
         <button class="wbtn" onclick="App.prevWeek()"  title="Vorherige Woche (&#8592;)">&#8249;</button>
         <div class="week-info">
@@ -885,6 +933,7 @@ body.light{
       &#128100; Meine Schichten
     </button>
     <button class="btn btn-ghost" onclick="App.resetFilters()">Alle anzeigen</button>
+    <button class="btn btn-ghost" onclick="SF.active=true;renderGrid()" title="Alle Veranstaltungen durchsuchen und filtern">&#128269; Alle Events</button>
     <div class="spacer"></div>
     <span class="cnt" id="cnt"></span>
     <div style="width:1px;height:22px;background:var(--bd)"></div>
@@ -911,6 +960,7 @@ body.light{
     <div class="m-slist" id="m-slist"></div>
     <div id="m-note"></div>
     <div id="m-briefing"></div>
+    <div id="m-chat"></div>
     <div class="m-actions admin-only">
       <button class="btn btn-edit"   onclick="App.editEvent()">&#9998; Bearbeiten</button>
       <button class="btn btn-del"    onclick="App.confirmDelete()">&#128465; L&ouml;schen</button>
@@ -3232,6 +3282,15 @@ const S={
   search:'',
   onlyMiss:false,
 };
+/* Search filter state */
+const SF={
+  active:false,
+  status:'all',     /* 'all'|'active'|'cancelled'|'relocated' */
+  timeRange:'all',  /* 'all'|'upcoming'|'past' */
+  hasNotes:false,
+  dateFrom:'',
+  dateTo:'',
+};
 
 /* ============================================================
    RENDERING
@@ -3256,6 +3315,69 @@ function renderLocBtns(){
     }).join('')+
     (S.filterLoc!==0?`<button class="loc-btn" onclick="App.openLocInfo(${S.filterLoc})"
       style="color:var(--txm);margin-left:4px" title="Location-Infos anzeigen">&#8505; Location-Infos</button>`:'');
+}
+
+function renderSearch(){
+  const grid=document.getElementById('week-grid');
+  const todayS=lds(new Date());
+  const q=S.search.toLowerCase();
+  let results=EVENTS.filter(ev=>{
+    if(q&&![ev.event,...allNames(ev)].join(' ').toLowerCase().includes(q))return false;
+    if(S.filterLoc&&ev.location!==S.filterLoc)return false;
+    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return false;
+    if(SF.status==='active'&&(ev.cancelled||ev.relocated))return false;
+    if(SF.status==='cancelled'&&!ev.cancelled)return false;
+    if(SF.status==='relocated'&&!ev.relocated)return false;
+    if(SF.timeRange==='upcoming'&&ev.date<todayS)return false;
+    if(SF.timeRange==='past'&&ev.date>=todayS)return false;
+    if(SF.hasNotes&&!ev.notes)return false;
+    if(SF.dateFrom&&ev.date<SF.dateFrom)return false;
+    if(SF.dateTo&&ev.date>SF.dateTo)return false;
+    return true;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+
+  const zeitChips=[['all','Alle'],['upcoming','Kommend'],['past','Vergangen']].map(([v,l])=>
+    `<button class="sf-chip${SF.timeRange===v?' active':''}" onclick="SF.timeRange='${v}';renderGrid()">${l}</button>`).join('');
+  const statusChips=[['all','Alle'],['active','Aktiv'],['cancelled','Abgesagt'],['relocated','Verlegt']].map(([v,l])=>
+    `<button class="sf-chip${SF.status===v?' active':''}" onclick="SF.status='${v}';renderGrid()">${l}</button>`).join('');
+
+  grid.innerHTML=`<div class="srch-panel">
+    <div class="srch-top">
+      <button class="srch-back" onclick="SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';S.search='';document.getElementById('search-inp').value='';renderGrid()">&#8592; Wochenansicht</button>
+      <span style="font-size:.8rem;color:var(--txd)">${q?`Suche: <strong style="color:var(--tx)">${_esc(q)}</strong>`:'Alle Veranstaltungen'}</span>
+    </div>
+    <div class="srch-filters">
+      <span class="sf-label">Zeit:</span>${zeitChips}
+      <div class="srch-divider"></div>
+      <span class="sf-label">Status:</span>${statusChips}
+      <div class="srch-divider"></div>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--txd);cursor:pointer">
+        <input type="checkbox" ${SF.hasNotes?'checked':''} onchange="SF.hasNotes=this.checked;renderGrid()"> Mit Bemerkung
+      </label>
+      <div class="srch-divider"></div>
+      <span class="sf-label">Von:</span>
+      <input type="date" class="sf-date" value="${SF.dateFrom}" onchange="SF.dateFrom=this.value;renderGrid()">
+      <span class="sf-label">Bis:</span>
+      <input type="date" class="sf-date" value="${SF.dateTo}" onchange="SF.dateTo=this.value;renderGrid()">
+    </div>
+    <div class="srch-count">${results.length} Veranstaltung${results.length!==1?'en':''} gefunden</div>
+    <div class="srch-results">${results.map(buildSearchRow).join('')}</div>
+  </div>`;
+}
+
+function buildSearchRow(ev){
+  const loc=LOCS[ev.location]||{};
+  const locBadge=loc.short?`<span class="srch-loc" style="background:${loc.color}18;color:${loc.color};border:1px solid ${loc.color}30">${loc.short}</span>`:'';
+  const statusBadge=ev.cancelled
+    ?`<span class="srch-status" style="background:var(--missb);color:var(--miss)">Abgesagt</span>`
+    :ev.relocated?`<span class="srch-status" style="background:var(--bg4);color:var(--txd)">Verlegt</span>`:'';
+  const noteHtml=ev.notes?`<span class="srch-note">${_esc(ev.notes)}</span>`:'';
+  const briefingDot=ev.staff_briefing?`<span style="font-size:.65rem;background:rgba(59,64,196,.2);color:#8890c8;border-radius:10px;padding:2px 8px;font-weight:600">Briefing</span>`:'';
+  return`<div class="srch-row" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">
+    <div class="srch-date">${dFmt(ev.date)} <span style="color:var(--txm)">${DAYS[weekdayIdx(ev.date)]}</span></div>
+    <div class="srch-name${ev.cancelled?' cancelled':''}">${_esc(ev.event)}</div>
+    ${locBadge}${statusBadge}${briefingDot}${noteHtml}
+  </div>`;
 }
 
 function getWeek(filtered=true){
@@ -3326,6 +3448,10 @@ function renderConflictPanel(conflicts){
 }
 
 function renderGrid(){
+  const isSearchMode=S.search!==''||SF.active;
+  const weekNav=document.getElementById('week-nav');
+  if(weekNav)weekNav.style.display=isSearchMode?'none':'';
+  if(isSearchMode){renderSearch();return;}
   const grid=document.getElementById('week-grid');
   const vis=getWeek(true),all=getWeek(false);
   const todayS=lds(new Date());
@@ -3442,7 +3568,7 @@ function buildCard(ev, conflictIds=new Set()){
     ${besucherBadge}
     ${cf.zeiten&&((!ev.relocated&&!ev.cancelled)||ev.startGastro)?`<div class="ev-time">${ev.startGastro||'\u2013'} \u2013 ${ev.schlussShow||'\u2013'} <span>\xB7 Ende ${ev.belegungsende||'\u2013'}</span></div>`:''}
     <div class="slist">${rows.join('')}</div>
-    ${cf.notizen&&ev.notes?`<div class="ev-note${ev.staff_briefing?' has-briefing':''}">${ev.notes}</div>`:''}
+    ${cf.notizen&&ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}
     ${ev.staff_briefing?`<button class="ev-briefing-btn" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">&#9432; Weitere Infos</button>`:''}`;
   card.addEventListener('click',()=>App.openDet(ev));
   return card;
@@ -3506,6 +3632,7 @@ function openDet(ev){
   document.getElementById('m-note').innerHTML=ev.notes
     ?`<div class="m-sh">Bemerkungen</div><div class="m-note">${_esc(ev.notes)}</div>`:'';
   App._renderBriefing(ev);
+  Chat.renderSection(ev);
   document.getElementById('det-ov').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -3990,6 +4117,7 @@ const App={
   },
 
   resetFilters(){S.filterLoc=0;S.search='';S.onlyMiss=false;
+    SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';
     document.getElementById('search-inp').value='';
     if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
@@ -4004,7 +4132,8 @@ const App={
   closeDet(e){
     if(e&&e.target!==document.getElementById('det-ov'))return;
     document.getElementById('det-ov').classList.remove('open');
-    document.body.style.overflow='';},
+    document.body.style.overflow='';
+    Chat.unsubscribe();},
 
   _fillLocSelect(selectedId){
     const sel=document.getElementById('f-loc');
@@ -4497,6 +4626,111 @@ const Auth = {
     document.getElementById('pw-screen').style.display='flex';
     setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
   }
+};
+
+/* ============================================================
+   CHAT MODULE
+   SQL (run once in Supabase SQL editor):
+   CREATE TABLE IF NOT EXISTS event_messages (
+     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+     event_id TEXT NOT NULL,
+     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+     display_name TEXT NOT NULL,
+     message TEXT NOT NULL,
+     created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+   CREATE INDEX IF NOT EXISTS event_messages_event_id_idx ON event_messages(event_id);
+   ALTER TABLE event_messages ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY "auth_read" ON event_messages FOR SELECT TO authenticated USING (true);
+   CREATE POLICY "auth_insert" ON event_messages FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+   CREATE POLICY "admin_delete" ON event_messages FOR DELETE TO authenticated USING (
+     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+   );
+   ============================================================ */
+const Chat={
+  _sub:null,
+  _evId:null,
+
+  canAccess(ev){
+    if(!currentUser)return false;
+    if(isAdmin())return true;
+    const myName=currentProfile?.display_name?.toLowerCase();
+    if(!myName)return false;
+    return[...allNames(ev)].some(n=>n.toLowerCase()===myName);
+  },
+
+  renderSection(ev){
+    const el=document.getElementById('m-chat');
+    if(!el)return;
+    Chat.unsubscribe();
+    if(!this.canAccess(ev)){el.innerHTML='';return;}
+    el.innerHTML=`<div class="chat-section">
+      <div class="m-sh">Team Chat</div>
+      <div class="chat-msgs" id="m-chat-msgs"><div class="chat-empty">Lade Nachrichten…</div></div>
+      <div class="chat-input-row">
+        <input class="chat-inp" type="text" id="m-chat-inp" placeholder="Nachricht eingeben…"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.send('${ev.id}')}">
+        <button class="btn btn-primary" style="font-size:.78rem;padding:6px 12px" onclick="Chat.send('${ev.id}')">Senden</button>
+      </div>
+    </div>`;
+    this._evId=ev.id;
+    this.load(ev.id);
+    this.subscribe(ev.id);
+  },
+
+  async load(evId){
+    const msgEl=document.getElementById('m-chat-msgs');
+    if(!msgEl)return;
+    const{data,error}=await db.from('event_messages').select('*').eq('event_id',evId).order('created_at',{ascending:true});
+    if(error){
+      if(error.code==='42P01')
+        msgEl.innerHTML=isAdmin()?`<div class="chat-empty">⚠ Tabelle event_messages fehlt. SQL bitte im Supabase Editor ausführen.</div>`:'';
+      else msgEl.innerHTML=`<div class="chat-empty">Chat momentan nicht verfügbar.</div>`;
+      return;
+    }
+    this.renderMsgs(data);
+  },
+
+  renderMsgs(msgs){
+    const el=document.getElementById('m-chat-msgs');
+    if(!el)return;
+    if(!msgs.length){el.innerHTML='<div class="chat-empty">Noch keine Nachrichten.</div>';return;}
+    el.innerHTML=msgs.map(msg=>{
+      const mine=msg.user_id===currentUser?.id;
+      const t=new Date(msg.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return`<div class="chat-msg${mine?' mine':''}">
+        <div class="chat-meta">${_esc(msg.display_name)} · ${t}</div>
+        <div class="chat-bubble${mine?' mine':''}">${_esc(msg.message).replace(/\n/g,'<br>')}</div>
+      </div>`;
+    }).join('');
+    el.scrollTop=el.scrollHeight;
+  },
+
+  async send(evId){
+    const inp=document.getElementById('m-chat-inp');
+    const msg=inp?.value.trim();
+    if(!msg||!currentUser)return;
+    inp.value='';inp.focus();
+    const{error}=await db.from('event_messages').insert({
+      event_id:evId,user_id:currentUser.id,
+      display_name:currentProfile?.display_name||'Unbekannt',
+      message:msg,
+    });
+    if(error){console.error('Chat error:',error);inp.value=msg;return;}
+    await this.load(evId);
+  },
+
+  subscribe(evId){
+    this._sub=db.channel('chat-'+evId)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'event_messages',filter:`event_id=eq.${evId}`},
+        ()=>this.load(evId))
+      .subscribe();
+  },
+
+  unsubscribe(){
+    if(this._sub){try{db.removeChannel(this._sub);}catch(e){}this._sub=null;}
+    this._evId=null;
+  },
 };
 
 function setupRealtime(){
