@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Thekenplan · Mobile Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0e14;--bg2:#13141d;--bg3:#1a1c28;--bg4:#20233a;
+  --bd:rgba(255,255,255,.07);--bda:rgba(255,255,255,.15);
+  --tx:#e8e9f0;--txd:#7b7f9e;--txm:#454869;
+  --l1:#f5a623;--l2:#22d4a4;--l3:#e05aff;--l4:#ff6b6b;
+  --miss:#ff4040;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:#0a0b10;font-family:var(--fb);color:var(--tx);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:20px 12px 40px;gap:40px}
+
+/* ── PICKER ─── */
+.picker{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  position:sticky;top:8px;z-index:100;padding:10px;
+  background:rgba(10,11,16,.9);backdrop-filter:blur(10px);
+  border-radius:20px;border:1px solid var(--bd);width:100%;max-width:430px}
+.pick-btn{padding:8px 16px;border-radius:12px;border:1px solid var(--bd);
+  background:var(--bg3);color:var(--txd);font-family:var(--fb);font-size:.82rem;
+  cursor:pointer;transition:all .18s}
+.pick-btn.active{background:rgba(59,64,196,.25);border-color:#4a50d4;color:var(--tx);font-weight:600}
+
+/* ── PHONE FRAME ─── */
+.phone{width:100%;max-width:390px;background:var(--bg);border-radius:28px;
+  overflow:hidden;border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 24px 60px rgba(0,0,0,.6);display:none}
+.phone.active{display:block}
+.phone-label{text-align:center;font-size:.72rem;color:var(--txd);margin-bottom:8px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;display:none}
+.phone.active + .phone-label{display:block}
+
+/* ── SHARED HEADER ─── */
+.sh{background:var(--bg);padding:10px 14px 8px;border-bottom:1px solid var(--bd);
+  position:sticky;top:0;z-index:10}
+.sh-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sh-title{font-family:var(--fh);font-size:1.1rem;font-weight:800;
+  background:linear-gradient(135deg,#fff 30%,#8890c8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sh-ham{width:34px;height:34px;border-radius:8px;background:var(--bg3);
+  border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;
+  font-size:1rem;cursor:pointer;color:var(--txd)}
+.loc-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.loc-row::-webkit-scrollbar{display:none}
+.loc-pill{padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:700;
+  white-space:nowrap;cursor:pointer;border:1px solid var(--bd);
+  background:var(--bg3);color:var(--txd);flex-shrink:0;transition:all .15s}
+.loc-pill.active{border-color:rgba(255,255,255,.2);color:#fff;background:var(--bg4)}
+
+/* ═══════════════════════════════════════════════
+   VARIANTE A: Monatskalender
+═══════════════════════════════════════════════ */
+.month-nav{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 6px}
+.month-nav-title{font-family:var(--fh);font-size:.95rem;font-weight:800}
+.month-nav-btns{display:flex;gap:6px}
+.mnb{width:30px;height:30px;border-radius:7px;background:var(--bg3);
+  border:1px solid var(--bd);color:var(--txd);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);
+  gap:1px;padding:0 10px 6px}
+.cal-dow{text-align:center;font-size:.6rem;font-weight:700;
+  color:var(--txm);text-transform:uppercase;padding:4px 0}
+.cal-day{border-radius:8px;padding:4px 2px;cursor:pointer;
+  min-height:52px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:background .15s}
+.cal-day:hover{background:var(--bg3)}
+.cal-day.today .cal-num{background:#3b40c4;color:#fff;border-radius:50%;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-day.other-month .cal-num{color:var(--txm)}
+.cal-num{font-size:.78rem;font-weight:600;line-height:1;padding:2px}
+.cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;padding:0 1px}
+.cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cal-more{font-size:.5rem;color:var(--txm)}
+/* Day detail panel */
+.day-detail{padding:12px 14px;border-top:1px solid var(--bd)}
+.dd-title{font-size:.72rem;font-weight:700;color:var(--txd);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.dd-ev{display:flex;align-items:center;gap:8px;padding:9px 11px;
+  background:var(--bg3);border-radius:10px;margin-bottom:6px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s}
+.dd-ev:hover{background:var(--bg4)}
+.dd-name{font-weight:700;font-size:.85rem;flex:1}
+.dd-time{font-size:.72rem;color:var(--txd)}
+.dd-badge{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:10px;
+  background:rgba(255,255,255,.07);color:var(--txd)}
+
+/* ═══════════════════════════════════════════════
+   VARIANTE B: Kompakte Wochenliste (Tagesstreifen)
+═══════════════════════════════════════════════ */
+.day-strip{display:flex;gap:6px;padding:8px 14px 6px;overflow-x:auto;scrollbar-width:none}
+.day-strip::-webkit-scrollbar{display:none}
+.ds-day{display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 10px;border-radius:12px;border:1px solid var(--bd);
+  background:var(--bg3);cursor:pointer;flex-shrink:0;transition:all .15s;min-width:46px}
+.ds-day.active{background:#1e2160;border-color:#4a50d4}
+.ds-day.today-strip{border-color:rgba(255,255,255,.2)}
+.ds-name{font-size:.6rem;text-transform:uppercase;font-weight:700;color:var(--txm)}
+.ds-num{font-size:.95rem;font-weight:700}
+.ds-dots{display:flex;gap:2px;margin-top:2px}
+.ds-dot{width:5px;height:5px;border-radius:50%}
+/* Event rows */
+.ev-list{padding:8px 14px;display:flex;flex-direction:column;gap:5px}
+.ev-row{display:flex;align-items:center;gap:9px;padding:10px 12px;
+  background:var(--bg3);border-radius:12px;cursor:pointer;transition:all .15s;
+  border-left:3px solid transparent}
+.ev-row:hover{background:var(--bg4)}
+.ev-row-name{font-weight:700;font-size:.88rem;flex:1;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.ev-row-time{font-size:.72rem;color:var(--txd);white-space:nowrap}
+.ev-row-loc{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:10px}
+.ev-row-staff{font-size:.68rem;color:var(--txm)}
+.ev-empty{padding:20px;text-align:center;color:var(--txm);font-size:.8rem;font-style:italic}
+
+/* ═══════════════════════════════════════════════
+   VARIANTE C: Agenda (kontinuierliche Liste)
+═══════════════════════════════════════════════ */
+.agenda{padding:8px 14px;display:flex;flex-direction:column;gap:4px}
+.ag-date-hdr{display:flex;align-items:center;gap:10px;padding:10px 0 4px;margin-top:4px}
+.ag-date-pill{font-family:var(--fh);font-size:.78rem;font-weight:800;
+  padding:3px 10px;border-radius:20px;background:var(--bg4);color:var(--txd)}
+.ag-date-pill.today{background:#3b40c4;color:#fff}
+.ag-date-day{font-size:.7rem;color:var(--txm);text-transform:uppercase;font-weight:600}
+.ag-line{flex:1;height:1px;background:var(--bd)}
+.ag-ev{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--bg3);border-radius:12px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s;margin-bottom:4px}
+.ag-ev:hover{background:var(--bg4)}
+.ag-ev-main{flex:1;min-width:0}
+.ag-ev-name{font-weight:700;font-size:.88rem;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.ag-ev-meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.ag-ev-time{font-size:.7rem;color:var(--txd)}
+.ag-ev-loc{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:10px}
+.ag-ev-staff{font-size:.68rem;color:var(--txm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.ag-ev-note{font-size:.67rem;color:var(--miss);font-style:italic}
+.ag-ev-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.ag-ev-count{font-size:.65rem;color:var(--txd);white-space:nowrap}
+/* Floating week nav in agenda */
+.ag-week-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;
+  border-bottom:1px solid var(--bd);background:var(--bg)}
+.ag-wbtn{width:30px;height:30px;border-radius:7px;background:var(--bg3);
+  border:1px solid var(--bd);color:var(--txd);cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
+.ag-week-info{flex:1;text-align:center}
+.ag-kw{font-family:var(--fh);font-size:.8rem;font-weight:800}
+.ag-range{font-size:.65rem;color:var(--txd)}
+
+/* ── MOCK BOTTOM SHEET ─── */
+.mock-sheet{padding:14px 14px 20px;border-top:1px solid var(--bd);background:var(--bg2)}
+.ms-handle{width:36px;height:4px;background:var(--bda);border-radius:2px;margin:0 auto 12px}
+.ms-title{font-family:var(--fh);font-size:1rem;font-weight:800;margin-bottom:4px}
+.ms-sub{font-size:.72rem;color:var(--txd);margin-bottom:10px}
+.ms-row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);align-items:center}
+.ms-row:last-child{border:none}
+.ms-badge{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:10px;
+  background:rgba(255,255,255,.07);color:var(--txd);white-space:nowrap}
+.ms-name{font-weight:600;font-size:.82rem;flex:1}
+.ms-time{font-size:.75rem;color:var(--txd);font-variant-numeric:tabular-nums}
+
+/* ── VIEW TOGGLE ─── */
+.view-toggle{display:flex;gap:0;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.vt-btn{padding:6px 14px;font-size:.72rem;font-weight:600;cursor:pointer;
+  border:none;background:var(--bg3);color:var(--txd);font-family:var(--fb);transition:all .15s}
+.vt-btn.active{background:#1e2160;color:var(--tx)}
+</style>
+</head>
+<body>
+
+<div class="picker">
+  <button class="pick-btn active" onclick="show('a')">A · Monatskalender</button>
+  <button class="pick-btn" onclick="show('b')">B · Tagesstreifen</button>
+  <button class="pick-btn" onclick="show('c')">C · Agenda</button>
+</div>
+
+<!-- ═══ VARIANTE A: Monatskalender ═══ -->
+<div class="phone active" id="phone-a">
+
+  <div class="sh">
+    <div class="sh-row1">
+      <span class="sh-title">Thekenplan</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="view-toggle">
+          <button class="vt-btn active">Monat</button>
+          <button class="vt-btn">Liste</button>
+        </div>
+        <div class="sh-ham">☰</div>
+      </div>
+    </div>
+    <div class="loc-row">
+      <div class="loc-pill active">Alle</div>
+      <div class="loc-pill" style="border-color:rgba(245,166,35,.4);color:#f5a623">● KH</div>
+      <div class="loc-pill" style="border-color:rgba(34,212,164,.4);color:#22d4a4">● H39</div>
+      <div class="loc-pill" style="border-color:rgba(224,90,255,.4);color:#e05aff">● SR</div>
+      <div class="loc-pill" style="border-color:rgba(255,107,107,.4);color:#ff6b6b">● OH</div>
+    </div>
+  </div>
+
+  <div class="month-nav">
+    <span class="month-nav-title">Mai 2026</span>
+    <div class="month-nav-btns">
+      <button class="mnb">‹</button>
+      <button class="mnb">›</button>
+    </div>
+  </div>
+
+  <div class="cal-grid">
+    <!-- DOW headers -->
+    <div class="cal-dow">Mo</div><div class="cal-dow">Di</div><div class="cal-dow">Mi</div>
+    <div class="cal-dow">Do</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
+    <div class="cal-dow">So</div>
+
+    <!-- Week 1 -->
+    <div class="cal-day other-month"><div class="cal-num">28</div></div>
+    <div class="cal-day other-month"><div class="cal-num">29</div></div>
+    <div class="cal-day other-month"><div class="cal-num">30</div></div>
+    <div class="cal-day other-month"><div class="cal-num">1</div></div>
+    <div class="cal-day other-month"><div class="cal-num">2</div></div>
+    <div class="cal-day other-month"><div class="cal-num">3</div></div>
+    <div class="cal-day other-month"><div class="cal-num">4</div></div>
+    <!-- Week 2 (KW19) -->
+    <div class="cal-day today" onclick="selectDay(this,'Mo 4. Mai')">
+      <div class="cal-num">5</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="cal-day" onclick="selectDay(this,'Di 5. Mai')"><div class="cal-num">6</div></div>
+    <div class="cal-day" onclick="selectDay(this,'Mi 6. Mai')">
+      <div class="cal-num">7</div>
+      <div class="cal-dots">
+        <div class="cal-dot" style="background:#22d4a4"></div>
+        <div class="cal-dot" style="background:#e05aff"></div>
+      </div>
+    </div>
+    <div class="cal-day" onclick="selectDay(this,'Do 7. Mai')"><div class="cal-num">8</div></div>
+    <div class="cal-day" onclick="selectDay(this,'Fr 8. Mai')">
+      <div class="cal-num">9</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="cal-day" onclick="selectDay(this,'Sa 9. Mai')">
+      <div class="cal-num">10</div>
+      <div class="cal-dots">
+        <div class="cal-dot" style="background:#f5a623"></div>
+        <div class="cal-dot" style="background:#ff6b6b"></div>
+      </div>
+    </div>
+    <div class="cal-day" onclick="selectDay(this,'So 10. Mai')"><div class="cal-num">11</div></div>
+    <!-- Week 3 -->
+    <div class="cal-day"><div class="cal-num">12</div></div>
+    <div class="cal-day"><div class="cal-num">13</div></div>
+    <div class="cal-day">
+      <div class="cal-num">14</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#22d4a4"></div></div>
+    </div>
+    <div class="cal-day"><div class="cal-num">15</div></div>
+    <div class="cal-day">
+      <div class="cal-num">16</div>
+      <div class="cal-dots">
+        <div class="cal-dot" style="background:#f5a623"></div>
+        <div class="cal-dot" style="background:#e05aff"></div>
+      </div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-num">17</div>
+      <div class="cal-dots">
+        <div class="cal-dot" style="background:#f5a623"></div>
+        <div class="cal-dot" style="background:#22d4a4"></div>
+        <div class="cal-dot" style="background:#ff6b6b"></div>
+      </div>
+    </div>
+    <div class="cal-day"><div class="cal-num">18</div></div>
+    <!-- Week 4 -->
+    <div class="cal-day"><div class="cal-num">19</div></div>
+    <div class="cal-day"><div class="cal-num">20</div></div>
+    <div class="cal-day">
+      <div class="cal-num">21</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="cal-day"><div class="cal-num">22</div></div>
+    <div class="cal-day">
+      <div class="cal-num">23</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#22d4a4"></div></div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-num">24</div>
+      <div class="cal-dots">
+        <div class="cal-dot" style="background:#f5a623"></div>
+        <div class="cal-dot" style="background:#e05aff"></div>
+      </div>
+    </div>
+    <div class="cal-day"><div class="cal-num">25</div></div>
+    <!-- Week 5 -->
+    <div class="cal-day"><div class="cal-num">26</div></div>
+    <div class="cal-day"><div class="cal-num">27</div></div>
+    <div class="cal-day">
+      <div class="cal-num">28</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#ff6b6b"></div></div>
+    </div>
+    <div class="cal-day"><div class="cal-num">29</div></div>
+    <div class="cal-day">
+      <div class="cal-num">30</div>
+      <div class="cal-dots"><div class="cal-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="cal-day"><div class="cal-num">31</div></div>
+    <div class="cal-day other-month"><div class="cal-num">1</div></div>
+  </div>
+
+  <!-- Day detail (shown on tap) -->
+  <div class="day-detail" id="a-detail">
+    <div class="dd-title" id="a-detail-title">Mo · 5. Mai 2026</div>
+    <div class="dd-ev" style="border-left-color:#f5a623">
+      <div style="flex:1">
+        <div class="dd-name">Svalbard</div>
+        <div style="display:flex;gap:6px;margin-top:3px;align-items:center">
+          <span class="dd-badge" style="background:rgba(245,166,35,.15);color:#f5a623">KH</span>
+          <span class="dd-badge">3 MA</span>
+        </div>
+      </div>
+      <div class="dd-time">19:00</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ VARIANTE B: Tagesstreifen ═══ -->
+<div class="phone" id="phone-b">
+
+  <div class="sh">
+    <div class="sh-row1">
+      <span class="sh-title">Thekenplan</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;color:var(--txd)">KW 19</div>
+        <div class="view-toggle">
+          <button class="vt-btn active">Kompakt</button>
+          <button class="vt-btn">Detail</button>
+        </div>
+        <div class="sh-ham">☰</div>
+      </div>
+    </div>
+    <div class="loc-row">
+      <div class="loc-pill active">Alle</div>
+      <div class="loc-pill" style="border-color:rgba(245,166,35,.4);color:#f5a623">● KH</div>
+      <div class="loc-pill" style="border-color:rgba(34,212,164,.4);color:#22d4a4">● H39</div>
+      <div class="loc-pill" style="border-color:rgba(224,90,255,.4);color:#e05aff">● SR</div>
+      <div class="loc-pill" style="border-color:rgba(255,107,107,.4);color:#ff6b6b">● OH</div>
+    </div>
+  </div>
+
+  <!-- Day strip -->
+  <div class="day-strip">
+    <div class="ds-day" onclick="selectStrip(this,0)">
+      <div class="ds-name">Mo</div><div class="ds-num">4</div>
+      <div class="ds-dots"><div class="ds-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="ds-day" onclick="selectStrip(this,1)">
+      <div class="ds-name">Di</div><div class="ds-num">5</div>
+    </div>
+    <div class="ds-day" onclick="selectStrip(this,2)">
+      <div class="ds-name">Mi</div><div class="ds-num">6</div>
+      <div class="ds-dots">
+        <div class="ds-dot" style="background:#22d4a4"></div>
+        <div class="ds-dot" style="background:#e05aff"></div>
+      </div>
+    </div>
+    <div class="ds-day today-strip active" onclick="selectStrip(this,3)">
+      <div class="ds-name" style="color:#3b40c4">Do</div>
+      <div class="ds-num" style="color:#fff;background:#3b40c4;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center">7</div>
+    </div>
+    <div class="ds-day" onclick="selectStrip(this,4)">
+      <div class="ds-name">Fr</div><div class="ds-num">8</div>
+      <div class="ds-dots"><div class="ds-dot" style="background:#f5a623"></div></div>
+    </div>
+    <div class="ds-day" onclick="selectStrip(this,5)">
+      <div class="ds-name">Sa</div><div class="ds-num">9</div>
+      <div class="ds-dots">
+        <div class="ds-dot" style="background:#f5a623"></div>
+        <div class="ds-dot" style="background:#ff6b6b"></div>
+      </div>
+    </div>
+    <div class="ds-day" onclick="selectStrip(this,6)">
+      <div class="ds-name">So</div><div class="ds-num">10</div>
+    </div>
+  </div>
+
+  <!-- Event list for selected day -->
+  <div class="ev-list" id="b-list">
+    <div class="ev-empty">Kein Event an diesem Tag</div>
+  </div>
+
+  <!-- Bottom sheet preview of selected event -->
+  <div class="mock-sheet" id="b-sheet" style="display:none">
+    <div class="ms-handle"></div>
+    <div class="ms-title">Svalbard</div>
+    <div class="ms-sub">Montag, 4. Mai · KH · 19:00 – 01:00</div>
+    <div class="ms-row"><span class="ms-badge">Prod L</span><span class="ms-name">Luise</span><span class="ms-time">15:30</span></div>
+    <div class="ms-row"><span class="ms-badge">Bar 1</span><span class="ms-name">Laura Pulz</span><span class="ms-time">19:00</span></div>
+    <div class="ms-row"><span class="ms-badge">Bar 2</span><span class="ms-name">Igor</span><span class="ms-time">19:00</span></div>
+  </div>
+
+</div>
+
+<!-- ═══ VARIANTE C: Agenda ═══ -->
+<div class="phone" id="phone-c">
+
+  <div class="sh">
+    <div class="sh-row1">
+      <span class="sh-title">Thekenplan</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="view-toggle">
+          <button class="vt-btn active">Agenda</button>
+          <button class="vt-btn">Woche</button>
+        </div>
+        <div class="sh-ham">☰</div>
+      </div>
+    </div>
+    <div class="loc-row">
+      <div class="loc-pill active">Alle</div>
+      <div class="loc-pill" style="border-color:rgba(245,166,35,.4);color:#f5a623">● KH</div>
+      <div class="loc-pill" style="border-color:rgba(34,212,164,.4);color:#22d4a4">● H39</div>
+      <div class="loc-pill" style="border-color:rgba(224,90,255,.4);color:#e05aff">● SR</div>
+    </div>
+  </div>
+
+  <!-- Week nav -->
+  <div class="ag-week-bar">
+    <button class="ag-wbtn">‹</button>
+    <div class="ag-week-info">
+      <div class="ag-kw">KW 19 · 2026</div>
+      <div class="ag-range">04. Mai – 10. Mai</div>
+    </div>
+    <button class="ag-wbtn">›</button>
+  </div>
+
+  <div class="agenda">
+
+    <div class="ag-date-hdr">
+      <div class="ag-date-pill today">Mo · 4</div>
+      <div class="ag-line"></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#f5a623" onclick="this.style.background='var(--bg4)'">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Svalbard</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">19:00 – 01:00</span>
+          <span class="ag-ev-loc" style="background:rgba(245,166,35,.12);color:#f5a623">KH</span>
+          <span class="ag-ev-staff">Luise · Laura · Igor</span>
+        </div>
+        <div class="ag-ev-note">Test</div>
+      </div>
+      <div class="ag-ev-right">
+        <span style="font-size:.68rem;background:rgba(245,166,35,.12);color:#f5a623;padding:2px 7px;border-radius:8px;font-weight:700">Plastik</span>
+        <span class="ag-ev-count">3 MA</span>
+      </div>
+    </div>
+
+    <div class="ag-date-hdr">
+      <div class="ag-date-pill">Di · 5</div>
+      <div class="ag-line"></div>
+    </div>
+    <div style="padding:6px 0;font-size:.75rem;color:var(--txm);font-style:italic;text-align:center">— kein Event —</div>
+
+    <div class="ag-date-hdr">
+      <div class="ag-date-pill">Mi · 6</div>
+      <div class="ag-line"></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#22d4a4">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Reggae Jam</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">20:00 – 02:00</span>
+          <span class="ag-ev-loc" style="background:rgba(34,212,164,.12);color:#22d4a4">H39</span>
+          <span class="ag-ev-staff">Max · Jana · Ben</span>
+        </div>
+      </div>
+      <div class="ag-ev-right"><span class="ag-ev-count">3 MA</span></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#e05aff">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Dark Suns</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">19:30 – 00:00</span>
+          <span class="ag-ev-loc" style="background:rgba(224,90,255,.12);color:#e05aff">SR</span>
+          <span class="ag-ev-staff" style="color:var(--miss)">⚠ Besetzung fehlt</span>
+        </div>
+      </div>
+      <div class="ag-ev-right"><span class="ag-ev-count">1 MA</span></div>
+    </div>
+
+    <div class="ag-date-hdr">
+      <div class="ag-date-pill">Fr · 8</div>
+      <div class="ag-line"></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#f5a623">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Katzenclub</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">21:00 – 03:00</span>
+          <span class="ag-ev-loc" style="background:rgba(245,166,35,.12);color:#f5a623">KH</span>
+          <span class="ag-ev-staff">Lena · Tom · Sara · Ali</span>
+        </div>
+      </div>
+      <div class="ag-ev-right"><span class="ag-ev-count">4 MA</span></div>
+    </div>
+
+    <div class="ag-date-hdr">
+      <div class="ag-date-pill">Sa · 9</div>
+      <div class="ag-line"></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#f5a623">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Nite</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">22:00 – 04:00</span>
+          <span class="ag-ev-loc" style="background:rgba(245,166,35,.12);color:#f5a623">KH</span>
+          <span class="ag-ev-staff">Luise · Igor</span>
+        </div>
+      </div>
+      <div class="ag-ev-right"><span class="ag-ev-count">2 MA</span></div>
+    </div>
+    <div class="ag-ev" style="border-left-color:#ff6b6b">
+      <div class="ag-ev-main">
+        <div class="ag-ev-name">Vincent Lima</div>
+        <div class="ag-ev-meta">
+          <span class="ag-ev-time">20:00 – 01:00</span>
+          <span class="ag-ev-loc" style="background:rgba(255,107,107,.12);color:#ff6b6b">OH</span>
+          <span class="ag-ev-staff">Laura · Ben</span>
+        </div>
+      </div>
+      <div class="ag-ev-right"><span class="ag-ev-count">2 MA</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(v){
+  document.querySelectorAll('.phone').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.pick-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('phone-'+v).classList.add('active');
+  document.querySelectorAll('.pick-btn')[{a:0,b:1,c:2}[v]].classList.add('active');
+}
+
+// Variante A: select day
+function selectDay(el, label){
+  document.querySelectorAll('.cal-day').forEach(d=>d.style.background='');
+  el.style.background='var(--bg3)';
+  document.getElementById('a-detail-title').textContent=label;
+}
+
+// Variante B: select day strip
+const bDays=[
+  [{name:'Svalbard',loc:'KH',color:'#f5a623',time:'19:00',staff:'Luise · Laura · Igor'}],
+  [],
+  [
+    {name:'Reggae Jam',loc:'H39',color:'#22d4a4',time:'20:00',staff:'Max · Jana · Ben'},
+    {name:'Dark Suns',loc:'SR',color:'#e05aff',time:'19:30',staff:'⚠ Besetzung fehlt',miss:true},
+  ],
+  [],
+  [{name:'Katzenclub',loc:'KH',color:'#f5a623',time:'21:00',staff:'Lena · Tom · Sara'}],
+  [
+    {name:'Nite',loc:'KH',color:'#f5a623',time:'22:00',staff:'Luise · Igor'},
+    {name:'Vincent Lima',loc:'OH',color:'#ff6b6b',time:'20:00',staff:'Laura · Ben'},
+  ],
+  [],
+];
+function selectStrip(el,idx){
+  document.querySelectorAll('.ds-day').forEach(d=>d.classList.remove('active'));
+  el.classList.add('active');
+  const list=document.getElementById('b-list');
+  const evs=bDays[idx];
+  if(!evs||!evs.length){
+    list.innerHTML='<div class="ev-empty">Kein Event an diesem Tag</div>';
+    document.getElementById('b-sheet').style.display='none';
+    return;
+  }
+  list.innerHTML=evs.map(e=>`
+    <div class="ev-row" style="border-left-color:${e.color}" onclick="showSheet()">
+      <div style="flex:1">
+        <div class="ev-row-name">${e.name}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;align-items:center">
+          <span class="ev-row-loc" style="background:${e.color}18;color:${e.color}">${e.loc}</span>
+          <span class="ev-row-staff${e.miss?' ' :''}" style="${e.miss?'color:var(--miss)':''}">${e.staff}</span>
+        </div>
+      </div>
+      <div class="ev-row-time">${e.time}</div>
+    </div>`).join('');
+}
+function showSheet(){
+  document.getElementById('b-sheet').style.display='block';
+}
+// Init B: show Monday
+selectStrip(document.querySelector('#phone-b .ds-day'), 0);
+</script>
+</body>
+</html>
