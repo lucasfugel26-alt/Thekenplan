@@ -610,8 +610,9 @@ body.light{
 /* Mobile missing badge */
 #mob-miss{display:none;width:40px;height:40px;border-radius:10px;flex-shrink:0;
   align-items:center;justify-content:center;
-  background:var(--missb);border:1px solid rgba(255,64,64,.3);
-  color:var(--miss);font-size:1.1rem;cursor:pointer}
+  background:var(--bg4);border:1px solid var(--bd);
+  color:var(--txm);font-size:1.1rem;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+#mob-miss.active{background:var(--missb);border-color:rgba(255,64,64,.3);color:var(--miss)}
 /* Modal handle bar */
 .modal-handle{width:40px;height:4px;background:var(--bda);border-radius:2px;
   margin:0 auto 14px;display:none}
@@ -4360,6 +4361,8 @@ const App={
   toggleMiss(){
     S.onlyMiss=!S.onlyMiss;
     document.getElementById('btn-miss').style.background=S.onlyMiss?'rgba(255,64,64,.3)':'';
+    const mm=document.getElementById('mob-miss');
+    if(mm)mm.classList.toggle('active',S.onlyMiss);
     renderGrid();},
   toggleMyShifts(){
     const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
@@ -4378,6 +4381,7 @@ const App={
   resetFilters(){S.filterLoc=0;S.search='';S.onlyMiss=false;
     SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';
     document.getElementById('search-inp').value='';
+    const mm=document.getElementById('mob-miss');if(mm)mm.classList.remove('active');
     if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
