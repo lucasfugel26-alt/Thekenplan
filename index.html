@@ -475,6 +475,12 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .chat-msg{display:flex;flex-direction:column;gap:3px}
 .chat-msg.mine{align-items:flex-end}
 .chat-meta{font-size:.6rem;color:var(--txm);padding:0 2px}
+.chat-bubble-row{display:flex;align-items:flex-end;gap:5px}
+.chat-msg.mine .chat-bubble-row{flex-direction:row-reverse}
+.chat-del-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--txm);
+  font-size:.65rem;padding:2px 4px;border-radius:4px;opacity:0;transition:opacity .15s}
+.chat-msg:hover .chat-del-btn{opacity:1}
+.chat-del-btn:hover{background:rgba(255,80,80,.15);color:#f55}
 .chat-bubble{padding:7px 12px;border-radius:12px;font-size:.8rem;line-height:1.45;
   background:var(--bg4);color:var(--tx);max-width:85%;word-break:break-word}
 .chat-msg.mine .chat-bubble{background:#3b40c4;color:#fff;border-radius:12px 12px 4px 12px}
@@ -4962,13 +4968,24 @@ const Chat={
     if(!msgs.length){el.innerHTML='<div class="chat-empty">Noch keine Nachrichten.</div>';return;}
     el.innerHTML=msgs.map(msg=>{
       const mine=msg.user_id===currentUser?.id;
+      const canDel=mine||isAdmin();
       const t=new Date(msg.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       return`<div class="chat-msg${mine?' mine':''}">
         <div class="chat-meta">${_esc(msg.display_name)} · ${t}</div>
-        <div class="chat-bubble${mine?' mine':''}">${_esc(msg.message).replace(/\n/g,'<br>')}</div>
+        <div class="chat-bubble-row">
+          ${canDel?`<button class="chat-del-btn" onclick="Chat.deleteMsg('${msg.id}')" title="Nachricht löschen">✕</button>`:''}
+          <div class="chat-bubble${mine?' mine':''}">${_esc(msg.message).replace(/\n/g,'<br>')}</div>
+        </div>
       </div>`;
     }).join('');
     el.scrollTop=el.scrollHeight;
+  },
+
+  async deleteMsg(msgId){
+    if(!confirm('Nachricht wirklich löschen?'))return;
+    const{error}=await db.from('event_messages').delete().eq('id',msgId);
+    if(error){console.error('Delete error:',error);return;}
+    if(this._evId)await this.load(this._evId);
   },
 
   async send(evId){
@@ -4988,6 +5005,8 @@ const Chat={
   subscribe(evId){
     this._sub=db.channel('chat-'+evId)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'event_messages',filter:`event_id=eq.${evId}`},
+        ()=>this.load(evId))
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'event_messages',filter:`event_id=eq.${evId}`},
         ()=>this.load(evId))
       .subscribe();
   },
