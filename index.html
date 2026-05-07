@@ -976,8 +976,8 @@ body.light{
         <div class="fg" style="margin-bottom:14px">
           <label>Becherart</label>
           <div class="becher-toggle" id="f-becher-toggle">
-            <button type="button" class="bt-btn active" data-val="unbekannt" onclick="Form.setBecher(this)">&#10067; Unbekannt</button>
-            <button type="button" class="bt-btn" data-val="plastik" onclick="Form.setBecher(this)">&#129347; Plastikbecher</button>
+            <button type="button" class="bt-btn active" data-val="unbekannt" onclick="Form.setBecher(this)">&#10067; Ungeklärt</button>
+            <button type="button" class="bt-btn" data-val="plastik" onclick="Form.setBecher(this)">&#129347; Plastik</button>
             <button type="button" class="bt-btn" data-val="glas" onclick="Form.setBecher(this)">&#129380; Glas</button>
           </div>
         </div>
@@ -3418,8 +3418,8 @@ function buildCard(ev, conflictIds=new Set()){
   const cf=CardFields.forRole();
   const bechertyp=ev.bechertyp||(ev.plastik?'plastik':null);
   const becherBanner=cf.becher&&!ev.cancelled&&!ev.relocated
-    ?(bechertyp==='plastik'?`<div class="plastik-banner">&#129347; Nur Plastikbecher!</div>`
-      :bechertyp==='glas'?`<div class="glas-banner">&#129380; Glasbecher</div>`:''):'';
+    ?(bechertyp==='plastik'?`<div class="plastik-banner">&#129347; Plastikausschank</div>`
+      :bechertyp==='glas'?`<div class="glas-banner">&#129380; Glasausschank</div>`:''):'';
   const besucherBadge=cf.besucher&&ev.besucherzahl
     ?`<div class="ev-besucher">&#128101; ${ev.besucherzahl} Besucher</div>`:'';
 
@@ -3479,7 +3479,7 @@ function openDet(ev){
   document.getElementById('m-sub').textContent=
     `${dFmt(ev.date)} \xB7 ${DAYS[weekdayIdx(ev.date)]} \xB7 ${loc.name}`;
   const tags=[];
-  if(ev.plastik)     tags.push(`<span class="m-tag p">\uD83E\uDDE3 Plastikbecher Pflicht</span>`);
+  if(ev.plastik)     tags.push(`<span class="m-tag p">\uD83E\uDDE3 Plastikausschank</span>`);
   if(ev.missingStaff)tags.push(`<span class="m-tag m">\u26A0 Besetzung unvollst\u00e4ndig</span>`);
   if(ev.kundenkarte) tags.push(`<span class="m-tag kk">${ev.kundenkarte}</span>`);
   document.getElementById('m-tags').innerHTML=tags.join('');
@@ -4933,7 +4933,7 @@ App.closeLocInfo = function() {
 App._renderBriefing = function(ev) {
   const el = document.getElementById('m-briefing');
   if (!el) return;
-  const becherMap = { plastik: '&#129379; Plastikbecher', glas: '&#127866; Glasbecher', unbekannt: '&#10067; Becher noch unklar' };
+  const becherMap = { plastik: '&#129379; Plastik', glas: '&#127866; Glas', unbekannt: '&#10067; Ungeklärt' };
   const becherTagClass = { plastik: 'p', glas: '', unbekannt: 'kk' };
   const bType = ev.bechertyp || 'unbekannt';
   let html = `<div class="m-sh" style="margin-top:14px">Briefing</div>
