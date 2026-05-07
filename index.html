@@ -428,6 +428,11 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .m-stime{font-variant-numeric:tabular-nums;font-size:.8rem;color:var(--txd)}
 .m-note{background:var(--bg4);border-radius:8px;padding:9px 13px;
   font-size:.8rem;color:var(--txd);font-style:italic;line-height:1.5;margin-top:8px}
+.m-briefing-facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px 0 8px}
+.m-briefing-text{margin-top:8px;padding:10px 14px;background:var(--bg3);border-radius:8px;
+  font-size:.85rem;line-height:1.55;white-space:pre-wrap;border:1px solid var(--bd)}
+.m-briefing-text.important{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);
+  border-left:3px solid var(--l1)}
 
 /* ── ENTRY MODAL ─────────────────────────────────────── */
 .entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
@@ -902,7 +907,7 @@ body.light{
     <div class="m-sh">Besetzung</div>
     <div class="m-slist" id="m-slist"></div>
     <div id="m-note"></div>
-    <div id="m-loc-info"></div>
+    <div id="m-briefing"></div>
     <div class="m-actions admin-only">
       <button class="btn btn-edit"   onclick="App.editEvent()">&#9998; Bearbeiten</button>
       <button class="btn btn-del"    onclick="App.confirmDelete()">&#128465; L&ouml;schen</button>
@@ -3245,7 +3250,9 @@ function renderLocBtns(){
       return`<button class="loc-btn${active?' active':''}" data-loc="${id}" onclick="App.setLoc(${id})"
         style="${active?`background:${loc.color}18;border-color:${loc.color}50;color:${loc.color}`:''}">
         <span class="loc-dot" style="background:${loc.color}"></span>${loc.short}</button>`;
-    }).join('');
+    }).join('')+
+    (S.filterLoc!==0?`<button class="loc-btn" onclick="App.openLocInfo(${S.filterLoc})"
+      style="color:var(--txm);margin-left:4px" title="Location-Infos anzeigen">&#128139; Location-Infos</button>`:'');
 }
 
 function getWeek(filtered=true){
@@ -3493,17 +3500,8 @@ function openDet(ev){
   });
   document.getElementById('m-slist').innerHTML=rows.join('');
   document.getElementById('m-note').innerHTML=ev.notes
-    ?`<div class="m-sh">Bemerkungen</div><div class="m-note">${ev.notes}</div>`:'';
-  const locInfoEl=document.getElementById('m-loc-info');
-  if(locInfoEl){
-    const liRows=[];
-    if(loc?.image)liRows.push(`<img src="${loc.image}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:4px">`);
-    if(loc?.address)liRows.push(`<div class="li-row"><span class="li-icon">&#128205;</span><div><div class="li-label">Adresse</div><div class="li-val">${loc.address}${loc.maps_url?` &nbsp;<a href="${loc.maps_url}" target="_blank" rel="noopener">&#128506; Karte</a>`:''}</div></div></div>`);
-    if(loc?.contact_name||loc?.contact_phone)liRows.push(`<div class="li-row"><span class="li-icon">&#128222;</span><div><div class="li-label">Ansprechpartner</div><div class="li-val">${loc.contact_name||''}${loc.contact_phone?` &nbsp;<a href="tel:${loc.contact_phone}">${loc.contact_phone}</a>`:''}</div></div></div>`);
-    if(loc?.capacity)liRows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazit&auml;t</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
-    if(loc?.notes)liRows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
-    locInfoEl.innerHTML=liRows.length?`<div class="m-sh">Location</div><div class="loc-info-body" style="padding:2px 0 10px">${liRows.join('')}</div>`:'';
-  }
+    ?`<div class="m-sh">Bemerkungen</div><div class="m-note">${_esc(ev.notes)}</div>`:'';
+  App._renderBriefing(ev);
   document.getElementById('det-ov').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -4918,7 +4916,13 @@ App.openLocInfo = function(locId) {
   if (loc.contact_name || loc.contact_phone) rows.push(`<div class="li-row"><span class="li-icon">&#128222;</span><div><div class="li-label">Ansprechpartner</div><div class="li-val">${loc.contact_name || ''}${loc.contact_phone ? ` &nbsp;<a href="tel:${loc.contact_phone}">${loc.contact_phone}</a>` : ''}</div></div></div>`);
   if (loc.capacity) rows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazität</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
   if (loc.notes) rows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
-  document.getElementById('li-body').innerHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem;padding:4px 0">Noch keine Infos hinterlegt.<br><span style="font-size:.75rem">Admins können Infos unter &rarr; Locations verwalten hinzufügen.</span></div>';
+  const bodyHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem;padding:4px 0">Noch keine Infos hinterlegt.</div>';
+  const adminActions = isAdmin() ? `<div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
+    <button class="btn btn-ghost" style="flex:1" onclick="App.closeLocInfo();App.openLocations()">&#9998; Bearbeiten</button>
+    <button class="btn btn-ghost" style="flex:1;color:var(--miss);border-color:rgba(255,80,80,.3)"
+      onclick="if(confirm('Location &quot;${loc.name}&quot; wirklich löschen?')){App.closeLocInfo();LocationsMgr.remove(${locId})}">&#128465; L&ouml;schen</button>
+  </div>` : '';
+  document.getElementById('li-body').innerHTML = bodyHTML + adminActions;
   document.getElementById('loc-info-ov').classList.add('open');
 };
 
@@ -4926,6 +4930,57 @@ App.closeLocInfo = function() {
   document.getElementById('loc-info-ov').classList.remove('open');
 };
 
+App._renderBriefing = function(ev) {
+  const el = document.getElementById('m-briefing');
+  if (!el) return;
+  const becherMap = { plastik: '&#129379; Plastikbecher', glas: '&#127866; Glasbecher', unbekannt: '&#10067; Becher noch unklar' };
+  const becherTagClass = { plastik: 'p', glas: '', unbekannt: 'kk' };
+  const bType = ev.bechertyp || 'unbekannt';
+  let html = `<div class="m-sh" style="margin-top:14px">Briefing</div>
+    <div class="m-briefing-facts">
+      <span class="m-tag ${becherTagClass[bType]}">${becherMap[bType]||becherMap.unbekannt}</span>
+      ${ev.besucherzahl ? `<span class="m-tag">&#128101; ca. ${ev.besucherzahl} Besucher</span>` : ''}
+    </div>`;
+  if (ev.staff_briefing) {
+    html += `<div class="m-briefing-text${ev.staff_briefing_important?' important':''}">${_esc(ev.staff_briefing).replace(/\n/g,'<br>')}</div>`;
+  } else {
+    html += `<div style="color:var(--txm);font-size:.8rem;font-style:italic;padding:6px 0">Kein Briefing-Text hinterlegt.</div>`;
+  }
+  if (isAdmin()) {
+    html += `<button class="btn btn-ghost" style="font-size:.75rem;padding:4px 10px;margin-top:8px"
+      onclick="App.editBriefing('${ev.id}')">&#9998; Briefing bearbeiten</button>`;
+  }
+  el.innerHTML = html;
+};
+
+App.editBriefing = function(evId) {
+  const ev = EVENTS.find(e => e.id === evId);
+  if (!ev) return;
+  const el = document.getElementById('m-briefing');
+  el.innerHTML = `<div class="m-sh" style="margin-top:14px">Briefing bearbeiten</div>
+    <textarea class="fi" id="briefing-edit-text" rows="5"
+      style="resize:vertical;font-size:.85rem;line-height:1.5"
+      placeholder="Einlasssituation, Besonderheiten, Ansprechpartner, Abbau…">${_esc(ev.staff_briefing||'')}</textarea>
+    <label style="display:flex;align-items:center;gap:7px;font-size:.82rem;margin-top:8px;cursor:pointer">
+      <input type="checkbox" id="briefing-important" ${ev.staff_briefing_important?'checked':''}>
+      &#9888; Als wichtig markieren (orangefarbene Hervorhebung)
+    </label>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" onclick="App.saveBriefing('${evId}')">Speichern</button>
+      <button class="btn btn-ghost" onclick="App._renderBriefing(EVENTS.find(e=>e.id==='${evId}'))">Abbrechen</button>
+    </div>`;
+  document.getElementById('briefing-edit-text').focus();
+};
+
+App.saveBriefing = async function(evId) {
+  const ev = EVENTS.find(e => e.id === evId);
+  if (!ev) return;
+  const text = document.getElementById('briefing-edit-text').value.trim();
+  ev.staff_briefing = text || null;
+  ev.staff_briefing_important = document.getElementById('briefing-important').checked;
+  await Cloud.push();
+  App._renderBriefing(ev);
+};
 
 App.init();
 </script>
