@@ -3610,6 +3610,8 @@ function renderCalendar(){
   const evByDate={};
   EVENTS.forEach(ev=>{
     if(S.filterLoc&&ev.location!==S.filterLoc)return;
+    if(S.onlyMiss&&!ev.missingStaff)return;
+    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return;
     if(!evByDate[ev.date])evByDate[ev.date]=[];
     evByDate[ev.date].push(ev);
   });
