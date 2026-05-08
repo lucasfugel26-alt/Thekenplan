@@ -81,6 +81,12 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error('[OCR] Error:', err);
-    return res.status(500).json({ error: err.message || 'Unbekannter Fehler' });
+    const msg = err.message || 'Unbekannter Fehler';
+    const isConnErr = msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch');
+    return res.status(500).json({
+      error: isConnErr
+        ? 'Verbindungsfehler zur Anthropic API. Bitte prüfe ob ANTHROPIC_API_KEY in Vercel hinterlegt ist und ein Redeploy ausgelöst wurde.'
+        : msg
+    });
   }
 };

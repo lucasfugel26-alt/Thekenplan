@@ -5415,6 +5415,11 @@ const Import = {
   openModal() {
     document.getElementById('import-ov').classList.add('open');
     document.body.style.overflow = 'hidden';
+    ['image','pdf','excel'].forEach(t => {
+      const el = document.getElementById(`import-result-${t}`);
+      if (el) el.innerHTML = '';
+    });
+    this._imported = [];
     this.switchTab('image');
   },
 
