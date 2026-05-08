@@ -490,6 +490,11 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
   border-radius:8px;padding:8px 12px;font-family:var(--fb);font-size:.82rem}
 .chat-inp:focus{outline:none;border-color:var(--bda)}
 .chat-empty{font-size:.75rem;color:var(--txd);font-style:italic;padding:6px 0}
+.chat-unread-dot{width:8px;height:8px;border-radius:50%;background:#ff4040;
+  box-shadow:0 0 5px rgba(255,64,64,.6);flex-shrink:0;display:inline-block}
+.ev-card .chat-unread-dot{position:absolute;bottom:8px;right:8px}
+.ev-card{position:relative}
+.btn-dot{position:absolute;top:4px;right:4px;width:7px;height:7px}
 
 /* ── KALENDER ANSICHT ─────────────────────────────────── */
 .view-switcher{display:flex;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;overflow:hidden;gap:0}
@@ -3813,7 +3818,7 @@ function renderCalendar(){
             <div class="cdp-actions">
               ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
               ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
-              <button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat</button>
+              <button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>
             </div>
           </div>`:''}
         </div>`;
@@ -3976,7 +3981,8 @@ function buildCard(ev, conflictIds=new Set()){
     ${cf.zeiten&&((!ev.relocated&&!ev.cancelled)||ev.startGastro)?`<div class="ev-time">${ev.startGastro||'\u2013'} \u2013 ${ev.schlussShow||'\u2013'} <span>\xB7 Ende ${ev.belegungsende||'\u2013'}</span></div>`:''}
     <div class="slist">${rows.join('')}</div>
     ${cf.notizen&&ev.notes?`<div class="ev-note">${ev.notes}</div>`:''}
-    ${ev.staff_briefing?`<button class="ev-briefing-btn" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">&#9432; Weitere Infos</button>`:''}`;
+    ${ev.staff_briefing?`<button class="ev-briefing-btn" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">&#9432; Weitere Infos</button>`:''}
+    ${Chat.canAccess(ev)?`<span class="chat-unread-dot" data-chat-dot="${ev.id}" style="display:${Chat.hasUnread(ev.id)?'inline-block':'none'}"></span>`:''}`;
   card.addEventListener('click',()=>App.openDet(ev));
   return card;
 }
@@ -4563,8 +4569,11 @@ const App={
     /* Locations + Config + Employees parallel laden */
     await Promise.all([LocationsMgr.load(), Config.load(), Employees.load()]);
     if(EVENTS.length>0){this.render();}
-    Cloud.fetch().then(ok=>{if(ok)App.render();});
+    Cloud.fetch().then(ok=>{
+      if(ok){App.render();Chat.loadUnreadState().then(()=>App.render());}
+    });
     setupRealtime();
+    Chat.subscribeNotifs();
   },
 
   async syncNow(){
@@ -5197,9 +5206,78 @@ const Ham={
 const Chat={
   _sub:null,
   _evId:null,
+  _notifSub:null,
 
+  // Check if current user can access this event's chat
   canAccess(ev){
-    return !!currentUser;
+    if(!currentUser)return false;
+    if(isAdmin())return true;
+    const myName=currentProfile?.display_name?.toLowerCase();
+    if(!myName)return false;
+    // Check barStaff
+    if(ev.barStaff?.some(s=>!s.miss&&s.name?.toLowerCase()===myName))return true;
+    // Check prodL
+    if(ev.prodL?.name?.toLowerCase()===myName)return true;
+    if(ev.prodL2?.name?.toLowerCase()===myName)return true;
+    return false;
+  },
+
+  // localStorage key for last-seen timestamps
+  _seenKey:'tkp_chat_seen',
+  _seen(){try{return JSON.parse(localStorage.getItem(this._seenKey)||'{}');}catch{return{};}},
+  _markSeen(evId){const s=this._seen();s[evId]=new Date().toISOString();localStorage.setItem(this._seenKey,JSON.stringify(s));},
+  hasUnread(evId){
+    const seen=this._seen()[evId];
+    const latest=this._latestMsg[evId];
+    if(!latest)return false;
+    if(!seen)return true;
+    return latest>seen;
+  },
+  _latestMsg:{}, // evId -> ISO timestamp of newest message
+
+  // Load latest message timestamps for all accessible events, then refresh UI
+  async loadUnreadState(){
+    if(!currentUser)return;
+    const myEvIds=EVENTS.filter(ev=>this.canAccess(ev)).map(ev=>ev.id);
+    if(!myEvIds.length)return;
+    // Query latest message per event in one go
+    const{data}=await db.from('event_messages')
+      .select('event_id,created_at')
+      .in('event_id',myEvIds)
+      .order('created_at',{ascending:false});
+    if(!data)return;
+    const latest={};
+    data.forEach(r=>{if(!latest[r.event_id])latest[r.event_id]=r.created_at;});
+    this._latestMsg=latest;
+    this._refreshDots();
+  },
+
+  _refreshDots(){
+    // Update dots on week-view cards and calendar panel buttons
+    document.querySelectorAll('[data-chat-dot]').forEach(el=>{
+      const evId=el.dataset.chatDot;
+      el.style.display=this.hasUnread(evId)?'inline-block':'none';
+    });
+  },
+
+  // Subscribe to unread notifications for all accessible events
+  subscribeNotifs(){
+    if(this._notifSub)try{db.removeChannel(this._notifSub);}catch(e){}
+    if(!currentUser)return;
+    const myEvIds=EVENTS.filter(ev=>this.canAccess(ev)).map(ev=>ev.id);
+    if(!myEvIds.length)return;
+    this._notifSub=db.channel('chat-notifs-'+currentUser.id)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'event_messages'},
+        payload=>{
+          const evId=payload.new?.event_id;
+          if(!evId||!myEvIds.includes(evId))return;
+          // Don't mark unread if it's own message or chat is currently open for this event
+          if(payload.new.user_id===currentUser.id)return;
+          if(this._evId===evId)return;
+          this._latestMsg[evId]=payload.new.created_at;
+          this._refreshDots();
+        })
+      .subscribe();
   },
 
   renderSection(ev){
@@ -5217,6 +5295,8 @@ const Chat={
       </div>
     </div>`;
     this._evId=ev.id;
+    this._markSeen(ev.id);
+    this._refreshDots();
     this.load(ev.id);
     this.subscribe(ev.id);
   },
@@ -5251,6 +5331,7 @@ const Chat={
       </div>`;
     }).join('');
     el.scrollTop=el.scrollHeight;
+    if(this._evId)this._markSeen(this._evId);
   },
 
   async deleteMsg(msgId){
@@ -5293,7 +5374,7 @@ function setupRealtime(){
   db.channel('events-realtime')
     .on('postgres_changes',{event:'*',schema:'public',table:'events'},async()=>{
       const ok=await Cloud.fetch();
-      if(ok)App.render();
+      if(ok){App.render();Chat.subscribeNotifs();}
     })
     .subscribe();
 }
