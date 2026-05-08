@@ -675,6 +675,12 @@ body.light{
 .ham-item:hover{background:var(--bg3)}
 .ham-danger{color:var(--miss)!important}
 .ham-div{height:1px;background:var(--bd);margin:6px 0}
+.ham-view-sw{display:flex;flex-direction:column;gap:2px;padding:4px 8px}
+.ham-view-btn{display:flex;align-items:center;gap:10px;padding:10px 10px;
+  font-size:.9rem;cursor:pointer;border:none;background:none;color:var(--txd);
+  width:100%;text-align:left;border-radius:8px;transition:background .13s;font-family:var(--fb)}
+.ham-view-btn:hover{background:var(--bg3);color:var(--tx)}
+.ham-view-btn.active{background:var(--bg4);color:var(--tx);font-weight:700}
 /* Mobile missing badge */
 #mob-miss{display:none;width:40px;height:40px;border-radius:10px;flex-shrink:0;
   align-items:center;justify-content:center;
@@ -1139,6 +1145,11 @@ body.light{
     <span id="sync-label-m">Nicht verbunden</span>
     <span style="margin-left:auto;opacity:.45">&#8635;</span>
   </button>
+  <div class="ham-div"></div>
+  <div class="ham-view-sw">
+    <button class="ham-view-btn" id="ham-vsw-week" onclick="App.setView('week');Ham.close()">&#128467; Wochenansicht</button>
+    <button class="ham-view-btn" id="ham-vsw-cal"  onclick="App.setView('calendar');Ham.close()">&#128197; Monatsansicht</button>
+  </div>
   <div class="ham-div"></div>
   <button class="ham-item" id="ham-profil" onclick="Profile.open();Ham.close()" style="display:none">&#128100; Mein Profil</button>
   <button class="ham-item" onclick="App.openSettings();Ham.close()">&#9881; Einstellungen</button>
@@ -3506,9 +3517,12 @@ const SF={
    RENDERING
    ============================================================ */
 function renderHeader(){
-  // Highlight active view switcher button
-  document.getElementById('vsw-week')?.classList.toggle('active', S.viewMode==='week');
-  document.getElementById('vsw-cal')?.classList.toggle('active', S.viewMode==='calendar');
+  // Highlight active view switcher buttons (desktop + ham menu)
+  const isWeek=S.viewMode==='week';
+  document.getElementById('vsw-week')?.classList.toggle('active',isWeek);
+  document.getElementById('vsw-cal')?.classList.toggle('active',!isWeek);
+  document.getElementById('ham-vsw-week')?.classList.toggle('active',isWeek);
+  document.getElementById('ham-vsw-cal')?.classList.toggle('active',!isWeek);
   if(S.viewMode==='calendar'){
     document.getElementById('week-kw').textContent=`${MONS[S.calMonth]} ${S.calYear}`;
     document.getElementById('week-range').textContent='';
