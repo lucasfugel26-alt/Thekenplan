@@ -745,6 +745,11 @@ body.light{
   /* Fix: hide full btn-miss (replaced by mob-miss icon), search full width */
   #btn-miss{display:none!important}
   .ctrl-input{width:100%;flex-basis:100%;flex:none}
+  /* Admin on mobile: show staff filter + miss button, hide import */
+  body.admin .btn-mob-hide{display:none!important}
+  body.admin #filter-staff{display:block!important;flex:1;min-width:0}
+  body.admin #btn-miss{display:inline-flex!important}
+  body.admin #mob-miss{display:none!important}
 }
 /* ── PRINT / PDF STYLES ──────────────────────────────── */
 @media print{
