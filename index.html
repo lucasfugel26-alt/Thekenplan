@@ -4394,10 +4394,8 @@ const Profile = {
   },
 
   printPDF() {
-    const emp = this._emp;
-    const shifts = this._shifts || [];
-    if (!emp) return;
-    Employees._printShiftPDF(emp.id);
+    if (!this._emp) return;
+    Employees.exportPDF(this._emp.id);
   },
 
   _shiftsHTML(shifts, empId) {
