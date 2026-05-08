@@ -3013,12 +3013,24 @@ const Employees = {
     if(!emp) return;
     const shifts=Shifts._cache[empId]||[];
     const today=lds(new Date());
-    const past=shifts.filter(s=>s.event_date<today&&!s.cancelled);
+    const future=shifts.filter(s=>s.event_date>=today&&!s.cancelled).sort((a,b)=>a.event_date.localeCompare(b.event_date));
+    const past=shifts.filter(s=>s.event_date<today&&!s.cancelled).sort((a,b)=>b.event_date.localeCompare(a.event_date));
     const bg=emp.color||'#22d4a4';
     const fg=_contrastColor(bg);
     const fmtH=h=>h%1===0?h+'h':h.toFixed(1)+'h';
     const totalH=past.reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
     const confirmedH=past.filter(s=>s.confirmed).reduce((sum,s)=>sum+Shifts.calcDuration(s.actual_start_time||s.start_time,s.actual_end_time||s.end_time),0);
+    const plannedH=future.reduce((sum,s)=>sum+Shifts.calcDuration(s.start_time,s.end_time),0);
+    const shiftRow=(s,showStatus)=>{
+      const st=s.actual_start_time||s.start_time||'–';
+      const et=s.actual_end_time||s.end_time||'–';
+      const dur=Shifts.calcDuration(st,et);
+      return`<tr class="${s.confirmed?'confirmed':''}">
+        <td>${_fmtDate(s.event_date)}</td><td>${s.event_name||'–'}</td><td>${s.role||'–'}</td>
+        <td>${st}</td><td>${et}</td><td>${dur?fmtH(dur):'–'}</td>
+        ${showStatus?`<td>${s.confirmed?'<span class="tick">&#10003; Bestätigt</span>':'Offen'}</td>`:'<td>–</td>'}
+      </tr>`;
+    };
     const win=window.open('','_blank');
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
     <title>Schichtbericht – ${emp.name}</title>
@@ -3027,39 +3039,47 @@ const Employees = {
       body{font-family:system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 20px;font-size:13px;color:#1a1a2e}
       .badge{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;
         background:${bg};color:${fg};font-weight:800;font-size:.9rem;vertical-align:middle}
-      h1{font-size:1.3rem;margin:8px 0 4px}
-      .meta{color:#666;font-size:.82rem;margin-bottom:20px}
-      .summary{display:flex;gap:16px;margin-bottom:20px}
-      .sum-box{border:1px solid #ddd;border-radius:8px;padding:10px 16px;text-align:center;flex:1}
+      h1{font-size:1.1rem;margin:20px 0 4px;padding-top:16px;border-top:2px solid #eee}
+      h1:first-of-type{border-top:none;margin-top:0}
+      .meta{color:#666;font-size:.82rem;margin-bottom:16px}
+      .summary{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+      .sum-box{border:1px solid #ddd;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:80px}
       .sum-val{font-size:1.3rem;font-weight:800}
       .sum-lbl{font-size:.7rem;color:#888;margin-top:2px}
-      table{width:100%;border-collapse:collapse}
+      table{width:100%;border-collapse:collapse;margin-bottom:8px}
       th{text-align:left;border-bottom:2px solid #ddd;padding:7px 8px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#666}
       td{padding:7px 8px;border-bottom:1px solid #eee;font-size:.82rem}
       tr.confirmed td{background:#f0fdf8}
       .tick{color:#16a34a;font-weight:700}
-      @media print{body{margin:0 16px}.no-print{display:none}}
+      .future-row td{background:#f5f9ff}
+      .no-print{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+      @media print{.no-print{display:none}}
     </style></head><body>
-    <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:7px 16px;border-radius:7px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-size:.84rem">&#128438; Drucken / Als PDF speichern</button>
+    <div class="no-print">
+      <button onclick="window.print()" style="padding:7px 16px;border-radius:7px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-size:.84rem">&#128438; Drucken / Als PDF speichern</button>
+      <button onclick="window.close()" style="padding:7px 16px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:.84rem">&#10005; Schlie&szlig;en</button>
+    </div>
     <p><span class="badge">${emp.kuerzel||'?'}</span> &nbsp;<strong style="font-size:1.1rem">${emp.name}</strong></p>
-    <h1>Schichtbericht – Vergangene Schichten</h1>
     <div class="meta">Erstellt: ${new Date().toLocaleDateString('de-DE')} &nbsp;|&nbsp; Rolle: ${emp.default_role||'–'} &nbsp;|&nbsp; Soll: ${emp.soll_stunden||0}h/${emp.soll_period==='week'?'Woche':'Monat'}</div>
+
+    ${future.length?`
+    <h1>&#128197; Geplante Schichten (${future.length})</h1>
+    <div class="summary">
+      <div class="sum-box"><div class="sum-val">${future.length}</div><div class="sum-lbl">Schichten</div></div>
+      <div class="sum-box"><div class="sum-val">${fmtH(plannedH)}</div><div class="sum-lbl">Geplante Stunden</div></div>
+    </div>
+    <table><thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th></tr></thead>
+    <tbody>${future.map(s=>shiftRow(s,false).replace('<tr ','<tr class="future-row" ')).join('')}</tbody></table>`:''}
+
+    ${past.length?`
+    <h1>&#128336; Vergangene Schichten (${past.length})</h1>
     <div class="summary">
       <div class="sum-box"><div class="sum-val">${past.length}</div><div class="sum-lbl">Schichten</div></div>
       <div class="sum-box"><div class="sum-val">${fmtH(totalH)}</div><div class="sum-lbl">Gesamtstunden</div></div>
       <div class="sum-box"><div class="sum-val" style="color:#16a34a">${fmtH(confirmedH)}</div><div class="sum-lbl">Bestätigt</div></div>
     </div>
     <table><thead><tr><th>Datum</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th></tr></thead>
-    <tbody>${past.map(s=>{
-      const st=s.actual_start_time||s.start_time||'–';
-      const et=s.actual_end_time||s.end_time||'–';
-      const dur=Shifts.calcDuration(st,et);
-      return `<tr class="${s.confirmed?'confirmed':''}">
-        <td>${_fmtDate(s.event_date)}</td><td>${s.event_name||'–'}</td><td>${s.role||'–'}</td>
-        <td>${st}</td><td>${et}</td><td>${dur?fmtH(dur):'–'}</td>
-        <td>${s.confirmed?'<span class="tick">&#10003; Bestätigt</span>':'Offen'}</td>
-      </tr>`;
-    }).join('')}</tbody></table>
+    <tbody>${past.map(s=>shiftRow(s,true)).join('')}</tbody></table>`:''}
     </body></html>`);
     win.document.close();
   },
@@ -3818,7 +3838,7 @@ function renderCalendar(){
             <div class="cdp-actions">
               ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
               ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
-              <button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>
+              ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
             </div>
           </div>`:''}
         </div>`;
@@ -3917,7 +3937,9 @@ function buildCard(ev, conflictIds=new Set()){
   const card=document.createElement('div');
   let cls='ev-card';
   if(ev.missingStaff)cls+=' miss-card';
-  const isMyShift=currentProfile&&ev.barStaff?.some(s=>!s.miss&&s.name&&s.name.toLowerCase()===currentProfile.display_name?.toLowerCase());
+  const myEmpCard=Employees.getAll().find(e=>e.profile_id===currentUser?.id);
+  const myNameCard=(myEmpCard?.name||currentProfile?.display_name||'').toLowerCase().trim();
+  const isMyShift=!!myNameCard&&ev.barStaff?.some(s=>!s.miss&&s.name&&s.name.toLowerCase()===myNameCard);
   if(isMyShift)cls+=' my-shift';
   if(ev.cancelled)   cls+=' cancelled';
   if(ev.relocated)   cls+=' relocated';
@@ -5210,11 +5232,11 @@ const Chat={
   canAccess(ev){
     if(!currentUser)return false;
     if(isAdmin())return true;
-    const myName=currentProfile?.display_name?.toLowerCase();
+    // Use employee name (primary) — barStaff names come from employees.name, not display_name
+    const myEmp=Employees.getAll().find(e=>e.profile_id===currentUser.id);
+    const myName=(myEmp?.name||currentProfile?.display_name||'').toLowerCase().trim();
     if(!myName)return false;
-    // Check barStaff
     if(ev.barStaff?.some(s=>!s.miss&&s.name?.toLowerCase()===myName))return true;
-    // Check prodL
     if(ev.prodL?.name?.toLowerCase()===myName)return true;
     if(ev.prodL2?.name?.toLowerCase()===myName)return true;
     return false;
