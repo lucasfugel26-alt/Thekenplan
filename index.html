@@ -590,7 +590,7 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .cdp-staff-pills{display:flex;flex-wrap:wrap;gap:4px}
 .cdp-staff-pill{font-size:.7rem;background:var(--bg4);border:1px solid var(--bd);
   border-radius:6px;padding:2px 8px;color:var(--tx)}
-.cdp-staff-pill.miss{background:var(--missb);border-color:rgba(255,64,64,.3);color:var(--miss)}
+.cdp-staff-pill.miss{background:var(--miss);border-color:var(--miss);color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
 .cdp-staff-pill.empty{color:var(--txm)}
 .cdp-staff-pill em{font-style:normal;color:var(--txm);font-size:.65rem}
 .cdp-note-box{font-size:.75rem;color:var(--miss);font-style:italic;
@@ -3760,9 +3760,19 @@ function renderCalendar(){
         const loc=LOCS[ev.location]||{};
         const expanded=CalV._open===ev.id;
         const names=[...allNames(ev)];
-        const staffHtml=ev.barStaff&&ev.barStaff.length
-          ?ev.barStaff.map(s=>`<span class="cdp-staff-pill${s.miss?' miss':''}">${_esc(s.name)}${s.ov?` <em>${s.ov}</em>`:''}</span>`).join('')
-          :(names.length?names.map(n=>`<span class="cdp-staff-pill">${_esc(n)}</span>`).join(''):'<span class="cdp-staff-pill empty">–</span>');
+        let staffHtml;
+        if(ev.barStaff&&ev.barStaff.length){
+          const present=ev.barStaff.filter(s=>!s.miss);
+          const missing=ev.barStaff.filter(s=>s.miss);
+          staffHtml=present.map(s=>`<span class="cdp-staff-pill">${_esc(s.name)}</span>`).join('')
+            +missing.map(s=>{
+              const t=barStart(s.pos,ev.startGastro,s.ov);
+              return`<span class="cdp-staff-pill miss">${t}</span>`;
+            }).join('');
+          if(!staffHtml)staffHtml='<span class="cdp-staff-pill empty">–</span>';
+        } else {
+          staffHtml=names.length?names.map(n=>`<span class="cdp-staff-pill">${_esc(n)}</span>`).join(''):'<span class="cdp-staff-pill empty">–</span>';
+        }
         return`<div class="cdp-ev${expanded?' cdp-ev-open':''}" style="border-left-color:${loc.color||'var(--bd)'}">
           <div class="cdp-ev-hd" onclick="CalV.toggleEv('${ev.id}')">
             <div class="cdp-main">
