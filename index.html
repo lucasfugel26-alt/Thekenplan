@@ -3711,29 +3711,6 @@ function renderCalendar(){
   });
   html+=`</div></div>`;
 
-  const buildDayPanel=()=>{
-    if(!S.calDay)return`<div class="cdp"><div class="cdp-empty" style="padding-top:30px">Tag auswählen</div></div>`;
-    const dayEvs=(evByDate[S.calDay]||[]).sort((a,b)=>(a.startGastro||'').localeCompare(b.startGastro||''));
-    const dObj=new Date(S.calDay+'T12:00');
-    const lbl=`${DAYS[weekdayIdx(S.calDay)]}, ${dObj.getDate()}. ${MONS[dObj.getMonth()]}`;
-    return`<div class="cdp"><div class="cdp-title">${lbl}</div>${
-      dayEvs.length?dayEvs.map(ev=>{
-        const loc=LOCS[ev.location]||{};
-        return`<div class="cdp-ev" style="border-left-color:${loc.color||'var(--bd)'}" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">
-          <div class="cdp-main">
-            <div class="cdp-name${ev.cancelled?' cancelled':''}">${_esc(ev.event)}</div>
-            <div class="cdp-meta">
-              <span class="cdp-loc" style="background:${loc.color||'#888'}18;color:${loc.color||'var(--txd)'}">${loc.short||''}</span>
-              <span class="cdp-staff">${[...allNames(ev)].slice(0,3).join(' · ')||'–'}</span>
-            </div>
-            ${ev.notes?`<div class="cdp-note">${_esc(ev.notes)}</div>`:''}
-          </div>
-          <div class="cdp-time">${ev.startGastro||'–'}</div>
-        </div>`;
-      }).join(''):`<div class="cdp-empty">Kein Event</div>`
-    }</div>`;
-  };
-
   grid.classList.add('cal-mode');
 
   const buildDayPanel=()=>{
