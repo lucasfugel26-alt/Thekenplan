@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     // ── Eigene Kontaktdaten aktualisieren (kein Admin nötig) ─────────────────
     if (action === 'updateEmployeeContact') {
-      const { email, phone } = req.body;
+      const { email, phone, emergency_name, emergency_phone, emergency_email } = req.body;
       // Find the employee linked to this user
       const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?profile_id=eq.${callerId}&select=id`, {
         headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
@@ -57,7 +57,13 @@ export default async function handler(req, res) {
           apikey: serviceKey,
           Prefer: 'return=minimal',
         },
-        body: JSON.stringify({ email: email || null, phone: phone || null }),
+        body: JSON.stringify({
+          email: email || null,
+          phone: phone || null,
+          emergency_name: emergency_name || null,
+          emergency_phone: emergency_phone || null,
+          emergency_email: emergency_email || null,
+        }),
       });
       if (!updRes.ok) {
         const err = await updRes.json().catch(() => ({}));

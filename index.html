@@ -901,9 +901,23 @@ body.light{
 .emp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100%;gap:12px;color:var(--txm);font-size:.9rem}
 .emp-det-head{display:flex;align-items:center;gap:16px;margin-bottom:24px}
-.emp-det-head h3{font-family:var(--fh);font-size:1.4rem;font-weight:800;flex:1}
+.emp-det-head h3{font-family:var(--fh);font-size:1.4rem;font-weight:800}
+.prof-pdf-btn{font-size:.78rem;padding:6px 12px;flex-shrink:0}
 .emp-det-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
 .emp-det-meta-item{font-size:.8rem;color:var(--txm);display:flex;align-items:center;gap:4px}
+/* Profile collapsible contact block */
+.profil-details-block{background:var(--bg3);border-radius:12px;margin:18px 0 8px;overflow:hidden}
+.profil-details-summary{padding:14px 20px;font-size:.85rem;font-weight:700;cursor:pointer;
+  list-style:none;display:flex;align-items:center;justify-content:space-between;color:var(--tx)}
+.profil-details-summary::-webkit-details-marker{display:none}
+.profil-details-summary::after{content:'▼';font-size:.65rem;color:var(--txm);transition:transform .2s}
+details[open].profil-details-block .profil-details-summary::after{transform:rotate(180deg)}
+.profil-details-body{padding:0 20px 20px}
+/* Desktop: always open, non-interactive summary */
+@media(min-width:701px){
+  .profil-details-summary{pointer-events:none;cursor:default}
+  .profil-details-summary::after{display:none}
+}
 .emp-status-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;
   font-size:.72rem;font-weight:700}
 .emp-status-pill.aktiv{background:rgba(34,212,164,.15);color:#22d4a4;border:1px solid rgba(34,212,164,.3)}
@@ -3797,7 +3811,7 @@ function renderCalendar(){
             ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
             ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
             <div class="cdp-actions">
-              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.openEdit(EVENTS.find(e=>e.id==='${ev.id}'))">Bearbeiten</button>`:''}
+              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
               <button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat</button>
             </div>
           </div>`:''}
@@ -4301,6 +4315,8 @@ const Profile = {
 
   async _render(emp) {
     const shifts = await Shifts.loadForEmployee(emp.id);
+    this._shifts = shifts;
+    this._emp = emp;
     const bg = emp.color || '#22d4a4';
     const fg = _contrastColor(bg);
     const now = new Date();
@@ -4313,33 +4329,68 @@ const Profile = {
     document.getElementById('profil-content').innerHTML = `
       <div class="emp-det-head">
         <span class="emp-badge lg" style="background:${bg};color:${fg}">${emp.kuerzel||'?'}</span>
-        <h3>${_esc(emp.name)}</h3>
-        <span class="emp-status-pill ${emp.status||'aktiv'}">${emp.status||'aktiv'}</span>
+        <div style="flex:1;min-width:0">
+          <h3>${_esc(emp.name)}</h3>
+          <span class="emp-status-pill ${emp.status||'aktiv'}">${emp.status||'aktiv'}</span>
+        </div>
+        <button class="btn btn-ghost prof-pdf-btn" onclick="Profile.printPDF()" title="Schichtbericht als PDF">&#128438; PDF</button>
       </div>
       ${emp.default_role ? `<div class="emp-det-meta"><span class="emp-det-meta-item">&#127970; ${_esc(emp.default_role)}</span></div>` : ''}
-      <div style="background:var(--bg3);border-radius:12px;padding:20px;margin:18px 0 8px">
-        <div class="stg-subsec" style="margin-top:0;margin-bottom:12px">Kontaktdaten</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="fg">
-            <label>E-Mail <span style="color:var(--txm);font-weight:400;font-size:.75rem">(nur Kontakt, kein Login)</span></label>
-            <input class="fi" id="profil-email" type="email" value="${_esc(emp.email||'')}">
+
+      <details class="profil-details-block" id="profil-kontakt-details">
+        <summary class="profil-details-summary">Kontaktdaten</summary>
+        <div class="profil-details-body">
+          <div class="stg-subsec" style="margin-top:0;margin-bottom:10px">Eigene Kontaktdaten</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="fg">
+              <label>E-Mail <span style="color:var(--txm);font-weight:400;font-size:.75rem">(nur Kontakt, kein Login)</span></label>
+              <input class="fi" id="profil-email" type="email" value="${_esc(emp.email||'')}">
+            </div>
+            <div class="fg">
+              <label>Telefon</label>
+              <input class="fi" id="profil-phone" type="tel" value="${_esc(emp.phone||'')}">
+            </div>
           </div>
-          <div class="fg">
-            <label>Telefon</label>
-            <input class="fi" id="profil-phone" type="tel" value="${_esc(emp.phone||'')}">
+          <div class="stg-subsec" style="margin-top:18px;margin-bottom:10px">Notfallkontakt</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="fg">
+              <label>Name</label>
+              <input class="fi" id="profil-emg-name" type="text" value="${_esc(emp.emergency_name||'')}" placeholder="z.B. Maria Muster">
+            </div>
+            <div class="fg">
+              <label>Telefon</label>
+              <input class="fi" id="profil-emg-phone" type="tel" value="${_esc(emp.emergency_phone||'')}">
+            </div>
+            <div class="fg">
+              <label>E-Mail</label>
+              <input class="fi" id="profil-emg-email" type="email" value="${_esc(emp.emergency_email||'')}">
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+            <button class="btn btn-ghost" onclick="Profile.saveContact('${emp.id}')">Speichern</button>
+            <span id="profil-save-msg" style="font-size:.78rem;display:none;color:#22d4a4">&#10003; Gespeichert</span>
+            <span id="profil-err-msg" style="font-size:.78rem;display:none;color:var(--miss)"></span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
-          <button class="btn btn-ghost" onclick="Profile.saveContact('${emp.id}')">Speichern</button>
-          <span id="profil-save-msg" style="font-size:.78rem;display:none;color:#22d4a4">&#10003; Gespeichert</span>
-          <span id="profil-err-msg" style="font-size:.78rem;display:none;color:var(--miss)"></span>
-        </div>
-      </div>
+      </details>
+
       <div class="emp-hours-card">
         <div class="emp-hours-head"><h4>&#9203; Stunden diesen Monat</h4></div>
         <div class="emp-hours-grid">${Employees._hoursGridHTML(istH, sollH, diff, 'month', period)}</div>
       </div>
       <div id="profil-shifts">${this._shiftsHTML(shifts, emp.id)}</div>`;
+    // Desktop: open contact details by default
+    if(window.innerWidth>=701){
+      const d=document.getElementById('profil-kontakt-details');
+      if(d)d.open=true;
+    }
+  },
+
+  printPDF() {
+    const emp = this._emp;
+    const shifts = this._shifts || [];
+    if (!emp) return;
+    Employees._printShiftPDF(emp.id);
   },
 
   _shiftsHTML(shifts, empId) {
@@ -4441,8 +4492,11 @@ const Profile = {
   },
 
   async saveContact(empId) {
-    const email = (document.getElementById('profil-email').value || '').trim();
-    const phone = (document.getElementById('profil-phone').value || '').trim();
+    const email = (document.getElementById('profil-email')?.value || '').trim();
+    const phone = (document.getElementById('profil-phone')?.value || '').trim();
+    const emergency_name  = (document.getElementById('profil-emg-name')?.value  || '').trim();
+    const emergency_phone = (document.getElementById('profil-emg-phone')?.value || '').trim();
+    const emergency_email = (document.getElementById('profil-emg-email')?.value || '').trim();
     const errEl = document.getElementById('profil-err-msg');
     const {data:{session}} = await db.auth.getSession();
     const token = session?.access_token;
@@ -4450,7 +4504,7 @@ const Profile = {
     const r = await fetch('/api/admin?action=updateEmployeeContact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ email, phone }),
+      body: JSON.stringify({ email, phone, emergency_name, emergency_phone, emergency_email }),
     });
     const data = await r.json();
     if (!r.ok) {
