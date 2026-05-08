@@ -528,6 +528,23 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
 .cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .cal-more{font-size:.46rem;color:var(--txm);line-height:1}
+/* Mobile: show dots, hide rows */
+.cal-dots-mob{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.cal-rows-desk{display:none}
+/* Desktop event rows */
+@media(min-width:701px){
+  .cal-dots-mob{display:none}
+  .cal-rows-desk{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:3px;min-width:0}
+  .cal-ev-row{display:grid;grid-template-columns:8px auto 1fr auto;align-items:center;
+    gap:4px;border-radius:4px;padding:2px 3px;cursor:pointer;transition:background .1s;min-width:0}
+  .cal-ev-row:hover{background:var(--bg3)}
+  .cal-ev-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .cal-ev-loc{font-size:.6rem;font-weight:700;white-space:nowrap;flex-shrink:0}
+  .cal-ev-name{font-size:.68rem;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .cal-ev-cancelled .cal-ev-name{text-decoration:line-through;opacity:.5}
+  .cal-ev-time{font-size:.6rem;color:var(--txm);white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0}
+  .cal-ev-more{font-size:.6rem;color:var(--txm);padding:1px 3px}
+}
 /* Day events panel */
 .cdp{margin:10px 8px 0;border-top:1px solid var(--bd);padding-top:10px;padding-bottom:8px}
 .cdp-title{font-size:.68rem;font-weight:700;color:var(--txd);
@@ -3638,11 +3655,26 @@ function renderCalendar(){
     const ds=`${fixY}-${String(fixM+1).padStart(2,'0')}-${String(cell.d).padStart(2,'0')}`;
     const evs=evByDate[ds]||[];
     const cls=['cal-cell',cell.other?'cal-other':'',ds===todayS?'cal-today':'',ds===S.calDay?'cal-sel':''].filter(Boolean).join(' ');
+    // Mobile: dots only
     const dots=evs.slice(0,4).map(ev=>{const c=(LOCS[ev.location]||{}).color||'var(--txm)';return`<span class="cal-dot" style="background:${c}"></span>`;}).join('');
     const more=evs.length>4?`<div class="cal-more">+${evs.length-4}</div>`:'';
+    // Desktop: compact event rows (dot · short · name · time)
+    const MAX_ROWS=3;
+    const rows=evs.slice(0,MAX_ROWS).map(ev=>{
+      const loc=LOCS[ev.location]||{};
+      const c=loc.color||'var(--txm)';
+      return`<div class="cal-ev-row${ev.cancelled?' cal-ev-cancelled':''}" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">
+        <span class="cal-ev-dot" style="background:${c}"></span>
+        <span class="cal-ev-loc" style="color:${c}">${loc.short||''}</span>
+        <span class="cal-ev-name">${_esc(ev.event)}</span>
+        <span class="cal-ev-time">${ev.startGastro||''}</span>
+      </div>`;
+    }).join('');
+    const moreRows=evs.length>MAX_ROWS?`<div class="cal-ev-more">+${evs.length-MAX_ROWS}</div>`:'';
     html+=`<div class="${cls}" onclick="CalV.selectDay('${ds}')">
       <div class="cal-num">${cell.d}</div>
-      ${evs.length?`<div class="cal-dots">${dots}${more}</div>`:''}
+      <div class="cal-dots-mob">${evs.length?dots+more:''}</div>
+      <div class="cal-rows-desk">${rows}${moreRows}</div>
     </div>`;
   });
   html+=`</div></div>`;
