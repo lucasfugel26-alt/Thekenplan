@@ -1313,11 +1313,17 @@ details[open].profil-details-block .profil-details-summary::after{transform:rota
         </div>
 
         <div class="fsec">Zeiten</div>
-        <div class="frow3">
+        <div class="frow">
           <div class="fg">
-            <label>Start Gastro</label>
+            <label>Einlasszeit</label>
+            <input class="fi" type="time" id="f-einlass" oninput="Form.onEinlassChange(this.value)">
+          </div>
+          <div class="fg">
+            <label>Start Gastro <span style="font-size:.67rem;color:var(--txm);font-weight:400">(auto: Einlass −30 Min)</span></label>
             <input class="fi" type="time" id="f-gastro">
           </div>
+        </div>
+        <div class="frow">
           <div class="fg">
             <label>Schluss Show</label>
             <input class="fi" type="time" id="f-schluss">
@@ -4116,6 +4122,7 @@ const Form={
     document.getElementById('f-gastro').value='';
     document.getElementById('f-schluss').value='';
     document.getElementById('f-ende').value='';
+    const einlass=document.getElementById('f-einlass');if(einlass)einlass.value='';
     const bv=document.getElementById('f-besucher');if(bv)bv.value='';
     const vnr=document.getElementById('f-vnr');if(vnr)vnr.value='';
     this.setBecher(document.querySelector('.bt-btn[data-val="unbekannt"]'));
@@ -4127,6 +4134,14 @@ const Form={
   setBecher(btn){
     document.querySelectorAll('.bt-btn').forEach(b=>b.classList.remove('active'));
     if(btn)btn.classList.add('active');
+  },
+
+  onEinlassChange(val){
+    const gastroEl=document.getElementById('f-gastro');
+    if(!val||!gastroEl)return;
+    const [h,m]=val.split(':').map(Number);
+    const mins=((h*60+m-30)%1440+1440)%1440;
+    gastroEl.value=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
   },
 
   /* Formular mit bestehendem Event vorbef\u00fcllen */
@@ -4146,6 +4161,7 @@ const Form={
     document.getElementById('f-gastro').value=ev.startGastro||'';
     document.getElementById('f-schluss').value=ev.schlussShow||'';
     document.getElementById('f-ende').value=ev.belegungsende||'';
+    const einlassEl=document.getElementById('f-einlass');if(einlassEl)einlassEl.value=ev.einlasszeit||'';
     const bv=document.getElementById('f-besucher');if(bv)bv.value=ev.besucherzahl??'';
     const vnr=document.getElementById('f-vnr');if(vnr)vnr.value=ev.veranstaltungsnummer||ev.veranstaltungsnr||ev.vnr||'';
     const becherVal=ev.bechertyp||(ev.plastik?'plastik':'unbekannt');
@@ -4226,6 +4242,7 @@ const Form={
       besucherzahl:bv&&bv.value?Number(bv.value):null,
       veranstaltungsnummer:vnr?vnr.value.trim()||null:null,
       prodL:plName?{name:plName,startTime:plTime||'--:--',employeeId:document.getElementById('f-pl-empid')?.value||null}:null,
+      einlasszeit:document.getElementById('f-einlass')?.value||null,
       startGastro:document.getElementById('f-gastro').value||null,
       schlussShow:document.getElementById('f-schluss').value||null,
       belegungsende:document.getElementById('f-ende').value||null,
@@ -5573,7 +5590,7 @@ const Import = {
           <input type="checkbox" id="imp-cb-${i}" checked onchange="Import._imported[${i}]._selected=this.checked">
           <div class="imp-info">
             <div class="imp-name">${_esc(ev.event || '(kein Name)')}</div>
-            <div class="imp-date">${ev.date || 'kein Datum'} · ${ev.startGastro || '?'}${ev.schlussShow ? ' – ' + ev.schlussShow : ''}${ev.belegungsende ? ' (Ende: ' + ev.belegungsende + ')' : ''}</div>
+            <div class="imp-date">${ev.date || 'kein Datum'}${ev.einlasszeit ? ' · Einlass: ' + ev.einlasszeit : ''}${ev.schlussShow ? ' – ' + ev.schlussShow : ''}${ev.belegungsende ? ' (Ende: ' + ev.belegungsende + ')' : ''}</div>
             ${ev.veranstaltungsnummer ? `<div style="font-size:.7rem;color:var(--txm)">Nr: ${_esc(String(ev.veranstaltungsnummer))}</div>` : ''}
             ${ev.besucherzahl ? `<div style="font-size:.7rem;color:var(--txm)">Besucher: ${ev.besucherzahl}</div>` : ''}
             ${ev.notes ? `<div style="font-size:.7rem;color:var(--txm)">${_esc(ev.notes)}</div>` : ''}
@@ -5590,12 +5607,20 @@ const Import = {
     const sel = this._imported.filter(e => e._selected);
     if (!sel.length) { alert('Keine Events ausgewählt.'); return; }
     sel.forEach(ev => {
+      let startGastro = ev.startGastro || null;
+      const einlasszeit = ev.einlasszeit || null;
+      if (!startGastro && einlasszeit) {
+        const [h,m] = einlasszeit.split(':').map(Number);
+        const mins = ((h*60+m-30)%1440+1440)%1440;
+        startGastro = String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
+      }
       EVENTS.push({
         id: uid(),
         date: ev.date || '',
         location: ev._location || Number(Object.keys(LOCS)[0]) || 1,
         event: ev.event || '(kein Name)',
         notes: ev.notes || '',
+        einlasszeit,
         veranstaltungsnummer: ev.veranstaltungsnummer || null,
         belegungsende: ev.belegungsende || null,
         besucherzahl: ev.besucherzahl ? Number(ev.besucherzahl) : null,
@@ -5604,7 +5629,7 @@ const Import = {
         missingStaff: false,
         kundenkarte: '',
         prodL: null,
-        startGastro: ev.startGastro || null,
+        startGastro,
         schlussShow: ev.schlussShow || null,
         barStaff: [],
       });

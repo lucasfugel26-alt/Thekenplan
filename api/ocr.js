@@ -19,8 +19,8 @@ Format jedes Eintrags:
 {
   "date": "YYYY-MM-DD",
   "event": "Name der Veranstaltung",
-  "startGastro": "HH:MM",
-  "schlussShow": "HH:MM",
+  "einlasszeit": "HH:MM Einlasszeit/Türöffnung/Doors Open, sonst leer",
+  "schlussShow": "HH:MM Show-Ende/Konzertende, sonst leer",
   "location": "Kürzel aus der Liste oben, oder leerer String wenn unklar",
 ${optionalFields.join(',\n')}
 }
