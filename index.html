@@ -492,6 +492,12 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .chat-empty{font-size:.75rem;color:var(--txd);font-style:italic;padding:6px 0}
 
 /* ── KALENDER ANSICHT ─────────────────────────────────── */
+.view-switcher{display:flex;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;overflow:hidden;gap:0}
+.view-sw-btn{background:none;border:none;color:var(--txd);font-size:.75rem;padding:5px 12px;cursor:pointer;
+  transition:background .13s,color .13s;white-space:nowrap;font-family:var(--fb)}
+.view-sw-btn:hover{background:var(--bg4);color:var(--tx)}
+.view-sw-btn.active{background:var(--bg4);color:var(--tx);font-weight:700;box-shadow:inset 0 0 0 1px var(--bda)}
+/* old single toggle kept for mobile */
 .view-toggle-btn{display:flex;align-items:center;justify-content:center;
   width:32px;height:32px;border-radius:8px;background:var(--bg3);
   border:1px solid var(--bd);color:var(--txd);cursor:pointer;font-size:.9rem;
@@ -1047,10 +1053,13 @@ body.light{
     <div class="app-title">
       <h1>Thekenplan</h1>
       <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
-      <button class="view-toggle-btn" id="view-toggle-btn" onclick="App.toggleView()" title="Kalenderansicht">&#128197;</button>
       <button id="ham-btn" onclick="Ham.toggle()" title="Menü">&#9776;</button>
     </div>
     <div id="header-right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="view-switcher btn-mob-hide">
+        <button class="view-sw-btn" id="vsw-week" onclick="App.setView('week')" title="Wochenansicht">&#128467; Woche</button>
+        <button class="view-sw-btn" id="vsw-cal"  onclick="App.setView('calendar')" title="Kalenderansicht">&#128197; Monat</button>
+      </div>
       <button class="btn-sync" id="sync-btn" onclick="App.syncNow()" title="Daten synchronisieren">
         <span class="sync-dot off" id="sync-dot"></span>
         <span id="sync-label">Nicht verbunden</span>
@@ -3497,14 +3506,14 @@ const SF={
    RENDERING
    ============================================================ */
 function renderHeader(){
-  const btn=document.getElementById('view-toggle-btn');
+  // Highlight active view switcher button
+  document.getElementById('vsw-week')?.classList.toggle('active', S.viewMode==='week');
+  document.getElementById('vsw-cal')?.classList.toggle('active', S.viewMode==='calendar');
   if(S.viewMode==='calendar'){
     document.getElementById('week-kw').textContent=`${MONS[S.calMonth]} ${S.calYear}`;
     document.getElementById('week-range').textContent='';
-    if(btn)btn.classList.add('cal-active');
     return;
   }
-  if(btn)btn.classList.remove('cal-active');
   const mon=S.monday,sun=new Date(mon);sun.setDate(sun.getDate()+6);
   const fmt=d=>`${String(d.getDate()).padStart(2,'0')}. ${MONS[d.getMonth()]}`;
   document.getElementById('week-kw').textContent=`KW ${isoWeek(mon)} \xB7 ${mon.getFullYear()}`;
@@ -3695,7 +3704,7 @@ function renderCalendar(){
     const rows=evs.slice(0,MAX_ROWS).map(ev=>{
       const loc=LOCS[ev.location]||{};
       const c=loc.color||'var(--txm)';
-      return`<div class="cal-ev-row${ev.cancelled?' cal-ev-cancelled':''}" onclick="event.stopPropagation();App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">
+      return`<div class="cal-ev-row${ev.cancelled?' cal-ev-cancelled':''}">
         <span class="cal-ev-dot" style="background:${c}"></span>
         <span class="cal-ev-loc" style="color:${c}">${loc.short||''}</span>
         <span class="cal-ev-name">${_esc(ev.event)}</span>
@@ -4429,6 +4438,13 @@ const App={
       const dx=e.changedTouches[0].clientX-_tx;
       if(Math.abs(dx)>60&&Math.abs(dx)<300){dx>0?App.prevWeek():App.nextWeek();}
     },{passive:true});
+    /* Restore last view mode */
+    const savedView=localStorage.getItem('thekenplan_viewmode');
+    if(savedView==='calendar'){
+      S.viewMode='calendar';
+      S.calYear=new Date().getFullYear();
+      S.calMonth=new Date().getMonth();
+    }
     /* Locations + Config + Employees parallel laden */
     await Promise.all([LocationsMgr.load(), Config.load(), Employees.load()]);
     if(EVENTS.length>0){this.render();}
@@ -4442,14 +4458,20 @@ const App={
   },
 
   render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
-  toggleView(){
-    S.viewMode=S.viewMode==='week'?'calendar':'week';
-    if(S.viewMode==='calendar'){
+  setView(mode){
+    if(S.viewMode===mode)return;
+    S.viewMode=mode;
+    localStorage.setItem('thekenplan_viewmode',mode);
+    if(mode==='calendar'){
       S.calYear=S.monday.getFullYear();
       S.calMonth=S.monday.getMonth();
       S.calDay=null;
+      CalV._open=null;
     }
     this.render();
+  },
+  toggleView(){
+    this.setView(S.viewMode==='week'?'calendar':'week');
   },
   calPrev(){
     S.calMonth--;
