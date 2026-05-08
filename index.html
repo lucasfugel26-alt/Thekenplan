@@ -934,6 +934,19 @@ body.light{
 .emp-shift-tbl td{padding:9px 10px;border-bottom:1px solid var(--bd);color:var(--tx)}
 .emp-shift-tbl tr:last-child td{border-bottom:none}
 .emp-shift-tbl tr:hover td{background:var(--bg3)}
+/* Mobile: hide table, show cards */
+@media(max-width:700px){
+  .emp-shift-tbl{display:none}
+  .shift-cards{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .shift-card{background:var(--bg3);border-radius:10px;padding:11px 13px;font-size:.82rem}
+  .shift-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .shift-card-name{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .shift-card-loc{font-size:.65rem;font-weight:700;color:var(--txm);flex-shrink:0}
+  .shift-card-meta{display:flex;gap:10px;color:var(--txm);font-size:.75rem;flex-wrap:wrap}
+  .shift-card-date{color:var(--txd)}
+  .shift-card-badge{margin-top:6px}
+}
+@media(min-width:701px){.shift-cards{display:none}}
 
 /* employee modal */
 .emp-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;
@@ -4329,16 +4342,39 @@ const Profile = {
     const colgroup = `<colgroup><col style="width:110px"><col style="width:56px"><col><col style="width:130px"><col style="width:72px"><col style="width:72px"><col style="width:72px"><col style="width:120px"></colgroup>`;
     const thead = `<thead><tr><th>Datum</th><th>Ort</th><th>Veranstaltung</th><th>Rolle</th><th>Start</th><th>Ende</th><th>Dauer</th><th></th></tr></thead>`;
     const tbl = body => `<table class="emp-shift-tbl" style="width:100%;table-layout:fixed">${colgroup}${thead}${body}</table>`;
+    const cards = rows => `<div class="shift-cards">${rows.map(s=>{
+      const st=s.actual_start_time||s.start_time||'–';
+      const et=s.actual_end_time||s.end_time||'–';
+      const dur=Shifts.calcDuration(st,et);
+      const durStr=dur>0?(dur%1===0?dur+'h':dur.toFixed(1)+'h'):'–';
+      const ev=EVENTS.find(e=>e.id===s.event_id);
+      const loc=ev?(LOCS[ev.location]?.short||''):'';
+      return`<div class="shift-card">
+        <div class="shift-card-top">
+          <span class="shift-card-name">${_esc(s.event_name||'–')}</span>
+          <span class="shift-card-loc">${_esc(loc)}</span>
+        </div>
+        <div class="shift-card-meta">
+          <span class="shift-card-date">${_fmtDate(s.event_date)}</span>
+          <span>${_esc(s.role||'–')}</span>
+          <span>${st}–${et}</span>
+          <span>${durStr}</span>
+        </div>
+        ${s.confirmed?`<div class="shift-card-badge"><span class="shift-confirmed-badge">&#10003; Bestätigt</span></div>`:''}
+      </div>`;
+    }).join('')}</div>`;
     let html = '';
     if (future.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128197; Geplante Schichten (${future.length})
         <span class="shift-planned-badge">${fmtH(plannedH)} geplant</span></div>
-        ${tbl(`<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody>`)}`;
+        ${tbl(`<tbody>${future.map(s => this._shiftRow(s, false)).join('')}</tbody>`)}
+        ${cards(future)}`;
     }
     if (past.length) {
       html += `<div class="shift-section-hdr" style="margin-top:20px">&#128336; Vergangene Schichten (${past.length})
         <span class="shift-confirmed-badge">${fmtH(confirmedH)} best&auml;tigt</span></div>
-        ${tbl(`<tbody>${past.map(s => this._shiftRow(s, true)).join('')}</tbody>`)}`;
+        ${tbl(`<tbody>${past.map(s => this._shiftRow(s, true)).join('')}</tbody>`)}
+        ${cards(past)}`;
     }
     if (!future.length && !past.length)
       html = '<div style="color:var(--txm);font-size:.82rem;padding:14px 0">Noch keine Schichten erfasst.</div>';
