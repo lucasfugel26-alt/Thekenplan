@@ -515,9 +515,7 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
   .cal-dots{flex-wrap:wrap;gap:4px!important;padding:0 2px}
   .cal-dot{width:8px!important;height:8px!important;border-radius:50%!important}
   .cal-dow{font-size:.7rem;padding:6px 0}
-  .cdp{margin:16px 0 0}
-  .cdp-ev{padding:11px 14px}
-  .cdp-name{font-size:.95rem}
+  .cdp-name{font-size:.92rem}
 }
 .cal-cell:hover{background:var(--bg3)}
 .cal-cell.cal-other .cal-num{color:var(--txm)}
@@ -545,23 +543,57 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
   .cal-ev-time{font-size:.6rem;color:var(--txm);white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0}
   .cal-ev-more{font-size:.6rem;color:var(--txm);padding:1px 3px}
 }
+/* ── Side-by-side calendar layout (≥1100px) ─────────────────── */
+.cal-sideby{display:flex;gap:0;align-items:flex-start;width:100%}
+.cal-sideby-cal{flex:3;min-width:0}
+.cal-sideby-panel{flex:2;min-width:280px;max-width:480px;border-left:1px solid var(--bd);
+  padding-left:22px;position:sticky;top:80px;max-height:calc(100vh - 120px);overflow-y:auto}
+@media(max-width:1099px){
+  .cal-sideby{display:block}
+  .cal-sideby-panel{border-left:none;padding-left:0;position:static;max-height:none}
+}
 /* Day events panel */
-.cdp{margin:10px 8px 0;border-top:1px solid var(--bd);padding-top:10px;padding-bottom:8px}
+.cdp{padding-bottom:8px}
+.cdp-placeholder{display:flex;align-items:center;justify-content:center;
+  min-height:200px;color:var(--txm);font-size:.82rem;font-style:italic}
 .cdp-title{font-size:.68rem;font-weight:700;color:var(--txd);
-  text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
-.cdp-ev{display:flex;align-items:center;gap:9px;padding:9px 11px;
-  background:var(--bg3);border-radius:10px;margin-bottom:5px;cursor:pointer;
-  border-left:3px solid transparent;transition:background .13s}
-.cdp-ev:hover{background:var(--bg4)}
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-top:4px}
+/* Accordion event card */
+.cdp-ev{background:var(--bg3);border-radius:10px;margin-bottom:6px;
+  border-left:3px solid transparent;overflow:hidden;transition:box-shadow .13s}
+.cdp-ev.cdp-ev-open{box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.cdp-ev-hd{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;
+  transition:background .12s}
+.cdp-ev-hd:hover{background:var(--bg4)}
+.cdp-ev-hd-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.cdp-chevron{font-size:.6rem;color:var(--txm)}
 .cdp-main{flex:1;min-width:0}
-.cdp-name{font-weight:700;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdp-name{font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cdp-name.cancelled{text-decoration:line-through;opacity:.5}
+.cdp-staff-summary{font-size:.67rem;color:var(--txm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cdp-meta{display:flex;gap:5px;align-items:center;margin-top:3px;flex-wrap:wrap}
 .cdp-loc{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:10px}
-.cdp-staff{font-size:.67rem;color:var(--txm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
-.cdp-note{font-size:.64rem;color:var(--miss);font-style:italic;margin-top:2px}
 .cdp-time{font-size:.73rem;color:var(--txd);white-space:nowrap;font-variant-numeric:tabular-nums}
-.cdp-empty{text-align:center;color:var(--txm);font-size:.78rem;font-style:italic;padding:14px 0}
+/* Accordion body */
+.cdp-body{padding:0 12px 12px;border-top:1px solid var(--bd);margin-top:0}
+.cdp-row{display:flex;align-items:baseline;gap:8px;padding:5px 0;
+  border-bottom:1px solid var(--bd);font-size:.78rem}
+.cdp-row:last-of-type{border-bottom:none}
+.cdp-lbl{font-size:.65rem;font-weight:700;color:var(--txm);min-width:100px;flex-shrink:0;text-transform:uppercase}
+.cdp-row-staff{align-items:flex-start}
+.cdp-staff-pills{display:flex;flex-wrap:wrap;gap:4px}
+.cdp-staff-pill{font-size:.7rem;background:var(--bg4);border:1px solid var(--bd);
+  border-radius:6px;padding:2px 8px;color:var(--tx)}
+.cdp-staff-pill.miss{background:var(--missb);border-color:rgba(255,64,64,.3);color:var(--miss)}
+.cdp-staff-pill.empty{color:var(--txm)}
+.cdp-staff-pill em{font-style:normal;color:var(--txm);font-size:.65rem}
+.cdp-note-box{font-size:.75rem;color:var(--miss);font-style:italic;
+  background:rgba(255,64,64,.06);border-radius:6px;padding:7px 10px;margin-top:8px}
+.cdp-brief-box{font-size:.75rem;color:var(--txd);background:var(--bg4);
+  border-radius:6px;padding:7px 10px;margin-top:6px;line-height:1.5}
+.cdp-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+.cdp-note{font-size:.64rem;color:var(--miss);font-style:italic;margin-top:2px}
+.cdp-empty{text-align:center;color:var(--txm);font-size:.78rem;font-style:italic;padding:20px 0}
 
 /* ── ENTRY MODAL ─────────────────────────────────────── */
 .entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
@@ -3703,11 +3735,81 @@ function renderCalendar(){
   };
 
   grid.classList.add('cal-mode');
-  grid.innerHTML=html+(S.calDay?buildDayPanel():'');
+
+  const buildDayPanel=()=>{
+    if(!S.calDay)return`<div class="cdp cdp-placeholder"><div class="cdp-empty">← Tag im Kalender auswählen</div></div>`;
+    const dayEvs=(evByDate[S.calDay]||[]).sort((a,b)=>(a.startGastro||'').localeCompare(b.startGastro||''));
+    const dObj=new Date(S.calDay+'T12:00');
+    const lbl=`${DAYS[weekdayIdx(S.calDay)]}, ${dObj.getDate()}. ${MONS[dObj.getMonth()]}`;
+    if(!dayEvs.length)return`<div class="cdp"><div class="cdp-title">${lbl}</div><div class="cdp-empty">Kein Event</div></div>`;
+    return`<div class="cdp"><div class="cdp-title">${lbl}</div>${
+      dayEvs.map(ev=>{
+        const loc=LOCS[ev.location]||{};
+        const expanded=CalV._open===ev.id;
+        const names=[...allNames(ev)];
+        const staffHtml=ev.barStaff&&ev.barStaff.length
+          ?ev.barStaff.map(s=>`<span class="cdp-staff-pill${s.miss?' miss':''}">${_esc(s.name)}${s.ov?` <em>${s.ov}</em>`:''}</span>`).join('')
+          :(names.length?names.map(n=>`<span class="cdp-staff-pill">${_esc(n)}</span>`).join(''):'<span class="cdp-staff-pill empty">–</span>');
+        return`<div class="cdp-ev${expanded?' cdp-ev-open':''}" style="border-left-color:${loc.color||'var(--bd)'}">
+          <div class="cdp-ev-hd" onclick="CalV.toggleEv('${ev.id}')">
+            <div class="cdp-main">
+              <div class="cdp-name${ev.cancelled?' cancelled':''}">${_esc(ev.event)}</div>
+              <div class="cdp-meta">
+                <span class="cdp-loc" style="background:${loc.color||'#888'}18;color:${loc.color||'var(--txd)'}">${loc.short||''}</span>
+                <span class="cdp-staff-summary">${names.slice(0,3).join(' · ')||'–'}${names.length>3?' …':''}</span>
+              </div>
+            </div>
+            <div class="cdp-ev-hd-r">
+              <span class="cdp-time">${ev.startGastro||'–'}</span>
+              <span class="cdp-chevron">${expanded?'▲':'▼'}</span>
+            </div>
+          </div>
+          ${expanded?`<div class="cdp-body">
+            <div class="cdp-row"><span class="cdp-lbl">Gastro</span><span>${ev.startGastro||'–'}</span></div>
+            ${ev.schlussShow?`<div class="cdp-row"><span class="cdp-lbl">Schluss</span><span>${ev.schlussShow}</span></div>`:''}
+            ${ev.belegungsende?`<div class="cdp-row"><span class="cdp-lbl">Belegungsende</span><span>${ev.belegungsende}</span></div>`:''}
+            ${ev.prodL?`<div class="cdp-row"><span class="cdp-lbl">Produktion</span><span>${_esc(ev.prodL.name||'')}${ev.prodL.startTime?' · '+ev.prodL.startTime:''}</span></div>`:''}
+            ${ev.cupType?`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span>${_esc(ev.cupType)}</span></div>`:''}
+            <div class="cdp-row cdp-row-staff"><span class="cdp-lbl">Besetzung</span><div class="cdp-staff-pills">${staffHtml}</div></div>
+            ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
+            ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
+            <div class="cdp-actions">
+              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.openEdit(EVENTS.find(e=>e.id==='${ev.id}'))">Bearbeiten</button>`:''}
+              <button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat</button>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')
+    }</div>`;
+  };
+
+  // Desktop (≥1100px): side-by-side. Smaller: stacked.
+  if(window.innerWidth>=1100){
+    grid.innerHTML=`<div class="cal-sideby"><div class="cal-sideby-cal">${html}</div><div class="cal-sideby-panel" id="cal-panel">${buildDayPanel()}</div></div>`;
+  } else {
+    grid.innerHTML=html+(S.calDay?buildDayPanel():'');
+  }
 }
 
 const CalV={
-  selectDay(ds){S.calDay=S.calDay===ds?null:ds;renderGrid();}
+  _open:null,
+  selectDay(ds){
+    S.calDay=S.calDay===ds?null:ds;
+    this._open=null;
+    // On desktop, update only the panel without full re-render for performance
+    if(window.innerWidth>=1100){
+      const panel=document.getElementById('cal-panel');
+      if(panel){
+        // Re-render only if panel exists (side-by-side mode)
+        renderGrid();return;
+      }
+    }
+    renderGrid();
+  },
+  toggleEv(evId){
+    this._open=this._open===evId?null:evId;
+    renderGrid();
+  },
 };
 
 function renderGrid(){
