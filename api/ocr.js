@@ -1,9 +1,16 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-function buildPrompt(locations) {
+function buildPrompt(locations, fields = []) {
   const locList = locations && locations.length
     ? `\nVerfügbare Locations (verwende exakt diese Kürzel):\n${locations.map(l => `- "${l.short}" = ${l.name}`).join('\n')}`
     : '';
+
+  const optionalFields = [];
+  if (fields.includes('veranstaltungsnummer')) optionalFields.push('  "veranstaltungsnummer": "Veranstaltungsnummer oder ID aus der Tabelle, sonst leer"');
+  if (fields.includes('belegungsende')) optionalFields.push('  "belegungsende": "HH:MM Uhrzeit Belegungsende/Raumende, sonst leer"');
+  if (fields.includes('besucherzahl')) optionalFields.push('  "besucherzahl": Erwartete Besucherzahl als Zahl oder null');
+  if (fields.includes('notes')) optionalFields.push('  "notes": "Zusätzliche Infos, Bemerkungen oder leer"');
+  else optionalFields.push('  "notes": ""');
 
   return `Du analysierst einen Veranstaltungskalender. Extrahiere ALLE Events und gib NUR ein JSON-Array zurück (kein Markdown, kein erklärender Text).
 ${locList}
@@ -15,7 +22,7 @@ Format jedes Eintrags:
   "startGastro": "HH:MM",
   "schlussShow": "HH:MM",
   "location": "Kürzel aus der Liste oben, oder leerer String wenn unklar",
-  "notes": "zusätzliche Infos oder leer"
+${optionalFields.join(',\n')}
 }
 
 Wichtige Regeln:
@@ -44,8 +51,8 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const { data, mediaType, text: rawText, locations } = req.body;
-  const prompt = buildPrompt(locations || []);
+  const { data, mediaType, text: rawText, locations, fields } = req.body;
+  const prompt = buildPrompt(locations || [], fields || []);
 
   if (!data && !rawText) {
     return res.status(400).json({ error: 'Kein Inhalt übermittelt (data oder text erforderlich).' });
