@@ -4,7 +4,7 @@
 
 ## 1. Überblick
 
-Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veranstaltungsbetriebe (aktuell primär auf das Feierwerk München ausgelegt). Die App ermöglicht es einem Admin-Team, Veranstaltungen zu erfassen und zu verwalten, Mitarbeiter einzuplanen, Schichtzeiten zu verfolgen und pro Event einen internen Chat zu führen. Mitarbeiter sehen ausschließlich ihre eigenen Schichten und können in den jeweiligen Event-Chats kommunizieren.
+Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veranstaltungsbetriebe. Die App ermöglicht es einem Admin-Team, Veranstaltungen zu erfassen und zu verwalten, Mitarbeiter einzuplanen, Schichtzeiten zu verfolgen und pro Event einen internen Chat zu führen. Mitarbeiter sehen ausschließlich ihre eigenen Schichten und können in den jeweiligen Event-Chats kommunizieren.
 
 ---
 
@@ -27,21 +27,22 @@ Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veran
 
 ### 3.1 Single-File SPA
 
-Die gesamte Frontend-Anwendung lebt in **einer einzigen Datei: `index.html`** (~5.960 Zeilen). Sie enthält:
+Die gesamte Frontend-Anwendung lebt in **einer einzigen Datei: `index.html`** (~6.000 Zeilen). Sie enthält:
 
 - alle CSS-Styles (`<style>`)
 - das komplette HTML-Grundgerüst mit allen Modals, Overlays und Panels
 - die gesamte Anwendungslogik als Vanilla JavaScript (`<script>`)
 
-Es gibt **keinen Build-Prozess, keinen Bundler, keine Abhängigkeiten im Frontend**. Externe Bibliotheken werden direkt per CDN eingebunden (Supabase JS Client, SheetJS). Diese Architektur ist bewusst gewählt: maximale Einfachheit, keine Toolchain, direkt deploybar.
+Es gibt **keinen Build-Prozess, keinen Bundler, keine Abhängigkeiten im Frontend**. Externe Bibliotheken werden direkt per CDN eingebunden (Supabase JS Client, SheetJS).
+
+> **Geplant:** Die Datei wird in Kürze in separate CSS-, JS- und HTML-Dateien aufgeteilt, um die Wartbarkeit zu verbessern.
 
 ### 3.2 Serverless API
 
-Im Ordner `/api/` liegen drei Node.js-Serverless-Functions, die Vercel automatisch als HTTP-Endpunkte bereitstellt:
+Im Ordner `/api/` liegen zwei Node.js-Serverless-Functions:
 
-- **`/api/ocr.js`** — Empfängt Base64-kodierte Bilddaten, PDFs oder tabellarischen Text und leitet sie an die Anthropic Claude API weiter. Gibt ein strukturiertes JSON-Array mit den erkannten Veranstaltungsdaten zurück.
-- **`/api/admin.js`** — Administriert Benutzer per Supabase Admin-API (Benutzer anlegen mit temporärem Passwort, Passwort zurücksetzen, Benutzer löschen). Schützt alle Aktionen mit einer Admin-Rollenprüfung.
-- **`/api/plan.js`** — Ein Legacy-Proxy für JSONbin.io (früheres Datenspeicher-System, nicht mehr aktiv genutzt, aber noch vorhanden).
+- **`/api/ocr.js`** — Empfängt Base64-kodierte Bilddaten, PDFs oder tabellarischen Text und leitet sie an die Anthropic Claude API weiter. Nur für Admins zugänglich. Validiert den Dateityp gegen eine Whitelist. Gibt ein strukturiertes JSON-Array mit den erkannten Veranstaltungsdaten zurück.
+- **`/api/admin.js`** — Administriert Benutzer per Supabase Admin-API (Benutzer anlegen mit temporärem Passwort, Passwort zurücksetzen, Benutzer löschen). Schützt alle Aktionen mit einer Admin-Rollenprüfung. Verwendet `crypto.randomBytes()` für sichere Passwort-Generierung.
 
 Die API-Functions benötigen zwei Umgebungsvariablen in Vercel:
 
@@ -50,24 +51,20 @@ Die API-Functions benötigen zwei Umgebungsvariablen in Vercel:
 
 ### 3.3 Globaler Zustand (In-Memory)
 
-Die App arbeitet mit zwei globalen Variablen als primärem In-Memory-State:
-
 ```js
 let EVENTS = [];  // Array aller Veranstaltungsobjekte
 let LOCS = {};    // Dictionary der Locations: { 1: { name, short, color }, ... }
 ```
 
-Änderungen an `EVENTS` werden direkt im Array vorgenommen und dann per `Cloud.push()` zu Supabase synchronisiert sowie per `App.render()` neu gerendert. Es gibt keinen reaktiven State-Manager (kein Vue/React/Svelte).
+Änderungen an `EVENTS` werden direkt im Array vorgenommen und dann per `Cloud.push()` zu Supabase synchronisiert sowie per `App.render()` neu gerendert. Es gibt keinen reaktiven State-Manager.
 
 ---
 
 ## 4. Datenbank (Supabase / PostgreSQL)
 
-Die Datenbank läuft auf Supabase (`anagoloyaaikuexzbxae.supabase.co`). Folgende Tabellen sind relevant:
+Die Datenbank läuft auf Supabase (`anagoloyaaikuexzbxae.supabase.co`).
 
 ### `events`
-
-Speichert alle Veranstaltungen. Das zentrale Feld ist `data` (JSONB), das das gesamte Event-Objekt enthält.
 
 ```
 id           TEXT PRIMARY KEY
@@ -77,16 +74,16 @@ data         JSONB  ← das vollständige Event-Objekt
 updated_at   TIMESTAMPTZ
 ```
 
-Ein Event-Objekt in `data` enthält u.a.:
+Ein Event-Objekt in `data` enthält:
 
 ```js
 {
   id, date, location,
   event,                // Veranstaltungsname
   notes,                // Bemerkungen
-  einlasszeit,          // HH:MM Einlasszeit
+  einlasszeit,          // HH:MM Einlasszeit (Türöffnung)
   startGastro,          // HH:MM (auto: Einlass −30 Min)
-  schlussShow,          // HH:MM
+  schlussShow,          // HH:MM Show-Ende
   belegungsende,        // HH:MM
   bechertyp,            // 'plastik' | 'glas' | 'unbekannt'
   missingStaff,         // bool
@@ -101,8 +98,6 @@ Ein Event-Objekt in `data` enthält u.a.:
 
 ### `profiles`
 
-Verknüpft Supabase-Auth-Benutzer mit App-Rollen.
-
 ```
 id            UUID (= auth.users.id)
 display_name  TEXT
@@ -110,8 +105,6 @@ role          TEXT  ('admin' | 'viewer')
 ```
 
 ### `employees`
-
-Mitarbeiterstammdaten, separat von Auth-Benutzern.
 
 ```
 id              UUID
@@ -125,24 +118,18 @@ active          BOOL
 
 ### `shifts`
 
-Schichten, die aus Event-Besetzungen generiert werden.
-
 ```
 id                        UUID
 event_id                  TEXT (→ events.id)
 employee_id               UUID (→ employees.id)
 event_date                TEXT
-start_time                TEXT
-end_time                  TEXT
-actual_start_time         TEXT
-actual_end_time           TEXT
+start_time / end_time     TEXT
+actual_start_time / actual_end_time  TEXT
 confirmed                 BOOL
 cancelled                 BOOL
 ```
 
 ### `event_messages`
-
-Chat-Nachrichten pro Event.
 
 ```
 id            UUID
@@ -155,8 +142,6 @@ created_at    TIMESTAMPTZ
 
 ### `app_config`
 
-Key-Value-Store für globale App-Konfiguration.
-
 ```
 key    TEXT PRIMARY KEY  ('staff_statuses' | 'card_fields' | 'employee_roles')
 value  JSONB
@@ -164,85 +149,76 @@ value  JSONB
 
 ---
 
-## 5. Frontend-Module
+## 5. Row Level Security (RLS)
 
-Die App-Logik ist in Objekte (Module) aufgeteilt, die alle als globale Konstanten in `index.html` definiert sind:
+Alle Tabellen haben RLS aktiviert. Die Policies verwenden eine `SECURITY DEFINER`-Funktion `is_admin()` die prüft ob der aktuelle User die Rolle `admin` in der `profiles`-Tabelle hat.
+
+| Tabelle | Lesen | Schreiben |
+|---|---|---|
+| `events` | authenticated | nur Admins |
+| `profiles` | authenticated | nur Admins |
+| `employees` | authenticated | nur Admins |
+| `shifts` | authenticated | nur Admins |
+| `app_config` | authenticated | nur Admins |
+| `locations` | public | nur Admins |
+| `event_messages` | authenticated | authenticated (eigene user_id) |
+
+---
+
+## 6. Frontend-Module
 
 | Modul | Verantwortlichkeit |
 |---|---|
-| `App` | Haupt-Controller: Wochen-Navigation, Rendering der Kalenderansicht, Filter, Modals öffnen/schließen |
-| `Form` | Formular zum Erstellen und Bearbeiten von Events. Verwaltet Besetzungszeilen, Auto-Berechnung von startGastro aus Einlasszeit |
-| `Cloud` | Supabase-Sync: `fetch()` lädt alle Events, `push()` speichert alle Events per Upsert. Zeigt Sync-Status-Indikator |
-| `Auth` | Login/Logout, Passwort-Management, Erstpasswort-Flow für neue Nutzer |
-| `Chat` | Event-Chats via Supabase Realtime. Zeigt Unread-Dots. Zugriff nur für eingeteilte Mitarbeiter und Admins |
-| `Import` | KI-gestützter Datei-Import (Bild/PDF/Excel → Claude API → strukturierte Events mit Vorschau) |
-| `Shifts` | Schichtverwaltung: generiert `shifts`-Einträge aus der Event-Besetzung, berechnet Arbeitsstunden |
-| `Employees` | Mitarbeiterverzeichnis (CRUD), Autocomplete in Formularen, Kontaktdaten-Selbstverwaltung |
-| `Config` | Globale Einstellungen: Mitarbeiter-Statuses, Kartenfelder, Rollen. Wird aus `app_config` geladen |
-| `Defaults` | Standardwerte für neue Events (Standard-Location, Standard-Zeiten) — werden in Einstellungen konfiguriert |
+| `App` | Haupt-Controller: Wochen-Navigation, Rendering, Filter, Modals |
+| `Form` | Event erstellen/bearbeiten. Auto-Berechnung startGastro = Einlasszeit −30 Min |
+| `Cloud` | Supabase-Sync: fetch/push Events, Sync-Status-Indikator |
+| `Auth` | Login/Logout, Passwort-Management, Erstpasswort-Flow |
+| `Chat` | Event-Chats via Supabase Realtime, Unread-Dots, Zugriffsschutz |
+| `Import` | KI-Import: Bild/PDF/Excel → Claude API → Vorschau → Events |
+| `Shifts` | Schichtverwaltung, Arbeitsstunden-Berechnung |
+| `Employees` | Mitarbeiterverzeichnis, Autocomplete, Kontaktdaten |
+| `Config` | App-Konfiguration (Statuses, Kartenfelder, Rollen) |
+| `Defaults` | Standardwerte für neue Events |
 
 ---
 
-## 6. Authentifizierung
+## 7. Authentifizierung
 
-Die Auth läuft vollständig über **Supabase Auth** (Email + Passwort):
-
-1. Admins legen neue Benutzer über das Admin-Panel an — dabei wird ein zufälliges Temporärpasswort generiert und über `/api/admin.js` ein Auth-User in Supabase erstellt
-2. Der neue Benutzer meldet sich mit dem Temporärpasswort an
-3. Bei der ersten Anmeldung erkennt die App (via `user_metadata.force_password_change`), dass ein neues Passwort gesetzt werden muss — es erscheint ein Passwort-Setzen-Screen
-4. Die Rolle (`admin`/`viewer`) wird aus der `profiles`-Tabelle gelesen, nicht aus JWT-Claims
-5. Der Supabase-Client im Frontend verwendet den öffentlichen **Publishable Key** (nur Lese-/Schreibzugriff gemäß RLS-Policies). Der **Service Role Key** (voller Admin-Zugriff) ist ausschließlich serverseitig in `/api/admin.js` gespeichert
-
----
-
-## 7. Datenfluss (typischer Ablauf)
-
-```
-Browser lädt index.html
-  → Auth.init() prüft Supabase-Session
-    → eingeloggt: Cloud.fetch() lädt EVENTS aus Supabase
-      → App.render() baut Wochenkalender aus EVENTS
-        → User bearbeitet Event
-          → Form.save() schreibt in EVENTS[]
-            → Cloud.push() macht Upsert in Supabase
-              → Supabase Realtime feuert Event an alle anderen Clients
-                → Cloud.fetch() + App.render() bei anderen Nutzern
-```
+1. Admin legt Benutzer an → zufälliges Temporärpasswort (via `crypto.randomBytes`) wird generiert
+2. Benutzer meldet sich an → Passwort-Setzen-Screen beim ersten Login
+3. Rolle (`admin`/`viewer`) wird aus `profiles`-Tabelle gelesen
+4. Publishable Key im Frontend, Service Role Key nur serverseitig in `/api/admin.js`
 
 ---
 
 ## 8. Import-Feature (KI-gestützt)
 
-Der Import-Flow ist eines der komplexeren Features:
-
-1. User wählt im Import-Modal optionale Felder (Veranstaltungsnummer, Belegungsende, etc.) und lädt eine Datei hoch (Bild, PDF oder Excel)
-2. **Excel**: SheetJS liest die Datei clientseitig und konvertiert sie in einen pipe-deliminierten Textstring
-3. **Bild/PDF**: FileReader liest die Datei als Base64
-4. Der Inhalt wird mit den ausgewählten Feldern und der Location-Liste als Kontext an `/api/ocr` gesendet
-5. `/api/ocr` baut einen strukturierten Prompt (inkl. Location-Mapping und optionaler Felder) und schickt ihn an Claude (`claude-opus-4-7`)
-6. Claude gibt ein reines JSON-Array zurück
-7. Das Frontend zeigt eine Vorschau mit allen erkannten Events — editierbar (Location-Dropdown, Checkbox zum Abwählen)
-8. "Importieren" schreibt die Events in `EVENTS[]` und pusht zu Supabase. `einlasszeit` wird automatisch in `startGastro` (−30 Min) umgerechnet
+1. Vor dem Upload: optionale Felder auswählen (Veranstaltungsnummer, Belegungsende, Besucherzahl, Bemerkungen)
+2. **Excel**: SheetJS → pipe-delimitierter Text → Claude
+3. **Bild/PDF**: Base64 → Claude (Dateityp wird gegen Whitelist validiert)
+4. Claude (`claude-opus-4-7`) gibt reines JSON-Array zurück
+5. Vorschau: editierbar (Location-Dropdown, Checkboxen)
+6. Import: `einlasszeit` → `startGastro` (−30 Min) wird automatisch berechnet
 
 ---
 
 ## 9. Deployment & Repository
 
 - **Repository**: `lucasfugel26-alt/Thekenplan` (GitHub)
-- **Produktions-Branch**: `main` — jeder Push auf `main` löst automatisch ein Vercel-Deployment aus
+- **Produktions-Branch**: `main` — jeder Push löst automatisch Vercel-Deployment aus
 - **Produktions-URL**: `thekenplan.vercel.app`
-- **Vercel-Plan**: Hobby (kostenlos) — Serverless Functions haben max. 60 Sekunden Laufzeit (konfiguriert in `vercel.json`)
-- **npm-Abhängigkeit**: `package.json` enthält nur `@anthropic-ai/sdk` — wird von Vercel beim Deployment installiert
-- **Env-Variablen** müssen in Vercel hinterlegt sein und erfordern ein Redeploy, damit sie aktiv werden:
+- **Vercel-Plan**: Hobby — Serverless Functions max. 60s (konfiguriert in `vercel.json`)
+- **npm**: `package.json` enthält nur `@anthropic-ai/sdk`
+- **Env-Variablen** erfordern nach Änderung ein manuelles Redeploy:
   - `ANTHROPIC_API_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
 
 ---
 
-## 10. Wichtige Einschränkungen & bekannte Eigenheiten
+## 10. Bekannte Eigenheiten & technische Schulden
 
-- **Kein Build-System**: Die gesamte App ist eine Datei. Grosse Änderungen erfordern Sorgfalt, da kein Linter oder Compiler Fehler abfängt
-- **Kein State-Manager**: Änderungen am `EVENTS`-Array müssen immer manuell mit `App.render()` und `Cloud.push()` abgeschlossen werden
-- **Event-Daten als JSONB**: Das Datenbankschema der `events`-Tabelle hat nur wenige echte Spalten — das vollständige Objekt liegt als JSONB in `data`. Das ist flexibel, macht aber SQL-seitige Abfragen aufwändiger
-- **Realtime nur für Events**: Nur Änderungen an der `events`-Tabelle lösen automatische Neu-Renders bei anderen Clients aus. Chat-Nachrichten haben eine eigene Subscription
-- **`plan.js` ist Legacy**: Diese API-Funktion war für ein früheres JSONbin-basiertes Speichersystem. Sie kann entfernt werden
+- **Single-File**: ~6.000 Zeilen in einer Datei — Aufteilung in separate Dateien ist geplant
+- **Kein State-Manager**: `EVENTS`-Array muss manuell mit `App.render()` + `Cloud.push()` abgeschlossen werden
+- **Event-IDs**: Generiert mit `Date.now() + Math.random()` — keine echten UUIDs
+- **Event-Daten als JSONB**: Flexibel, aber SQL-seitige Abfragen aufwändiger
+- **Realtime**: Nur `events`-Tabelle löst Auto-Render aus; Chat hat eigene Subscription
