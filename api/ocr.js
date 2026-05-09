@@ -1,5 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
+const ALLOWED_MEDIA_TYPES = ['image/png','image/jpeg','image/webp','image/gif','application/pdf'];
+
 function buildPrompt(locations, fields = []) {
   const locList = locations && locations.length
     ? `\nVerfügbare Locations (verwende exakt diese Kürzel):\n${locations.map(l => `- "${l.short}" = ${l.name}`).join('\n')}`
@@ -44,6 +46,24 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Verify token and check admin role via Supabase
+  const supabaseUrl = 'https://anagoloyaaikuexzbxae.supabase.co';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey) {
+    const profileRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey }
+    });
+    if (!profileRes.ok) return res.status(401).json({ error: 'Ungültiger Token' });
+    const user = await profileRes.json();
+    const roleRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
+      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+    });
+    const roleData = await roleRes.json();
+    if (roleData?.[0]?.role !== 'admin') {
+      return res.status(403).json({ error: 'Nur Admins können Dateien importieren.' });
+    }
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
@@ -64,12 +84,13 @@ module.exports = async function handler(req, res) {
     let contentBlocks;
 
     if (rawText) {
-      // Plain text mode (Excel converted to table text)
       contentBlocks = [
         { type: 'text', text: `Hier sind die Rohdaten aus der Datei:\n\n${rawText}\n\n${prompt}` }
       ];
     } else {
-      // File mode: PDF or image
+      if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) {
+        return res.status(400).json({ error: 'Ungültiger Dateityp.' });
+      }
       const isPDF = mediaType === 'application/pdf';
       const fileBlock = isPDF
         ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }

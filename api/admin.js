@@ -18,10 +18,10 @@ async function isAdmin(userId, serviceKey) {
 }
 
 function makeTempPassword() {
+  const { randomBytes } = require('crypto');
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let pw = '';
-  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-  return pw + '!2';
+  const bytes = randomBytes(10);
+  return Array.from(bytes).map(b => chars[b % chars.length]).join('') + '!2';
 }
 
 export default async function handler(req, res) {
@@ -42,7 +42,6 @@ export default async function handler(req, res) {
     // ── Eigene Kontaktdaten aktualisieren (kein Admin nötig) ─────────────────
     if (action === 'updateEmployeeContact') {
       const { email, phone, emergency_name, emergency_phone, emergency_email } = req.body;
-      // Find the employee linked to this user
       const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?profile_id=eq.${callerId}&select=id`, {
         headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
       });
@@ -83,7 +82,6 @@ export default async function handler(req, res) {
 
       const tempPassword = makeTempPassword();
 
-      // Create user with confirmed email and temp password
       const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
@@ -95,12 +93,10 @@ export default async function handler(req, res) {
       if (createRes.ok) {
         userId = created.id;
       } else {
-        // User already exists — update password to new temp password
         const msg = created.msg || created.message || '';
         if (!msg.toLowerCase().includes('already')) {
           return res.status(400).json({ error: msg || 'Fehler beim Anlegen' });
         }
-        // Find existing user by email via profiles or list
         const listRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, {
           headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
         });
@@ -109,7 +105,6 @@ export default async function handler(req, res) {
         if (!existing) return res.status(400).json({ error: 'Benutzer nicht gefunden' });
         userId = existing.id;
 
-        // Reset password to new temp password
         await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
@@ -117,7 +112,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // Upsert profile
       await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
