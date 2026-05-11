@@ -624,8 +624,8 @@ const App={
       S.calYear=new Date().getFullYear();
       S.calMonth=new Date().getMonth();
     }
-    /* Locations + Config + Employees parallel laden */
-    await Promise.all([LocationsMgr.load(), Config.load(), Employees.load()]);
+    /* Locations + Config + Employees + Planning parallel laden */
+    await Promise.all([LocationsMgr.load(), Config.load(), Employees.load(), Planning.load()]);
     if(EVENTS.length>0){this.render();}
     Cloud.fetch().then(ok=>{
       if(ok){App.render();Chat.loadUnreadState().then(()=>App.render());}
@@ -639,7 +639,7 @@ const App={
     if(ok) App.render();
   },
 
-  render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();},
+  render(){renderHeader();renderLocBtns();updateStaffSel();renderGrid();Planning.renderBanner();},
   setView(mode){
     if(S.viewMode===mode)return;
     S.viewMode=mode;
@@ -902,7 +902,10 @@ const App={
     renderRolesConfig();
     Defaults.loadIntoSettings();
     CardFields.loadIntoSettings();
-    if(isAdmin())await this._loadUsersList();
+    if(isAdmin()){
+      await this._loadUsersList();
+      PlanningRules.renderEditor('stg-pr-editor');
+    }
   },
 
    async _loadUsersList(){
@@ -1093,6 +1096,8 @@ const App={
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    const plannerPage=document.getElementById('planner-page');
+    if(plannerPage&&plannerPage.style.display!=='none'){Planner.close();return;}
     const linkModal=document.getElementById('link-modal-ov');
     if(linkModal&&linkModal.style.display==='flex'){App._closeLinkModal();return;}
     const empModal=document.getElementById('emp-modal-ov');

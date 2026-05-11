@@ -668,6 +668,19 @@ const Profile = {
       const d=document.getElementById('profil-kontakt-details');
       if(d)d.open=true;
     }
+    // Render availability form if there's an active planning period
+    this._renderAvailability(emp.id);
+    // Render shift swaps
+    ShiftSwap.renderProfileSwaps(emp.id, document.getElementById('profil-swaps'));
+  },
+
+  async _renderAvailability(empId) {
+    const p = Planning.getActive();
+    const cont = document.getElementById('profil-av-cont');
+    if (!cont) return;
+    if (!p || (p.status !== 'open' && p.status !== 'collecting')) { cont.innerHTML = ''; return; }
+    await Availability.load(p.id, empId);
+    Availability.renderForm(p.id, empId, cont);
   },
 
   printPDF() {

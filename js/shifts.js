@@ -13,6 +13,11 @@ const Shifts = {
     return Math.round((e2-s)/6)/10;
   },
 
+  calcNetDuration(start, end, role) {
+    const gross = this.calcDuration(start, end);
+    return PlanningRules.calcNetHours(gross, role || '');
+  },
+
   async loadForEmployee(empId) {
     try {
       const {data,error}=await db.from('shifts').select('*').eq('employee_id',empId).order('event_date',{ascending:false});

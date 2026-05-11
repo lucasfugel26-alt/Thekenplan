@@ -65,6 +65,9 @@
       <button class="gear-btn admin-only" onclick="App.openTeam()" id="team-btn" style="color:#22d4a4;border-color:rgba(34,212,164,.25)">
         &#128101; Team
       </button>
+      <button class="gear-btn admin-only" onclick="Planner.open()" style="color:var(--l3);border-color:rgba(224,90,255,.25)">
+        &#128203; Planung
+      </button>
       <button class="gear-btn admin-only" onclick="App.openLocations()" style="color:var(--l1);border-color:rgba(245,166,35,.25)">
         &#128205; Locations
       </button>
@@ -87,6 +90,9 @@
       </div>
     </div>
   </header>
+
+  <!-- ── PLANNING BANNER ── -->
+  <div id="planning-banner" style="display:none"></div>
 
   <!-- ── LOCATION FILTER ── (dynamisch via JS gerendert) -->
   <div class="loc-row" id="loc-row"></div>
@@ -119,6 +125,13 @@
   <!-- ── UPLOAD SECTION ── -->
 </div><!-- /app -->
 
+<!-- ── PLANNER PAGE ── -->
+<div class="stg-page" id="planner-page" style="display:none">
+  <div class="stg-page-inner">
+    <div id="planner-root"></div>
+  </div>
+</div>
+
 <!-- ── HAM MENU ── -->
 <div id="ham-overlay" onclick="Ham.close()"></div>
 <div id="ham-menu">
@@ -140,6 +153,7 @@
   <button class="ham-item" id="ham-profil" onclick="Profile.open();Ham.close()" style="display:none">&#128100; Mein Profil</button>
   <button class="ham-item" onclick="App.openSettings();Ham.close()">&#9881; Einstellungen</button>
   <div class="ham-div admin-only"></div>
+  <button class="ham-item admin-only" onclick="Planner.open();Ham.close()">&#128203; Planung</button>
   <button class="ham-item admin-only" onclick="App.openTeam();Ham.close()">&#128101; Team</button>
   <button class="ham-item admin-only" onclick="App.openLocations();Ham.close()">&#128205; Locations</button>
   <button class="ham-item admin-only" onclick="App.printPDF();Ham.close()">&#128438; PDF</button>
@@ -399,6 +413,12 @@
           <button class="btn btn-ghost" onclick="Config.addRole()">&#43; Hinzuf&uuml;gen</button>
         </div>
 
+        <div class="stg-sec admin-only">Dienstplan – Regelwerk</div>
+        <div class="admin-only" id="stg-pr-editor-wrap">
+          <p style="font-size:.78rem;color:var(--txm);margin-bottom:10px">Stunden-Limits und Pausenabzüge pro Rolle:</p>
+          <div id="stg-pr-editor"></div>
+        </div>
+
         <div class="stg-sec admin-only">Datensicherung</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
           <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
@@ -419,6 +439,8 @@
     <div id="profil-content">
       <div style="color:var(--txm);font-size:.82rem;padding:18px 0">Lade…</div>
     </div>
+    <div id="profil-av-cont"></div>
+    <div id="profil-swaps"></div>
   </div>
 </div>
 
@@ -722,10 +744,12 @@
 <script src="js/employees.js"></script>
 <script src="js/shifts.js"></script>
 <script src="js/defaults.js"></script>
+<script src="js/planning.js"></script>
 <script src="js/form.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/import.js"></script>
+<script src="js/planner.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
