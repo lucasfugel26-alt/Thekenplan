@@ -485,6 +485,9 @@ function buildCard(ev, conflictIds=new Set()){
       <span class="stime${isFehlt?' mt':''}">${t}</span></div>`);
   });
 
+  if(!rows.length && !ev.cancelled && !ev.relocated)
+    rows.push('<div class="srow-empty">Noch nicht zugeteilt</div>');
+
   const cf=CardFields.forRole();
   const bechertyp=ev.bechertyp||(ev.plastik?'plastik':null);
   const becherBanner=cf.becher&&!ev.cancelled&&!ev.relocated
@@ -1119,6 +1122,7 @@ const Ham={
     const open=menu.classList.toggle('open');
     ov.classList.toggle('open',open);
     document.body.style.overflow=open?'hidden':'';
+    if(open) menu.scrollTop=0; /* Bug 11: immer von oben starten */
   },
   close(){
     document.getElementById('ham-menu').classList.remove('open');
