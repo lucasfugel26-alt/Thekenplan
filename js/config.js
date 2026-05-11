@@ -32,6 +32,8 @@ const Config = {
         }
       });
     } catch(e) { console.warn('[Config] using defaults:', e.message); }
+    // Load planning rules in parallel (non-blocking)
+    PlanningRules.load().catch(()=>{});
   },
   async saveEmployeeRoles() {
     try {
