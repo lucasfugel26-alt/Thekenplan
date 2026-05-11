@@ -121,6 +121,43 @@ const Form={
     return rows;
   },
 
+  _setFieldErr(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('fi-err');
+    let errEl = el.parentNode.querySelector(`.fi-errmsg[data-for="${id}"]`);
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.className = 'fi-errmsg';
+      errEl.dataset.for = id;
+      el.parentNode.insertBefore(errEl, el.nextSibling);
+    }
+    errEl.textContent = msg;
+  },
+
+  _clearFieldErr(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('fi-err');
+    const errEl = el.parentNode.querySelector(`.fi-errmsg[data-for="${id}"]`);
+    if (errEl) errEl.remove();
+  },
+
+  validate() {
+    let ok = true;
+    const date  = document.getElementById('f-date')?.value;
+    const name  = document.getElementById('f-event')?.value.trim();
+    if (!date) { this._setFieldErr('f-date',  'Pflichtfeld: Bitte ein Datum auswählen.'); ok = false; }
+    else         this._clearFieldErr('f-date');
+    if (!name) { this._setFieldErr('f-event', 'Pflichtfeld: Bitte einen Veranstaltungsnamen eingeben.'); ok = false; }
+    else         this._clearFieldErr('f-event');
+    if (!ok) {
+      const first = document.querySelector('.fi-err');
+      if (first) first.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+    return ok;
+  },
+
   getData(){
     const plName=document.getElementById('f-pl-name').value.trim();
     const plTime=document.getElementById('f-pl-time').value;
@@ -152,8 +189,8 @@ const Form={
   },
 
   save(){
+    if(!this.validate()) return;
     const ev=this.getData();
-    if(!ev.date){alert('Bitte ein Datum eingeben.');return;}
     if(this.mode==='edit'){
       const idx=EVENTS.findIndex(e=>e.id===this.editId);
       if(idx!==-1)EVENTS[idx]=ev;
@@ -166,8 +203,8 @@ const Form={
   },
 
   saveAndNew(){
+    if(!this.validate()) return;
     const ev=this.getData();
-    if(!ev.date){alert('Bitte ein Datum eingeben.');return;}
     if(this.mode==='edit'){
       const idx=EVENTS.findIndex(e=>e.id===this.editId);
       if(idx!==-1)EVENTS[idx]=ev;

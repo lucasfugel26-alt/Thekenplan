@@ -697,11 +697,26 @@ body.light{
   .app-header{position:sticky;top:0;z-index:90;background:var(--bg);
     flex-direction:column;align-items:stretch;gap:8px;
     padding:10px 10px 8px;margin:0 -10px;border-bottom:1px solid var(--bd)}
-  /* Title row: title flex:1, ham btn right */
+  /* Title row: title only, ham btn fixed bottom-right */
   .app-title{display:flex;align-items:center}
-  .app-title h1{font-size:1.2rem;flex:1}
+  .app-title h1{font-size:1.2rem}
   .app-title p{display:none}
-  #ham-btn{display:flex!important}
+  /* Bug 3: Ham-Button als fixed FAB unten rechts – verhindert Überlappung */
+  #ham-btn{
+    display:flex!important;
+    position:fixed;bottom:20px;right:16px;z-index:89;
+    width:48px;height:48px;border-radius:50%;
+    box-shadow:0 4px 18px rgba(0,0,0,.5);
+    font-size:1.3rem;border:none;
+  }
+  /* Genug Platz damit letztes Grid-Element nicht hinter FAB liegt */
+  .week-grid{padding-bottom:72px}
+  /* Bug 6: KW-Navigation nicht abschneiden */
+  .week-info{min-width:0;flex:1}
+  .week-kw{font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .week-range{font-size:.62rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .heute-btn{font-size:.68rem;padding:3px 7px}
+  .week-nav{gap:4px;padding:4px 6px}
   /* Hide all gear/sync buttons — accessed via ham menu */
   .gear-btn,.btn-sync{display:none!important}
   /* Week nav full width */
@@ -1051,4 +1066,61 @@ details[open].profil-details-block .profil-details-summary::after{transform:rota
 .emp-access-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   padding:12px 16px;background:var(--bg3);border:1px solid var(--bd);
   border-radius:10px;margin-bottom:18px}
+
+/* ── BUG-FIXES ──────────────────────────────────────────── */
+
+/* Bug 1 – Formularvalidierung */
+.fi-err{border-color:var(--miss)!important;box-shadow:0 0 0 2px rgba(255,64,64,.18)!important}
+.fi-errmsg{font-size:.72rem;color:var(--miss);margin-top:4px;display:block}
+
+/* Bug 2 – Kein horizontaler Overflow bei 7-Spalten-Grid */
+body{overflow-x:hidden}
+.week-grid{overflow:hidden}
+.day-col{min-width:0}
+
+/* Bug 4a – Logo auf Tablet nie abschneiden */
+@media(max-width:1100px) and (min-width:701px){
+  .app-title h1{font-size:1.2rem;white-space:nowrap}
+  .app-title p{display:none}
+  .app-header{flex-wrap:nowrap;gap:8px}
+}
+/* Bug 4b – Gradient-Text auf Light-Theme lesbar */
+body.light .app-title h1{
+  background:linear-gradient(135deg,#1a1c28 30%,#3b40c4);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+/* Bug 7 – Location-Labels auf Tablet immer sichtbar */
+.loc-btn{white-space:nowrap;flex-shrink:0}
+
+/* Bug 9 – Zeitanzeige in Mitarbeiterspalten nicht abschneiden */
+.stime{flex-shrink:0;white-space:nowrap}
+.sname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Bug 10 – Leerer Zustand bei fehlender Mitarbeiterzuteilung */
+.srow-empty{font-size:.72rem;color:var(--txm);font-style:italic;padding:2px 0}
+
+/* Bug 11 – Ham-Menu: Safe Area + alle Items sichtbar */
+#ham-menu{padding-bottom:max(16px,env(safe-area-inset-bottom,16px))}
+
+/* Bug 8 – Controls-Zeile auf Tablet scrollbar statt abschneiden */
+@media(max-width:1100px) and (min-width:701px){
+  .controls{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:4px;scrollbar-width:none}
+  .controls::-webkit-scrollbar{display:none}
+  .ctrl-select{max-width:150px;min-width:0}
+  .ctrl-input{width:160px;min-width:0}
+  .spacer{display:none}
+}
+
+/* Bug 5 – Suchansicht: stabiles Layout, Von/Bis korrekt */
+.srch-panel{background:var(--bg);padding:0 0 20px}
+.sf-date{min-width:0;width:auto;max-width:140px}
+.srch-divider{flex-shrink:0}
+/* Von/Bis immer in eigener Zeile wenn zu eng */
+@media(max-width:700px){
+  .srch-filters{row-gap:8px}
+  .sf-date{flex:1;max-width:none}
+  .srch-divider{display:none}
+}
 .emp-access-label{font-size:.78rem;font-weight:700;color:var(--txd);flex-shrink:0}
