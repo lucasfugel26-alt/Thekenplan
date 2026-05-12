@@ -284,7 +284,18 @@ const Planner = {
         }
       }
     } else {
-      slots = ev.barStaff || [];
+      // Auto-generate one slot per role using event times as default
+      const barStaff = ev.barStaff || [];
+      const roles = Config.data.employeeRoles || [];
+      if (roles.length && !barStaff.some(s => !s.miss)) {
+        slots = roles.map((role, i) => ({
+          pos: i + 1, name: null, miss: true, role,
+          req_start: ev.startGastro || null,
+          req_end: ev.schlussShow || null,
+        }));
+      } else {
+        slots = barStaff;
+      }
     }
 
     const slotRows = slots.map((s, idx) => {
@@ -326,7 +337,6 @@ const Planner = {
         ${hoursTag}
         ${ev.cancelled ? '<span class="tag tag-canc">Abgesagt</span>' : ''}
         ${isDraft ? '<span class="draft-badge">Entwurf</span>' : ''}
-        ${!reqStaff.length ? '<span class="tag tag-warn" title="Kein Personalbedarf hinterlegt">⚠ Bedarf fehlt</span>' : ''}
       </div>
       <div class="assign-slots">${slotRows}</div>
       ${addBtn}
@@ -611,20 +621,31 @@ const Planner = {
     document.body.appendChild(ov);
   },
 
-  // Returns the effective slot list for an event (required_staff → slots or barStaff)
+  // Returns the effective slot list for an event (required_staff → slots, else auto from roles)
   _getSlotsForEvent(ev) {
     const reqStaff = ev.required_staff || [];
-    if (!reqStaff.length) return ev.barStaff || [];
-    let pos = 1;
-    const slots = [];
-    for (const req of reqStaff) {
-      for (let i = 0; i < req.count; i++) {
-        const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
-        slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
-        pos++;
+    if (reqStaff.length) {
+      let pos = 1;
+      const slots = [];
+      for (const req of reqStaff) {
+        for (let i = 0; i < req.count; i++) {
+          const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
+          slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
+          pos++;
+        }
       }
+      return slots;
     }
-    return slots;
+    const barStaff = ev.barStaff || [];
+    const roles = Config.data.employeeRoles || [];
+    if (roles.length && !barStaff.some(s => !s.miss)) {
+      return roles.map((role, i) => ({
+        pos: i + 1, name: null, miss: true, role,
+        req_start: ev.startGastro || null,
+        req_end: ev.schlussShow || null,
+      }));
+    }
+    return barStaff;
   },
 
   _assignSlot(evId, slotIdx, empId) {
