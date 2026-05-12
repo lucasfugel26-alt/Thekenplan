@@ -122,7 +122,7 @@ const Planner = {
 
     // Rollen-Auswahl für KI
     const roles = Config.data.employeeRoles || [];
-    const rolesHtml = roles.length ? `
+    const rolesHtml = Config.data.aiEnabled && roles.length ? `
       <div class="plan-section">
         <div class="plan-sec-title">🎯 Zu planende Rollen</div>
         <p style="font-size:.82rem;color:var(--txm);margin-bottom:10px">
@@ -140,7 +140,7 @@ const Planner = {
     // Events ohne required_staff
     const missingReq = this._monthEvents.filter(ev => !ev.cancelled && (!ev.required_staff || !ev.required_staff.length));
 
-    const aiSection = p.status !== 'published' ? `
+    const aiSection = Config.data.aiEnabled && p.status !== 'published' ? `
       <div class="plan-section">
         <div class="plan-sec-title">🤖 KI-Dienstplan</div>
         ${missingReq.length ? `
