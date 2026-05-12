@@ -523,6 +523,8 @@ function updateStaffSel(){
   const sel=document.getElementById('filter-staff');
   const myShiftsBtn=document.getElementById('btn-my-shifts');
   const profilBtn=document.getElementById('profil-btn');
+  const avBtn=document.getElementById('av-btn');
+  const hamAv=document.getElementById('ham-av');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
   // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
@@ -532,9 +534,15 @@ function updateStaffSel(){
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
     if(hamProfil) hamProfil.style.display=myEmp?'':'none';
+    const p=typeof Planning!=='undefined'?Planning.getActive():null;
+    const avVisible=myEmp&&p&&(p.status==='open'||p.status==='collecting')?'':'none';
+    if(avBtn) avBtn.style.display=avVisible;
+    if(hamAv) hamAv.style.display=avVisible;
     return;
   }
   if(hamProfil) hamProfil.style.display='none';
+  if(avBtn) avBtn.style.display='none';
+  if(hamAv) hamAv.style.display='none';
 
   // Admins: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
   if(myShiftsBtn) myShiftsBtn.style.display='none';

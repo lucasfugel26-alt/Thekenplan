@@ -200,7 +200,7 @@ const Planning = {
         <strong>Dienstplanung ${MONS[p.month - 1]} ${p.year}</strong>
         <span style="color:var(--txm);font-size:.78rem">${dl}</span>
       </div>
-      <button class="btn btn-ghost" onclick="Profile.open()">Verfügbarkeit eingeben →</button>
+      <button class="btn btn-ghost" onclick="Availability.openModal()">Verfügbarkeit eingeben →</button>
     </div>`;
   },
 
@@ -234,6 +234,34 @@ const Planning = {
 /* ---- Availability ----------------------------------------- */
 const Availability = {
   _cache: {},
+
+  async openModal() {
+    const myEmp = currentUser ? Employees.getAll().find(e => e.profile_id === currentUser.id) : null;
+    if (!myEmp) return;
+    const page = document.getElementById('av-page');
+    if (!page) return;
+    page.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    const cont = document.getElementById('av-modal-cont');
+    cont.innerHTML = '<div style="color:var(--txm);font-size:.82rem;padding:18px 0">Lade…</div>';
+    const p = Planning.getActive();
+    if (!p || (p.status !== 'open' && p.status !== 'collecting')) {
+      cont.innerHTML = `<div style="color:var(--txm);font-size:.9rem;padding:32px 0;text-align:center">
+        <div style="font-size:2rem;margin-bottom:12px">&#128197;</div>
+        <div>Derzeit ist kein aktiver Planungszeitraum offen.</div>
+        <div style="margin-top:6px;font-size:.8rem">Sobald dein Admin einen neuen Monat plant, kannst du deine Verf&uuml;gbarkeit hier eintragen.</div>
+      </div>`;
+      return;
+    }
+    await this.load(p.id, myEmp.id);
+    this.renderForm(p.id, myEmp.id, cont);
+  },
+
+  closeModal() {
+    const page = document.getElementById('av-page');
+    if (page) page.style.display = 'none';
+    document.body.style.overflow = '';
+  },
 
   _key(periodId, empId) { return `${periodId}-${empId}`; },
 
@@ -372,7 +400,9 @@ const Availability = {
     }
     wdHtml += '</div>';
 
-    const dl = p.deadline ? `<div class="av-deadline">Deadline: <strong>${_fmtDate(p.deadline)}</strong></div>` : '';
+    const dl = p.deadline
+      ? `<div class="av-deadline">Deadline: <strong>${_fmtDate(p.deadline)}</strong></div>`
+      : `<div class="av-early-hint">&#128161; Du kannst deine Verf&uuml;gbarkeit schon jetzt vorab eintragen &ndash; noch vor der offiziellen Anfrage.</div>`;
     const submitted = av.submitted_at
       ? `<div class="av-submitted">✓ Eingereicht: ${new Date(av.submitted_at).toLocaleDateString('de-DE')}</div>` : '';
 
