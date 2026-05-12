@@ -1313,3 +1313,102 @@ body.light .app-title h1{
   padding:20px;width:min(480px,96vw);max-height:80vh;overflow-y:auto;
   box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .picker-modal{width:min(400px,96vw)}
+
+/* ─── Availability v2 – Kalender-States ─────────────────── */
+.av-day.from-time{background:rgba(255,166,0,.2);color:#ffb347;border-color:rgba(255,166,0,.5)}
+.av-day.wished{outline:2px solid #22d4a4;outline-offset:-2px}
+.av-day.blocked.wished{background:rgba(255,64,64,.25);outline:2px solid #22d4a4;outline-offset:-2px}
+.av-day.wd-rule{border-style:dashed}
+.av-day-time{display:block;font-size:.6rem;line-height:1;margin-top:1px;color:#ffb347}
+.av-day-wish{position:absolute;top:1px;right:2px;font-size:.6rem;color:#22d4a4}
+.av-day{position:relative}
+
+/* Legend */
+.av-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.av-leg-item{font-size:.72rem;padding:2px 8px;border-radius:12px;border:1px solid var(--bd)}
+.av-leg-free{background:var(--bg3);color:var(--txm)}
+.av-leg-blocked{background:rgba(255,64,64,.2);color:var(--miss);border-color:rgba(255,64,64,.3)}
+.av-leg-from{background:rgba(255,166,0,.2);color:#ffb347;border-color:rgba(255,166,0,.3)}
+.av-leg-wish{background:rgba(34,212,164,.15);color:#22d4a4;border-color:rgba(34,212,164,.3)}
+
+/* Day Popup */
+.av-day-popup{position:absolute;z-index:600;background:var(--bg2);border:1px solid var(--bd);
+  border-radius:var(--rl);padding:12px;min-width:210px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.av-popup-title{font-size:.82rem;font-weight:600;margin-bottom:10px;color:var(--txd)}
+.av-popup-row{margin-bottom:8px}
+.av-popup-opt{display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;
+  color:var(--txm);padding:5px 8px;border-radius:6px;transition:background .15s}
+.av-popup-opt:hover{background:var(--bg3)}
+.av-popup-opt.active-blocked{color:var(--miss)}
+.av-popup-opt.active-wish{color:#22d4a4}
+.av-popup-time{width:90px;padding:3px 6px;font-size:.8rem}
+.av-popup-close{font-size:.75rem;width:100%;margin-top:6px;justify-content:center}
+
+/* Weekday rule – hide "bis" */
+.av-wd-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;
+  border-bottom:1px solid var(--bd);font-size:.8rem}
+.av-wd-name{width:76px;font-weight:500;color:var(--txd)}
+.av-wd-cb{display:flex;align-items:center;gap:5px;cursor:pointer}
+.av-wd-time-lbl{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--txm)}
+.av-wd-time{width:82px;padding:3px 6px;font-size:.78rem}
+
+/* Pausenabzug Hinweis */
+.pr-breaks-hint{font-size:.72rem;color:var(--txm);font-weight:400;margin-left:8px;font-style:italic}
+
+/* ─── Availability Admin-Detail ─────────────────────────── */
+.av-emp-tags{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}
+.av-tag{font-size:.7rem;padding:2px 7px;border-radius:10px;border:1px solid var(--bd)}
+.av-tag.blocked{background:rgba(255,64,64,.15);color:var(--miss);border-color:rgba(255,64,64,.25)}
+.av-tag.from-time{background:rgba(255,166,0,.15);color:#ffb347;border-color:rgba(255,166,0,.25)}
+.av-tag.wished{background:rgba(34,212,164,.12);color:#22d4a4;border-color:rgba(34,212,164,.25)}
+.av-tag.applied{background:rgba(99,179,237,.12);color:#63b3ed;border-color:rgba(99,179,237,.25)}
+.av-tag.wd-blocked{background:rgba(255,64,64,.08);color:var(--miss);border-color:rgba(255,64,64,.2)}
+.av-tag.wd-from{background:rgba(255,166,0,.08);color:#ffb347;border-color:rgba(255,166,0,.2)}
+.av-detail-modal{width:min(540px,96vw)}
+.av-detail-legend{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0;padding:8px;
+  background:var(--bg3);border-radius:8px}
+.av-detail-sections{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:500px){.av-detail-sections{grid-template-columns:1fr}}
+.av-detail-label{font-size:.72rem;font-weight:600;color:var(--txm);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:5px}
+.av-detail-wd{font-size:.78rem;color:var(--txd);padding:2px 0}
+.av-detail-wish,.av-detail-app{display:inline-block;font-size:.75rem;background:var(--bg3);
+  border-radius:6px;padding:2px 7px;margin:2px}
+
+/* ─── Required Staff Rows (form) ────────────────────────── */
+.req-staff-row{display:flex;align-items:center;gap:6px;padding:5px 0;
+  border-bottom:1px solid var(--bd)}
+.req-staff-row .se-rm{flex-shrink:0}
+#f-req-staff-rows{margin-bottom:4px}
+
+/* ─── Planner: Roles selector ───────────────────────────── */
+.role-sel-list{display:flex;flex-wrap:wrap;gap:8px}
+.role-sel-item{display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;
+  padding:6px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--bd);
+  transition:border-color .15s}
+.role-sel-item:has(input:checked){border-color:var(--l1);background:rgba(var(--l1-rgb),.1)}
+
+/* ─── Planner: AI missing warning ───────────────────────── */
+.ai-missing-warn{padding:12px;background:rgba(255,166,0,.08);border:1px solid rgba(255,166,0,.25);
+  border-radius:8px;font-size:.8rem;margin-bottom:14px;color:var(--txd)}
+
+/* ─── Planner: Hours sidebar v2 ─────────────────────────── */
+.hours-break{font-size:.7rem;color:rgba(255,166,0,.8);margin:0 3px}
+.hours-net.has-break{color:#22d4a4}
+.hours-delta{font-size:.72rem;margin-left:4px}
+.hours-delta.pos{color:#22d4a4}
+.hours-delta.neg{color:var(--miss)}
+
+/* ─── Assign card: slot role/time tags ──────────────────── */
+.slot-role{font-size:.68rem;background:var(--bg3);border-radius:4px;padding:1px 5px;
+  color:var(--txm);margin-right:3px;flex-shrink:0}
+.slot-time{font-size:.68rem;color:var(--txm);margin-right:3px;flex-shrink:0}
+.assign-ev-hours{font-size:.75rem;color:var(--txm);margin-left:auto;margin-right:4px}
+.tag-warn{background:rgba(255,166,0,.15);color:#ffb347;border:1px solid rgba(255,166,0,.3);
+  font-size:.68rem;padding:1px 6px;border-radius:4px}
+
+/* ─── Picker: wish + from indicators ───────────────────── */
+.picker-emp-row.is-wished{background:rgba(34,212,164,.05);border-left:2px solid #22d4a4}
+.picker-wish{font-size:.7rem;color:#22d4a4;background:rgba(34,212,164,.12);
+  border-radius:4px;padding:1px 5px}
+.warn-from{background:rgba(255,166,0,.12);border-radius:4px;padding:1px 5px}
