@@ -16,14 +16,17 @@ const PlanningRules = {
   getAll() { return this._rows; },
   getForRole(role) { return this._rows.find(r => r.role === role) || null; },
 
+  // Höchste passende Pausenstufe gewinnt (nicht Summe)
   calcNetHours(grossHours, role) {
     const rules = this.getForRole(role);
     if (!rules?.break_rules?.length) return grossHours;
-    let deductMin = 0;
+    let maxDeduct = 0;
     for (const br of rules.break_rules) {
-      if (grossHours >= br.after_hours) deductMin += br.deduct_minutes;
+      if (grossHours >= br.after_hours && br.deduct_minutes > maxDeduct) {
+        maxDeduct = br.deduct_minutes;
+      }
     }
-    return Math.max(0, Math.round((grossHours - deductMin / 60) * 100) / 100);
+    return Math.max(0, Math.round((grossHours - maxDeduct / 60) * 100) / 100);
   },
 
   async upsert(role, fields) {
@@ -47,7 +50,6 @@ const PlanningRules = {
     this._rows = this._rows.filter(r => r.role !== role);
   },
 
-  // Render rules editor (for settings or planner)
   renderEditor(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -87,7 +89,9 @@ const PlanningRules = {
           <input type="number" class="fi pr-in" value="${r.target_monthly_hours||''}" min="0" step="0.5" placeholder="–"
             onchange="PlanningRules._set('${role}','target_monthly_hours',this.value?+this.value:null)">
         </div>
-        <div class="pr-breaks-label">Pausenabzüge:</div>
+        <div class="pr-breaks-label">Pausenabzüge:
+          <span class="pr-breaks-hint">Es gilt immer die höchste passende Stufe, nicht die Summe aller Stufen.</span>
+        </div>
         <div id="pr-breaks-${role.replace(/\s+/g,'_')}">${brHtml}</div>
         <button class="btn btn-ghost" style="font-size:.72rem;margin-top:6px"
           onclick="PlanningRules._addBreak('${role}','${containerId}')">+ Regel hinzufügen</button>
@@ -238,15 +242,27 @@ const Availability = {
     try {
       const { data } = await db.from('employee_availability')
         .select('*').eq('period_id', periodId).eq('employee_id', empId).maybeSingle();
-      this._cache[key] = data || { period_id: periodId, employee_id: empId, blocked_dates: [], weekday_rules: {}, submitted_at: null };
+      this._cache[key] = data || {
+        period_id: periodId, employee_id: empId,
+        blocked_dates: [], weekday_rules: {},
+        date_rules: {}, wished_dates: [],
+        submitted_at: null,
+      };
     } catch {
-      this._cache[key] = { period_id: periodId, employee_id: empId, blocked_dates: [], weekday_rules: {}, submitted_at: null };
+      this._cache[key] = {
+        period_id: periodId, employee_id: empId,
+        blocked_dates: [], weekday_rules: {},
+        date_rules: {}, wished_dates: [],
+        submitted_at: null,
+      };
     }
     return this._cache[key];
   },
 
   get(periodId, empId) {
-    return this._cache[this._key(periodId, empId)] || { blocked_dates: [], weekday_rules: {} };
+    return this._cache[this._key(periodId, empId)] || {
+      blocked_dates: [], weekday_rules: {}, date_rules: {}, wished_dates: [],
+    };
   },
 
   async loadAll(periodId) {
@@ -255,10 +271,16 @@ const Availability = {
     return data || [];
   },
 
-  async save(periodId, empId, blocked_dates, weekday_rules) {
+  async save(periodId, empId, blocked_dates, weekday_rules, date_rules, wished_dates) {
     const key = this._key(periodId, empId);
     const existing = this._cache[key];
-    const fields = { blocked_dates, weekday_rules, updated_at: new Date().toISOString() };
+    const fields = {
+      blocked_dates,
+      weekday_rules,
+      date_rules: date_rules || {},
+      wished_dates: wished_dates || [],
+      updated_at: new Date().toISOString(),
+    };
     if (existing?.id) {
       const { error } = await db.from('employee_availability').update(fields).eq('id', existing.id);
       if (error) throw error;
@@ -271,8 +293,8 @@ const Availability = {
     }
   },
 
-  async submit(periodId, empId, blocked_dates, weekday_rules) {
-    await this.save(periodId, empId, blocked_dates, weekday_rules);
+  async submit(periodId, empId, blocked_dates, weekday_rules, date_rules, wished_dates) {
+    await this.save(periodId, empId, blocked_dates, weekday_rules, date_rules, wished_dates);
     const key = this._key(periodId, empId);
     const existing = this._cache[key];
     if (existing?.id) {
@@ -282,12 +304,27 @@ const Availability = {
     }
   },
 
-  isBlocked(periodId, empId, dateStr) {
+  // Gibt "blocked", "HH:MM" (available_from), oder null (frei) zurück
+  getDateState(periodId, empId, dateStr) {
     const av = this.get(periodId, empId);
-    if (av.blocked_dates?.includes(dateStr)) return true;
+    if (av.blocked_dates?.includes(dateStr)) return 'blocked';
+    if (av.date_rules?.[dateStr]?.available_from) return av.date_rules[dateStr].available_from;
+    // Wochentagsregel prüfen
     const wd = new Date(dateStr + 'T12:00:00').getDay();
     const wdKey = wd === 0 ? 7 : wd;
-    return !!(av.weekday_rules?.[wdKey]?.blocked);
+    const wdRule = av.weekday_rules?.[wdKey];
+    if (wdRule?.blocked) return 'blocked';
+    if (wdRule?.from) return wdRule.from;
+    return null;
+  },
+
+  isBlocked(periodId, empId, dateStr) {
+    return this.getDateState(periodId, empId, dateStr) === 'blocked';
+  },
+
+  isWished(periodId, empId, dateStr) {
+    const av = this.get(periodId, empId);
+    return !!(av.wished_dates?.includes(dateStr));
   },
 
   // Render form for Profile page
@@ -300,13 +337,22 @@ const Availability = {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
     const DOW = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
     let calHtml = '<div class="av-cal">' + DOW.map(d => `<div class="av-dow">${d}</div>`).join('');
     for (let i = 0; i < firstDow; i++) calHtml += '<div class="av-day-empty"></div>';
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const blocked = av.blocked_dates?.includes(ds);
-      calHtml += `<div class="av-day${blocked ? ' blocked' : ''}" data-date="${ds}"
-        onclick="Availability._toggleDate(this,'${periodId}','${empId}')">${d}</div>`;
+      const fromTime = av.date_rules?.[ds]?.available_from || '';
+      const wished = av.wished_dates?.includes(ds);
+      let cls = 'av-day';
+      if (blocked) cls += ' blocked';
+      else if (fromTime) cls += ' from-time';
+      if (wished) cls += ' wished';
+      const label = fromTime && !blocked ? `<span class="av-day-time">${fromTime}</span>` : '';
+      const wishMark = wished ? '<span class="av-day-wish">★</span>' : '';
+      calHtml += `<div class="${cls}" data-date="${ds}"
+        onclick="Availability._openDayPopup(this,'${periodId}','${empId}')">${d}${label}${wishMark}</div>`;
     }
     calHtml += '</div>';
 
@@ -317,11 +363,11 @@ const Availability = {
       wdHtml += `<div class="av-wd-row">
         <span class="av-wd-name">${WD_NAMES[wd]}</span>
         <label class="av-wd-cb"><input type="checkbox" ${rule.blocked ? 'checked' : ''}
-          onchange="Availability._setWd(${wd},'${periodId}','${empId}','blocked',this.checked)"> Blockiert</label>
-        <label class="av-wd-time-lbl">Ab <input type="time" class="av-wd-time" value="${rule.from || ''}"
-          onchange="Availability._setWd(${wd},'${periodId}','${empId}','from',this.value)"></label>
-        <label class="av-wd-time-lbl">Bis <input type="time" class="av-wd-time" value="${rule.to || ''}"
-          onchange="Availability._setWd(${wd},'${periodId}','${empId}','to',this.value)"></label>
+          onchange="Availability._setWd(${wd},'${periodId}','${empId}','blocked',this.checked)"> Nie verfügbar</label>
+        <label class="av-wd-time-lbl" id="av-wd-from-${wd}-wrap" ${rule.blocked ? 'style="opacity:.4;pointer-events:none"' : ''}>
+          Erst ab <input type="time" class="av-wd-time" value="${rule.from || ''}"
+            onchange="Availability._setWd(${wd},'${periodId}','${empId}','from',this.value)">
+        </label>
       </div>`;
     }
     wdHtml += '</div>';
@@ -333,9 +379,16 @@ const Availability = {
     container.innerHTML = `<div class="av-wrap">
       <div class="av-title">Verfügbarkeit ${MONS[month]} ${year}</div>
       ${dl}${submitted}
-      <div class="av-hint">Klicke auf Tage, an denen du <strong>nicht</strong> verfügbar bist (rot = blockiert):</div>
+      <div class="av-hint">Klicke auf einen Tag um den Status festzulegen.<br>
+        <span class="av-legend">
+          <span class="av-leg-item av-leg-free">frei</span>
+          <span class="av-leg-item av-leg-blocked">blockiert</span>
+          <span class="av-leg-item av-leg-from">erst ab Uhrzeit</span>
+          <span class="av-leg-item av-leg-wish">★ Wunschdienst</span>
+        </span>
+      </div>
       ${calHtml}
-      <details class="av-wd-details"><summary>Wochentag-Einschränkungen</summary>${wdHtml}</details>
+      <details class="av-wd-details"><summary>Wochentag-Einschränkungen (allgemein)</summary>${wdHtml}</details>
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="Availability._save('${periodId}','${empId}')">Zwischenspeichern</button>
         <button class="btn btn-primary" onclick="Availability._submit('${periodId}','${empId}')">✓ Einreichen</button>
@@ -343,14 +396,115 @@ const Availability = {
     </div>`;
   },
 
-  _toggleDate(el, periodId, empId) {
+  // Mini-Popup für tagesgenaue Einstellungen
+  _openDayPopup(el, periodId, empId) {
     const ds = el.dataset.date;
     const av = this.get(periodId, empId);
+    const blocked = av.blocked_dates?.includes(ds);
+    const fromTime = av.date_rules?.[ds]?.available_from || '';
+    const wished = av.wished_dates?.includes(ds);
+
+    const existing = document.getElementById('av-day-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'av-day-popup';
+    popup.className = 'av-day-popup';
+
+    const d = new Date(ds + 'T12:00:00');
+    const dayName = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    popup.innerHTML = `
+      <div class="av-popup-title">${dayName}</div>
+      <div class="av-popup-row">
+        <label class="av-popup-opt ${blocked ? 'active-blocked' : ''}">
+          <input type="checkbox" id="avp-blocked" ${blocked ? 'checked' : ''}
+            onchange="Availability._popupChange('${ds}','${periodId}','${empId}')">
+          🔴 Ganzer Tag blockiert
+        </label>
+      </div>
+      <div class="av-popup-row" id="avp-from-row" ${blocked ? 'style="opacity:.4;pointer-events:none"' : ''}>
+        <label class="av-popup-opt">
+          🟠 Erst ab Uhrzeit:
+          <input type="time" class="fi av-popup-time" id="avp-from" value="${fromTime}"
+            onchange="Availability._popupChange('${ds}','${periodId}','${empId}')">
+        </label>
+      </div>
+      <div class="av-popup-row">
+        <label class="av-popup-opt ${wished ? 'active-wish' : ''}">
+          <input type="checkbox" id="avp-wish" ${wished ? 'checked' : ''}
+            onchange="Availability._popupChange('${ds}','${periodId}','${empId}')">
+          ⭐ Wunschdienst
+        </label>
+      </div>
+      <button class="btn btn-ghost av-popup-close" onclick="document.getElementById('av-day-popup').remove()">Schließen</button>`;
+
+    // Position near clicked element
+    const rect = el.getBoundingClientRect();
+    popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 220) + 'px';
+    document.body.appendChild(popup);
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', function handler(e) {
+        if (!popup.contains(e.target) && e.target !== el) {
+          popup.remove();
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 0);
+  },
+
+  _popupChange(ds, periodId, empId) {
+    const av = this.get(periodId, empId);
     if (!av.blocked_dates) av.blocked_dates = [];
-    const idx = av.blocked_dates.indexOf(ds);
-    if (idx >= 0) av.blocked_dates.splice(idx, 1);
-    else av.blocked_dates.push(ds);
-    el.classList.toggle('blocked');
+    if (!av.date_rules) av.date_rules = {};
+    if (!av.wished_dates) av.wished_dates = [];
+
+    const blockedEl = document.getElementById('avp-blocked');
+    const fromEl = document.getElementById('avp-from');
+    const wishEl = document.getElementById('avp-wish');
+    const fromRow = document.getElementById('avp-from-row');
+
+    const isBlocked = blockedEl?.checked || false;
+    const fromTime = fromEl?.value || '';
+    const isWished = wishEl?.checked || false;
+
+    // Dim "ab Uhrzeit" when blocked
+    if (fromRow) fromRow.style.opacity = isBlocked ? '.4' : '1';
+    if (fromRow) fromRow.style.pointerEvents = isBlocked ? 'none' : '';
+
+    // Update blocked_dates
+    const bIdx = av.blocked_dates.indexOf(ds);
+    if (isBlocked && bIdx < 0) av.blocked_dates.push(ds);
+    else if (!isBlocked && bIdx >= 0) av.blocked_dates.splice(bIdx, 1);
+
+    // Update date_rules
+    if (!isBlocked && fromTime) {
+      av.date_rules[ds] = { available_from: fromTime };
+    } else {
+      delete av.date_rules[ds];
+    }
+
+    // Update wished_dates
+    const wIdx = av.wished_dates.indexOf(ds);
+    if (isWished && wIdx < 0) av.wished_dates.push(ds);
+    else if (!isWished && wIdx >= 0) av.wished_dates.splice(wIdx, 1);
+
+    // Re-render the calendar day
+    const dayEl = document.querySelector(`.av-day[data-date="${ds}"]`);
+    if (dayEl) {
+      let cls = 'av-day';
+      if (isBlocked) cls += ' blocked';
+      else if (fromTime) cls += ' from-time';
+      if (isWished) cls += ' wished';
+      const d = new Date(ds + 'T12:00:00').getDate();
+      const label = fromTime && !isBlocked ? `<span class="av-day-time">${fromTime}</span>` : '';
+      const wishMark = isWished ? '<span class="av-day-wish">★</span>' : '';
+      dayEl.className = cls;
+      dayEl.innerHTML = `${d}${label}${wishMark}`;
+    }
   },
 
   _setWd(wd, periodId, empId, key, val) {
@@ -358,12 +512,18 @@ const Availability = {
     if (!av.weekday_rules) av.weekday_rules = {};
     if (!av.weekday_rules[wd]) av.weekday_rules[wd] = {};
     av.weekday_rules[wd][key] = val;
+    // Toggle opacity of "ab" input
+    const wrap = document.getElementById(`av-wd-from-${wd}-wrap`);
+    if (wrap && key === 'blocked') {
+      wrap.style.opacity = val ? '.4' : '';
+      wrap.style.pointerEvents = val ? 'none' : '';
+    }
   },
 
   async _save(periodId, empId) {
     const av = this.get(periodId, empId);
     try {
-      await this.save(periodId, empId, av.blocked_dates || [], av.weekday_rules || {});
+      await this.save(periodId, empId, av.blocked_dates || [], av.weekday_rules || {}, av.date_rules || {}, av.wished_dates || []);
       const btn = event?.target;
       if (btn) { const orig = btn.textContent; btn.textContent = '✓ Gespeichert'; setTimeout(() => btn.textContent = orig, 2000); }
     } catch (e) { alert('Fehler: ' + e.message); }
@@ -372,9 +532,8 @@ const Availability = {
   async _submit(periodId, empId) {
     const av = this.get(periodId, empId);
     try {
-      await this.submit(periodId, empId, av.blocked_dates || [], av.weekday_rules || {});
+      await this.submit(periodId, empId, av.blocked_dates || [], av.weekday_rules || {}, av.date_rules || {}, av.wished_dates || []);
       alert('Verfügbarkeit erfolgreich eingereicht!');
-      // Re-render profile to show submitted state
       const cont = document.getElementById('profil-av-cont');
       if (cont) this.renderForm(periodId, empId, cont);
     } catch (e) { alert('Fehler: ' + e.message); }
