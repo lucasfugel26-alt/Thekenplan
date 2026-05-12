@@ -74,6 +74,9 @@
       <button class="gear-btn" id="profil-btn" onclick="Profile.open()" style="display:none">
         &#128100; Mein Profil
       </button>
+      <button class="gear-btn" id="av-btn" onclick="Availability.openModal()" style="display:none;color:var(--l1);border-color:rgba(245,166,35,.25)">
+        &#128197; Verfügbarkeit
+      </button>
       <button class="gear-btn" onclick="App.openSettings()" id="gear-btn">
         &#9881; Einstellungen
       </button>
@@ -151,6 +154,7 @@
   </div>
   <div class="ham-div"></div>
   <button class="ham-item" id="ham-profil" onclick="Profile.open();Ham.close()" style="display:none">&#128100; Mein Profil</button>
+  <button class="ham-item" id="ham-av" onclick="Availability.openModal();Ham.close()" style="display:none">&#128197; Verfügbarkeit</button>
   <button class="ham-item" onclick="App.openSettings();Ham.close()">&#9881; Einstellungen</button>
   <div class="ham-div admin-only"></div>
   <button class="ham-item admin-only" onclick="Planner.open();Ham.close()">&#128203; Planung</button>
@@ -449,6 +453,17 @@
     </div>
     <div id="profil-av-cont"></div>
     <div id="profil-swaps"></div>
+  </div>
+</div>
+
+<!-- ── VERFÜGBARKEIT PAGE ── -->
+<div class="stg-page" id="av-page">
+  <div class="stg-page-inner">
+    <div class="stg-page-hdr">
+      <button class="btn btn-ghost stg-back" onclick="Availability.closeModal()">&#8592; Zur&uuml;ck</button>
+      <div class="stg-page-title">&#128197; Meine Verf&uuml;gbarkeit</div>
+    </div>
+    <div id="av-modal-cont"></div>
   </div>
 </div>
 
