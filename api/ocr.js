@@ -21,7 +21,7 @@ Format jedes Eintrags:
 {
   "date": "YYYY-MM-DD",
   "event": "Name der Veranstaltung",
-  "einlasszeit": "HH:MM Einlasszeit/Türöffnung/Doors Open, sonst leer",
+  "einlasszeit": "HH:MM Einlasszeit/Töröffnung/Doors Open, sonst leer",
   "schlussShow": "HH:MM Show-Ende/Konzertende, sonst leer",
   "location": "Kürzel aus der Liste oben, oder leerer String wenn unklar",
 ${optionalFields.join(',\n')}
@@ -61,6 +61,13 @@ module.exports = async function handler(req, res) {
     const roleData = await roleRes.json();
     if (roleData?.[0]?.role !== 'admin') {
       return res.status(403).json({ error: 'Nur Admins können Dateien importieren.' });
+    }
+    const aiCfgRes = await fetch(`${supabaseUrl}/rest/v1/app_config?key=eq.ai_enabled&select=value`, {
+      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+    });
+    const aiCfg = await aiCfgRes.json();
+    if (aiCfg?.[0]?.value === false) {
+      return res.status(403).json({ error: 'AI features disabled' });
     }
   }
 
