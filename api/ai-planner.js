@@ -64,74 +64,143 @@ module.exports = async function handler(req, res) {
 
 const MONS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-function buildPreflightPrompt({ period, events, employees, availability }) {
+function buildPreflightPrompt({ period, events, employees, availability, selectedRoles }) {
   const mo = MONS_DE[period.month - 1];
-  const evLines = events.map(ev =>
-    `- ${ev.date} | ${ev.event} | Slots: ${ev.barStaff?.length||0} | Besetzt: ${ev.barStaff?.filter(s=>!s.miss).length||0}`
-  ).join('\n');
+  const rolesFilter = selectedRoles && selectedRoles.length
+    ? `Zu planende Rollen: ${selectedRoles.join(', ')}`
+    : 'Alle Rollen werden geplant';
+
+  // Events without required_staff
+  const missingReq = events.filter(ev => !ev.cancelled && (!ev.required_staff || !ev.required_staff.length));
+
+  const evLines = events.map(ev => {
+    const req = ev.required_staff || [];
+    const reqSummary = req.length
+      ? req.map(r => `${r.count}×${r.role}`).join(', ')
+      : '⚠ KEIN BEDARF HINTERLEGT';
+    return `- ${ev.date} | ${ev.event} | Bedarf: ${reqSummary}`;
+  }).join('\n');
+
   const empLines = employees.map(e =>
     `- ${e.name} (${e.default_role||'–'}, Soll ${e.soll_stunden||0}h/${e.soll_period||'month'})`
   ).join('\n');
+
   const avLines = availability.map(av => {
     const e = employees.find(x => x.id === av.employee_id);
-    return `- ${e?.name||av.employee_id}: ${av.blocked_dates?.length||0} blockierte Tage, eingereicht: ${av.submitted_at?'ja':'nein'}`;
+    const wished = av.wished_dates?.length ? `, Wunschtermine: ${av.wished_dates.join(', ')}` : '';
+    return `- ${e?.name||av.employee_id}: ${av.blocked_dates?.length||0} blockierte Tage${wished}, eingereicht: ${av.submitted_at?'ja':'nein'}`;
   }).join('\n') || '(keine Verfügbarkeiten eingegangen)';
+
+  const missingBlock = missingReq.length ? `\n⚠ FEHLENDER PERSONALBEDARF (${missingReq.length} Events):\n${missingReq.map(ev => `- ${ev.date} | ${ev.event}`).join('\n')}\nDiese Events können NICHT geplant werden, bis der Admin den Bedarf hinterlegt!` : '';
 
   return `Du bist ein Dienstplanungsassistent für eine Bar/Veranstaltungslocation. Erstelle einen Preflight-Bericht auf Deutsch.
 
 ## Planungszeitraum: ${mo} ${period.year}
+## ${rolesFilter}
 ## Veranstaltungen (${events.length}):
 ${evLines}
+${missingBlock}
 ## Mitarbeiter (${employees.length}):
 ${empLines}
 ## Verfügbarkeiten:
 ${avLines}
 
-Erstelle einen kurzen strukturierten Bericht (max. 250 Wörter) mit:
+Erstelle einen kurzen strukturierten Bericht (max. 300 Wörter) mit:
 1. **Überblick**: Events, Mitarbeiter, Abdeckungsschätzung
-2. **Risiken**: Engpässe, fehlende Verfügbarkeiten, mögliche Konflikte
-3. **Fragen an den Admin** (2–4 Fragen die helfen den Plan zu optimieren)`;
+2. **Fehlender Bedarf**: Liste Events ohne Personalbedarf explizit auf und fordere den Admin auf, diesen zuerst einzutragen
+3. **Risiken**: Engpässe, fehlende Verfügbarkeiten, mögliche Konflikte
+4. **Fragen an den Admin** (2–4 Fragen die helfen den Plan zu optimieren)`;
 }
 
-function buildGeneratePrompt({ period, events, employees, availability, applications, answers }) {
+function buildGeneratePrompt({ period, events, employees, availability, applications, answers, selectedRoles }) {
   const mo = MONS_DE[period.month - 1];
-  const evJson = events.map(ev => ({
-    id: ev.id, date: ev.date, name: ev.event,
-    startGastro: ev.startGastro||null, ende: ev.belegungsende||null,
-    slots: ev.barStaff?.length || 4
-  }));
-  const empJson = employees.map(e => ({
-    id: e.id, name: e.name, role: e.default_role||'Thekenkraft',
-    soll: e.soll_stunden||0, sollPeriod: e.soll_period||'month'
-  }));
-  const avJson = availability.map(av => ({
-    employee_id: av.employee_id,
-    blocked: av.blocked_dates||[],
-    wdRules: av.weekday_rules||{}
-  }));
+  const roles = selectedRoles && selectedRoles.length ? selectedRoles : null;
+
+  // Only plan events that have required_staff AND match selected roles
+  const plannableEvents = events.filter(ev =>
+    !ev.cancelled && ev.required_staff && ev.required_staff.length > 0 &&
+    (!roles || ev.required_staff.some(r => roles.includes(r.role)))
+  );
+  const skippedEvents = events.filter(ev =>
+    !ev.cancelled && (!ev.required_staff || !ev.required_staff.length)
+  );
+
+  const evJson = plannableEvents.map(ev => {
+    // Filter required_staff to selected roles only
+    const reqStaff = roles
+      ? (ev.required_staff || []).filter(r => roles.includes(r.role))
+      : (ev.required_staff || []);
+    return {
+      id: ev.id,
+      date: ev.date,
+      name: ev.event,
+      startGastro: ev.startGastro || null,
+      ende: ev.belegungsende || null,
+      required_staff: reqStaff,
+    };
+  });
+
+  const empJson = employees
+    .filter(e => !roles || roles.includes(e.default_role))
+    .map(e => ({
+      id: e.id,
+      name: e.name,
+      role: e.default_role || 'Thekenkraft',
+      soll: e.soll_stunden || 0,
+      sollPeriod: e.soll_period || 'month',
+    }));
+
+  const avJson = availability.map(av => {
+    const dateRules = av.date_rules || {};
+    const wished = av.wished_dates || [];
+    const wdRules = av.weekday_rules || {};
+    // Build compact weekday summary
+    const wdSummary = Object.entries(wdRules)
+      .filter(([, r]) => r.blocked || r.from)
+      .map(([wd, r]) => `Wochentag ${wd}: ${r.blocked ? 'nie' : 'ab ' + r.from}`)
+      .join('; ');
+    return {
+      employee_id: av.employee_id,
+      blocked: av.blocked_dates || [],
+      date_rules: dateRules,
+      wished_dates: wished,
+      weekday_rules: wdSummary || null,
+    };
+  });
+
+  const skippedNote = skippedEvents.length
+    ? `\nHINWEIS: ${skippedEvents.length} Events wurden ÜBERSPRUNGEN, da kein Personalbedarf hinterlegt ist: ${skippedEvents.map(ev => ev.event).join(', ')}. Diese werden im Output mit leeren Slots zurückgegeben.`
+    : '';
 
   return `Erstelle einen optimalen Dienstplan für ${mo} ${period.year}.
 
 REGELN (bindend):
-1. Respektiere blockierte Tage und Wochentag-Einschränkungen
-2. Bevorzuge Mitarbeiter die sich für ein Event beworben haben
-3. Achte auf ausgeglichene Stundenverteilung gemäß Soll-Stunden
-4. Kein Mitarbeiter an zwei Orten am selben Tag
-5. Verwende nur die gegebenen Mitarbeiter-IDs
+1. Besetze NUR die in required_staff definierten Stellen – keine zusätzlichen Slots erfinden
+2. Plane NUR Mitarbeiter deren default_role in required_staff.role vorkommt
+3. Respektiere blocked_dates vollständig – kein Mitarbeiter an blockierten Tagen einteilen
+4. Respektiere date_rules: {"datum": {"available_from": "HH:MM"}} – Schicht erst ab dieser Zeit erlaubt
+5. Respektiere weekday_rules: an gesperrten Wochentagen nicht einteilen; "ab HH:MM" beachten
+6. Bevorzuge Mitarbeiter mit wished_dates passend zum Event-Datum (+Priorität)
+7. Bevorzuge Mitarbeiter die sich für ein Event beworben haben
+8. Achte auf ausgeglichene Stundenverteilung gemäß Soll-Stunden
+9. Kein Mitarbeiter an zwei Events am selben Tag
+10. Verwende nur die gegebenen Mitarbeiter-IDs${skippedNote}
 
-VERANSTALTUNGEN: ${JSON.stringify(evJson)}
+VERANSTALTUNGEN (planbar): ${JSON.stringify(evJson)}
 
 MITARBEITER: ${JSON.stringify(empJson)}
 
 VERFÜGBARKEITEN: ${JSON.stringify(avJson)}
 
-BEWERBUNGEN: ${JSON.stringify(applications||[])}
+BEWERBUNGEN: ${JSON.stringify(applications || [])}
 
 ${answers ? `ADMIN-ANWEISUNGEN: ${answers}` : ''}
 
 Antworte NUR mit diesem JSON, kein anderer Text:
 \`\`\`json
-{"assignments":{"EVENT_ID":[{"pos":1,"name":"Name","employeeId":"UUID","miss":false}]}}
+{"assignments":{"EVENT_ID":[{"pos":1,"name":"Name","employeeId":"UUID","miss":false,"role":"Rollenname"}]}}
 \`\`\`
-Für jeden Event alle Slots befüllen. Unbesetzte Slots: {"pos":N,"name":null,"miss":true,"employeeId":null}`;
+Für jeden planbaren Event alle required_staff Slots befüllen (Anzahl pro Rolle aus required_staff.count).
+Unbesetzte Slots: {"pos":N,"name":null,"miss":true,"employeeId":null,"role":"Rollenname"}
+Übersprungene Events (kein required_staff): nicht im Output aufführen.`;
 }

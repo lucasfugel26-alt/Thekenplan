@@ -27,6 +27,7 @@ const Form={
     const bv=document.getElementById('f-besucher');if(bv)bv.value='';
     const vnr=document.getElementById('f-vnr');if(vnr)vnr.value='';
     this.setBecher(document.querySelector('.bt-btn[data-val="unbekannt"]'));
+    document.getElementById('f-req-staff-rows').innerHTML='';
     document.getElementById('f-staff-rows').innerHTML='';
     this.addStaffRow();this.addStaffRow();
     Defaults.applyToForm();
@@ -67,6 +68,9 @@ const Form={
     const vnr=document.getElementById('f-vnr');if(vnr)vnr.value=ev.veranstaltungsnummer||ev.veranstaltungsnr||ev.vnr||'';
     const becherVal=ev.bechertyp||(ev.plastik?'plastik':'unbekannt');
     this.setBecher(document.querySelector(`.bt-btn[data-val="${becherVal}"]`));
+    /* Benötigte Besetzung laden */
+    document.getElementById('f-req-staff-rows').innerHTML='';
+    (ev.required_staff||[]).forEach(r=>this._addReqStaffRowData(r));
     /* Besetzungszeilen aufbauen */
     document.getElementById('f-staff-rows').innerHTML='';
     ev.barStaff.forEach(s=>this._addStaffRowData(s));
@@ -103,6 +107,40 @@ const Form={
 
   addStaffRow(){
     this._addStaffRowData({name:'',pos:this.staffRows+1,ov:null,miss:false,statuses:[]});
+  },
+
+  _addReqStaffRowData(r){
+    const roles=Config.data.employeeRoles||[];
+    const id='rsr-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
+    const roleOpts=roles.map(ro=>`<option value="${_esc(ro)}" ${ro===(r.role||'')?'selected':''}>${_esc(ro)}</option>`).join('');
+    const div=document.createElement('div');
+    div.className='req-staff-row';
+    div.id=id;
+    div.innerHTML=`
+      <select class="fi req-role" style="flex:2" title="Rolle">
+        <option value="">– Rolle –</option>${roleOpts}
+      </select>
+      <input class="fi req-count" type="number" min="1" max="20" value="${r.count||1}" style="width:60px" title="Anzahl">
+      <input class="fi req-start" type="time" value="${r.start_time||''}" style="width:90px" title="Startzeit (opt.)">
+      <input class="fi req-end" type="time" value="${r.end_time||''}" style="width:90px" title="Endzeit (opt.)">
+      <button class="se-rm" onclick="document.getElementById('${id}').remove()" title="Entfernen">✕</button>`;
+    document.getElementById('f-req-staff-rows').appendChild(div);
+  },
+
+  addReqStaffRow(){
+    this._addReqStaffRowData({role:'',count:1});
+  },
+
+  collectRequiredStaff(){
+    const rows=[];
+    document.querySelectorAll('#f-req-staff-rows .req-staff-row').forEach(row=>{
+      const role=row.querySelector('.req-role')?.value?.trim()||'';
+      const count=parseInt(row.querySelector('.req-count')?.value)||1;
+      const start=row.querySelector('.req-start')?.value||null;
+      const end=row.querySelector('.req-end')?.value||null;
+      if(role) rows.push({role,count,start_time:start||null,end_time:end||null});
+    });
+    return rows;
   },
 
   collectStaff(){
@@ -185,6 +223,7 @@ const Form={
       schlussShow:document.getElementById('f-schluss').value||null,
       belegungsende:document.getElementById('f-ende').value||null,
       barStaff:this.collectStaff(),
+      required_staff:this.collectRequiredStaff(),
     };
   },
 

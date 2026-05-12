@@ -3,10 +3,11 @@
    ============================================================ */
 const Planner = {
   _period: null,
-  _draft: {},      // {eventId: barStaff[]} – proposed_assignments
-  _monthEvents: [], // events for the planning month
+  _draft: {},           // {eventId: barStaff[]} – proposed_assignments
+  _monthEvents: [],     // events for the planning month
   _tab: 'overview',
   _aiReport: null,
+  _selectedRoles: [],   // roles to plan (for AI)
 
   /* ─── Open / Close ─────────────────────────────────────── */
   async open(periodId) {
@@ -23,6 +24,10 @@ const Planner = {
       this._monthEvents = EVENTS.filter(ev => ev.date.startsWith(`${y}-${m}`))
         .sort((a, b) => a.date.localeCompare(b.date));
       this._tab = 'overview';
+      // Default: alle Rollen vorausgewählt
+      if (!this._selectedRoles.length) {
+        this._selectedRoles = [...(Config.data.employeeRoles || [])];
+      }
     }
     this._render();
   },
@@ -40,7 +45,6 @@ const Planner = {
     const p = this._period;
     const periods = Planning.getAll();
 
-    // Header
     const headerHtml = `
       <div class="planner-hdr">
         <button class="btn btn-ghost stg-back" onclick="Planner.close()">← Zurück</button>
@@ -54,7 +58,6 @@ const Planner = {
         </div>
       </div>`;
 
-    // New period form
     if (this._tab === 'new' || !p) {
       root.innerHTML = headerHtml + `<div class="planner-new-form">
         <h3>Neuen Planungszeitraum erstellen</h3>
@@ -71,14 +74,12 @@ const Planner = {
         <div id="pn-err" style="color:var(--miss);font-size:.8rem;display:none;margin-bottom:8px"></div>
         <button class="btn btn-primary" onclick="Planner._createPeriod()">Erstellen</button>
       </div>`;
-      // Pre-select current month
       const now = new Date();
       const sel = document.getElementById('pn-month');
       if (sel) sel.value = now.getMonth() + 1;
       return;
     }
 
-    // Tabs
     const tabs = [
       ['overview', '📊 Übersicht'],
       ['assignments', '📝 Besetzung'],
@@ -99,7 +100,6 @@ const Planner = {
 
     root.innerHTML = headerHtml + tabsHtml + `<div class="planner-body">${body}</div>`;
 
-    // Post-render hooks
     if (this._tab === 'rules') PlanningRules.renderEditor('pr-editor');
     if (this._tab === 'assignments') this._renderHoursSidebar();
     if (this._tab === 'availability') this._loadAvailabilityTab();
@@ -120,9 +120,41 @@ const Planner = {
         → Status: ${Planning.statusLabel(nextStatus)}
       </button>` : '';
 
+    // Rollen-Auswahl für KI
+    const roles = Config.data.employeeRoles || [];
+    const rolesHtml = roles.length ? `
+      <div class="plan-section">
+        <div class="plan-sec-title">🎯 Zu planende Rollen</div>
+        <p style="font-size:.82rem;color:var(--txm);margin-bottom:10px">
+          Wähle welche Rollen die KI besetzen soll:</p>
+        <div class="role-sel-list">
+          ${roles.map(r => `
+            <label class="role-sel-item">
+              <input type="checkbox" ${this._selectedRoles.includes(r) ? 'checked' : ''}
+                onchange="Planner._toggleRole('${r}',this.checked)">
+              <span>${_esc(r)}</span>
+            </label>`).join('')}
+        </div>
+      </div>` : '';
+
+    // Events ohne required_staff
+    const missingReq = this._monthEvents.filter(ev => !ev.cancelled && (!ev.required_staff || !ev.required_staff.length));
+
     const aiSection = p.status !== 'published' ? `
       <div class="plan-section">
         <div class="plan-sec-title">🤖 KI-Dienstplan</div>
+        ${missingReq.length ? `
+          <div class="ai-missing-warn">
+            <strong>⚠ Fehlender Personalbedarf</strong><br>
+            Bei ${missingReq.length} Veranstaltung(en) ist noch kein Personalbedarf hinterlegt.
+            Die KI kann diese Events nicht besetzen:<br>
+            <ul style="margin:6px 0 0;padding-left:18px;font-size:.8rem">
+              ${missingReq.map(ev => `<li>${_fmtDate(ev.date)} · ${_esc(ev.event)}
+                <button class="btn btn-ghost" style="font-size:.68rem;padding:1px 6px;margin-left:6px"
+                  onclick="App.openEntry(${ev.location});Form.load(EVENTS.find(e=>e.id==='${ev.id}'))">Bearbeiten →</button>
+              </li>`).join('')}
+            </ul>
+          </div>` : ''}
         <div id="planner-ai-area">${this._renderAIArea()}</div>
       </div>` : '';
 
@@ -151,7 +183,6 @@ const Planner = {
           </div>
           <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
             ${statusBtns}
-            ${p.status !== 'published' ? `<button class="btn btn-ghost" onclick="Planner._setStatus('${p.status}')">Status bearbeiten</button>` : ''}
             ${deleteBtn}
           </div>
           ${p.deadline ? `<div style="margin-top:10px;font-size:.8rem;color:var(--txm)">Deadline: ${_fmtDate(p.deadline)}</div>` : ''}
@@ -167,8 +198,14 @@ const Planner = {
           </div>` : '<div style="margin-top:10px;font-size:.8rem;color:#22d4a4">✓ Alle Verfügbarkeiten eingegangen</div>'}
         </div>
       </div>
+      ${rolesHtml}
       ${aiSection}
       ${publishBtn}`;
+  },
+
+  _toggleRole(role, checked) {
+    if (checked && !this._selectedRoles.includes(role)) this._selectedRoles.push(role);
+    else if (!checked) this._selectedRoles = this._selectedRoles.filter(r => r !== role);
   },
 
   _getMissingAvailability() {
@@ -227,14 +264,37 @@ const Planner = {
 
   _buildEventAssignCard(ev, isEditing) {
     const loc = LOCS[ev.location] || {};
-    const staff = this._draft[ev.id] !== undefined ? this._draft[ev.id] : (ev.barStaff || []);
-    const isDraft = this._draft[ev.id] !== undefined;
+    // Use required_staff to define slots; fall back to barStaff for legacy events
+    const reqStaff = ev.required_staff || [];
+    const draftStaff = this._draft[ev.id];
+    const isDraft = draftStaff !== undefined;
 
-    const slotRows = staff.map((s, idx) => {
+    let slots = [];
+    if (isDraft) {
+      slots = draftStaff;
+    } else if (reqStaff.length) {
+      // Build slots from required_staff definition
+      let pos = 1;
+      for (const req of reqStaff) {
+        for (let i = 0; i < req.count; i++) {
+          // Check if already assigned in barStaff
+          const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
+          slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
+          pos++;
+        }
+      }
+    } else {
+      slots = ev.barStaff || [];
+    }
+
+    const slotRows = slots.map((s, idx) => {
       const removeBtn = isEditing ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${idx})" title="Entfernen">✕</button>` : '';
+      const roleTag = s.role ? `<span class="slot-role">${_esc(s.role)}</span>` : '';
+      const timeTag = (s.req_start || s.req_end) ? `<span class="slot-time">${s.req_start||''}${s.req_end?'–'+s.req_end:''}</span>` : '';
       if (s.miss || !s.name) {
         return `<div class="assign-slot empty" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
           <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
+          ${roleTag}${timeTag}
           <span class="slot-empty-txt">Nicht besetzt</span>
           ${removeBtn}
         </div>`;
@@ -243,6 +303,7 @@ const Planner = {
       const bg = emp?.color || '#555';
       return `<div class="assign-slot filled" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
         <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
+        ${roleTag}${timeTag}
         <span class="emp-badge sm" style="background:${bg};color:${_contrastColor(bg)}">${emp?.kuerzel || s.name.slice(0, 2)}</span>
         <span class="slot-name">${_esc(s.name)}</span>
         ${removeBtn}
@@ -251,13 +312,21 @@ const Planner = {
 
     const addBtn = isEditing ? `<button class="assign-add-slot" onclick="Planner._addSlot('${ev.id}')">+ Slot hinzufügen</button>` : '';
 
+    // Hours for this event
+    const evHours = ev.startGastro && ev.belegungsende
+      ? Shifts.calcDuration(ev.startGastro, ev.belegungsende)
+      : null;
+    const hoursTag = evHours ? `<span class="assign-ev-hours">${evHours.toFixed(1)}h</span>` : '';
+
     return `<div class="assign-ev-card${isDraft ? ' is-draft' : ''}" data-evid="${ev.id}" style="border-left-color:${loc.color || 'var(--bd)'}">
       <div class="assign-ev-hd">
         <span class="assign-ev-loc" style="background:${loc.color || '#555'}22;color:${loc.color || 'var(--txd)'};">${loc.short || '?'}</span>
         <span class="assign-ev-date">${_fmtDate(ev.date)}</span>
         <span class="assign-ev-name">${_esc(ev.event)}</span>
+        ${hoursTag}
         ${ev.cancelled ? '<span class="tag tag-canc">Abgesagt</span>' : ''}
         ${isDraft ? '<span class="draft-badge">Entwurf</span>' : ''}
+        ${!reqStaff.length ? '<span class="tag tag-warn" title="Kein Personalbedarf hinterlegt">⚠ Bedarf fehlt</span>' : ''}
       </div>
       <div class="assign-slots">${slotRows}</div>
       ${addBtn}
@@ -271,20 +340,26 @@ const Planner = {
     if (!p) { el.innerHTML = ''; return; }
     const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden');
     const rows = emps.map(emp => {
-      const { gross, net } = this._calcHours(emp);
+      const { gross, net, breakMin, events } = this._calcHours(emp);
       const soll = Number(emp.soll_stunden) || 0;
       const sollMonth = (emp.soll_period || 'month') === 'week' ? Math.round(soll * 4.33 * 10) / 10 : soll;
       const pct = sollMonth > 0 ? Math.min(100, Math.round(gross / sollMonth * 100)) : 0;
+      const delta = sollMonth > 0 ? gross - sollMonth : null;
       const barColor = sollMonth === 0 ? 'var(--txm)' : gross >= sollMonth ? '#22d4a4' : gross > sollMonth * 0.8 ? 'var(--l1)' : 'var(--l4)';
-      return `<div class="hours-row">
+      const deltaHtml = delta !== null
+        ? `<span class="hours-delta ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}h</span>` : '';
+      const breakHtml = breakMin > 0 ? `<span class="hours-break">−${breakMin}min Pause</span>` : '';
+      return `<div class="hours-row" title="${events} Einsätze">
         <div class="hours-name">${_esc(emp.name)}</div>
         <div class="hours-bar-wrap">
           <div class="hours-bar" style="width:${pct}%;background:${barColor}"></div>
         </div>
         <div class="hours-nums">
           <span class="hours-gross">${gross.toFixed(1)}h</span>
-          ${net !== gross ? `<span class="hours-net">(${net.toFixed(1)}h netto)</span>` : ''}
+          ${breakHtml}
+          <span class="hours-net${breakMin > 0 ? ' has-break' : ''}">${net.toFixed(1)}h netto</span>
           ${sollMonth ? `<span class="hours-soll">/ ${sollMonth}h</span>` : ''}
+          ${deltaHtml}
         </div>
       </div>`;
     }).join('');
@@ -293,39 +368,69 @@ const Planner = {
 
   _calcHours(emp) {
     const p = this._period;
-    if (!p) return { gross: 0, net: 0 };
+    if (!p) return { gross: 0, net: 0, breakMin: 0, events: 0 };
     let gross = 0;
+    let eventCount = 0;
     for (const ev of this._monthEvents) {
       const staff = this._draft[ev.id] !== undefined ? this._draft[ev.id] : (ev.barStaff || []);
-      const isAssigned = staff.some(s => !s.miss && s.name && (s.employeeId === emp.id || s.name === emp.name));
-      if (isAssigned) {
-        gross += Shifts.calcDuration(ev.startGastro, ev.belegungsende);
+      const assignment = staff.find(s => !s.miss && s.name && (s.employeeId === emp.id || s.name === emp.name));
+      if (!assignment) continue;
+      eventCount++;
+      // Use slot-specific time if available, else event times
+      const start = assignment.req_start || ev.startGastro;
+      const end = assignment.req_end || ev.belegungsende;
+      if (start && end) {
+        gross += Shifts.calcDuration(start, end);
       }
     }
     const net = PlanningRules.calcNetHours(gross, emp.default_role || '');
-    return { gross: Math.round(gross * 10) / 10, net: Math.round(net * 10) / 10 };
+    const breakMin = Math.round((gross - net) * 60);
+    return {
+      gross: Math.round(gross * 10) / 10,
+      net: Math.round(net * 10) / 10,
+      breakMin,
+      events: eventCount,
+    };
   },
 
   /* ─── Availability Tab ──────────────────────────────────── */
   async _loadAvailabilityTab() {
     const p = this._period;
     const avList = await Availability.loadAll(p.id);
+    const appsList = await ShiftApplications.load(p.id);
     const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden' && e.profile_id);
     const submittedCount = emps.filter(emp => avList.find(a => a.employee_id === emp.id && a.submitted_at)).length;
+
     const rows = emps.map(emp => {
       const av = avList.find(a => a.employee_id === emp.id);
       const submitted = av?.submitted_at;
       const blocked = av?.blocked_dates?.length || 0;
+      const fromTimes = Object.keys(av?.date_rules || {}).length;
+      const wished = av?.wished_dates?.length || 0;
+      const applied = appsList.filter(a => a.employee_id === emp.id).length;
+      const wdBlocked = Object.values(av?.weekday_rules || {}).filter(r => r.blocked).length;
+      const wdFrom = Object.values(av?.weekday_rules || {}).filter(r => r.from && !r.blocked).length;
+
+      const tags = [
+        blocked ? `<span class="av-tag blocked">${blocked} blockiert</span>` : '',
+        fromTimes ? `<span class="av-tag from-time">${fromTimes} ab Uhrzeit</span>` : '',
+        wished ? `<span class="av-tag wished">★ ${wished} Wunsch</span>` : '',
+        applied ? `<span class="av-tag applied">✓ ${applied} beworben</span>` : '',
+        wdBlocked ? `<span class="av-tag wd-blocked">${wdBlocked} Wochentage gesperrt</span>` : '',
+        wdFrom ? `<span class="av-tag wd-from">${wdFrom} Wochentage ab Uhrzeit</span>` : '',
+      ].filter(Boolean).join('');
+
       return `<div class="av-emp-row">
         <div class="av-emp-name">${_esc(emp.name)}</div>
         <div class="av-emp-status ${submitted ? 'submitted' : 'pending'}">
           ${submitted ? `✓ Eingereicht ${new Date(submitted).toLocaleDateString('de-DE')}` : '⏳ Ausstehend'}
         </div>
-        <div style="font-size:.78rem;color:var(--txm)">${blocked ? blocked + ' blockierte Tage' : ''}</div>
+        <div class="av-emp-tags">${tags || '<span style="font-size:.75rem;color:var(--txm)">Keine Einschränkungen</span>'}</div>
         <button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px"
           onclick="Planner._showAvDetail('${emp.id}','${p.id}')">Details</button>
       </div>`;
     }).join('') || '<div style="color:var(--txm);font-size:.83rem">Keine Mitarbeiter mit Zugang.</div>';
+
     const body = document.getElementById('planner-root')?.querySelector('.planner-body');
     if (body) body.innerHTML = `<div class="plan-section">
       <div class="plan-sec-title">Verfügbarkeiten ${MONS[p.month - 1]} ${p.year}</div>
@@ -338,27 +443,84 @@ const Planner = {
     const emp = Employees.getById(empId);
     const av = Availability.get(periodId, empId);
     const p = Planning.getAll().find(x => x.id === periodId);
+    const appsList = ShiftApplications.getForEmployee(periodId, empId);
     if (!emp || !p) return;
+
     const blocked = av.blocked_dates || [];
+    const dateRules = av.date_rules || {};
+    const wished = av.wished_dates || [];
+    const wdRules = av.weekday_rules || {};
     const year = p.year, month = p.month - 1;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
     const DOW = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const WD_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
     let cal = '<div class="av-cal sm">' + DOW.map(d => `<div class="av-dow">${d}</div>`).join('');
     for (let i = 0; i < firstDow; i++) cal += '<div></div>';
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      cal += `<div class="av-day${blocked.includes(ds) ? ' blocked' : ''}">${d}</div>`;
+      const isBlocked = blocked.includes(ds);
+      const fromTime = dateRules[ds]?.available_from || '';
+      const isWished = wished.includes(ds);
+      // Check weekday rule
+      const wd = new Date(ds + 'T12:00:00').getDay();
+      const wdKey = wd === 0 ? 7 : wd;
+      const wdRule = wdRules[wdKey] || {};
+      const wdBlocked = wdRule.blocked && !isBlocked && !fromTime;
+      const wdFrom = wdRule.from && !wdRule.blocked && !isBlocked && !fromTime;
+
+      let cls = 'av-day';
+      if (isBlocked) cls += ' blocked';
+      else if (fromTime) cls += ' from-time';
+      else if (wdBlocked) cls += ' blocked wd-rule';
+      else if (wdFrom) cls += ' from-time wd-rule';
+      if (isWished) cls += ' wished';
+
+      const lbl = fromTime ? `<span class="av-day-time">${fromTime}</span>`
+                : wdFrom ? `<span class="av-day-time">${wdRule.from}</span>` : '';
+      const star = isWished ? '<span class="av-day-wish">★</span>' : '';
+      cal += `<div class="${cls}" title="${isBlocked||wdBlocked?'Blockiert':fromTime||wdFrom?'Ab '+(fromTime||wdRule.from):'Frei'}${isWished?' · Wunsch':''}">${d}${lbl}${star}</div>`;
     }
     cal += '</div>';
+
+    // Weekday summary
+    const wdSummary = Object.entries(wdRules).filter(([, r]) => r.blocked || r.from).map(([wd, r]) => {
+      const name = WD_NAMES[(parseInt(wd) - 1)] || `Wd${wd}`;
+      return `<div class="av-detail-wd">${name}: ${r.blocked ? '🔴 Nie' : `🟠 Erst ab ${r.from}`}</div>`;
+    }).join('') || '<span style="color:var(--txm);font-size:.78rem">Keine</span>';
+
+    // Wish summary
+    const wishSummary = wished.length
+      ? wished.map(ds => `<span class="av-detail-wish">${_fmtDate(ds)}</span>`).join(' ')
+      : '<span style="color:var(--txm);font-size:.78rem">Keine</span>';
+
+    // Applications
+    const appliedEvents = appsList.map(evId => {
+      const ev = EVENTS.find(e => e.id === evId);
+      return ev ? `<span class="av-detail-app">${_fmtDate(ev.date)} ${_esc(ev.event)}</span>` : '';
+    }).join('') || '<span style="color:var(--txm);font-size:.78rem">Keine</span>';
+
     const ov = document.createElement('div');
     ov.className = 'simple-ov';
-    ov.innerHTML = `<div class="simple-modal">
+    ov.innerHTML = `<div class="simple-modal av-detail-modal">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <strong>${_esc(emp.name)} – Verfügbarkeit</strong>
         <button onclick="this.closest('.simple-ov').remove()" class="btn btn-ghost" style="padding:4px 10px">✕</button>
       </div>
       ${cal}
+      <div class="av-detail-legend">
+        <span class="av-leg-item av-leg-free">frei</span>
+        <span class="av-leg-item av-leg-blocked">blockiert</span>
+        <span class="av-leg-item av-leg-from">ab Uhrzeit</span>
+        <span class="av-leg-item av-leg-wish">★ Wunsch</span>
+        <span style="font-size:.7rem;color:var(--txm)">(gestrichelt = Wochentagsregel)</span>
+      </div>
+      <div class="av-detail-sections">
+        <div><div class="av-detail-label">Wochentag-Regeln</div>${wdSummary}</div>
+        <div><div class="av-detail-label">⭐ Wunschtermine</div>${wishSummary}</div>
+        <div><div class="av-detail-label">✓ Schicht-Bewerbungen</div>${appliedEvents}</div>
+      </div>
     </div>`;
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
     document.body.appendChild(ov);
@@ -394,7 +556,7 @@ const Planner = {
     return `<div class="plan-section">
       <div class="plan-sec-title">Regelwerk (nach Rolle)</div>
       <p style="font-size:.82rem;color:var(--txm);margin-bottom:14px">
-        Definiere Stunden-Limits und Pausenabzüge für jede Rolle. Netto-Stunden werden nach Abzug der Pausen angezeigt.</p>
+        Definiere Stunden-Limits und Pausenabzüge für jede Rolle.</p>
       <span id="pr-save-msg" style="font-size:.78rem;color:#22d4a4;display:none;margin-bottom:10px">✓ Gespeichert</span>
       <div id="pr-editor"></div>
     </div>`;
@@ -404,27 +566,29 @@ const Planner = {
   _openPicker(evId, slotIdx) {
     const ev = EVENTS.find(e => e.id === evId);
     if (!ev) return;
-    const staff = this._draft[evId] !== undefined ? this._draft[evId] : (ev.barStaff || []);
+    const staff = this._draft[evId] !== undefined ? this._draft[evId] : this._getSlotsForEvent(ev);
     const slot = staff[slotIdx];
     const occupied = new Set(staff.filter((s, i) => i !== slotIdx && !s.miss && s.name).map(s => s.name));
-
     const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden');
     const p = this._period;
 
     const empRows = emps.map(emp => {
       const blockedByAv = p ? Availability.isBlocked(p.id, emp.id, ev.date) : false;
-      // Check if they're already working elsewhere same day
+      const avFrom = p ? Availability.getDateState(p.id, emp.id, ev.date) : null;
+      const isWished = p ? Availability.isWished(p.id, emp.id, ev.date) : false;
       const conflict = this._monthEvents.some(other => other.id !== evId && other.date === ev.date &&
         (this._draft[other.id] !== undefined ? this._draft[other.id] : (other.barStaff || []))
           .some(s => !s.miss && (s.name === emp.name || s.employeeId === emp.id)));
       const bg = emp.color || '#555';
       const hasApplied = p ? ShiftApplications.hasApplied(p.id, emp.id, evId) : false;
-      return `<div class="picker-emp-row${occupied.has(emp.name) ? ' already-assigned' : ''}${blockedByAv ? ' blocked-av' : ''}${conflict ? ' conflict-day' : ''}"
+      const fromWarn = avFrom && avFrom !== 'blocked' ? `<span class="picker-warn warn-from">🟠 Erst ab ${avFrom}</span>` : '';
+      return `<div class="picker-emp-row${occupied.has(emp.name) ? ' already-assigned' : ''}${blockedByAv ? ' blocked-av' : ''}${conflict ? ' conflict-day' : ''}${isWished ? ' is-wished' : ''}"
         onclick="${!occupied.has(emp.name) ? `Planner._assignSlot('${evId}',${slotIdx},'${emp.id}')` : ''}">
         <span class="emp-badge sm" style="background:${bg};color:${_contrastColor(bg)}">${emp.kuerzel || '?'}</span>
         <span class="picker-name">${_esc(emp.name)}</span>
+        ${isWished ? '<span class="picker-wish">⭐ Wunsch</span>' : ''}
         ${hasApplied ? '<span class="picker-applied">✓ Beworben</span>' : ''}
-        ${blockedByAv ? '<span class="picker-warn">⚠ Nicht verfügbar</span>' : ''}
+        ${blockedByAv ? '<span class="picker-warn">🔴 Nicht verfügbar</span>' : fromWarn}
         ${conflict ? '<span class="picker-warn">⚠ Anderer Event</span>' : ''}
         ${occupied.has(emp.name) ? '<span style="color:var(--txm);font-size:.7rem">bereits zugeteilt</span>' : ''}
       </div>`;
@@ -447,6 +611,22 @@ const Planner = {
     document.body.appendChild(ov);
   },
 
+  // Returns the effective slot list for an event (required_staff → slots or barStaff)
+  _getSlotsForEvent(ev) {
+    const reqStaff = ev.required_staff || [];
+    if (!reqStaff.length) return ev.barStaff || [];
+    let pos = 1;
+    const slots = [];
+    for (const req of reqStaff) {
+      for (let i = 0; i < req.count; i++) {
+        const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
+        slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
+        pos++;
+      }
+    }
+    return slots;
+  },
+
   _assignSlot(evId, slotIdx, empId) {
     const ev = EVENTS.find(e => e.id === evId);
     if (!ev) return;
@@ -454,7 +634,7 @@ const Planner = {
     if (!emp) return;
 
     if (!this._draft[evId]) {
-      this._draft[evId] = JSON.parse(JSON.stringify(ev.barStaff || []));
+      this._draft[evId] = JSON.parse(JSON.stringify(this._getSlotsForEvent(ev)));
       if (!this._draft[evId].length) {
         this._draft[evId] = [{ pos: 1, name: null, miss: true }];
       }
@@ -474,7 +654,7 @@ const Planner = {
   _clearSlot(evId, slotIdx) {
     if (!this._draft[evId]) {
       const ev = EVENTS.find(e => e.id === evId);
-      this._draft[evId] = JSON.parse(JSON.stringify(ev?.barStaff || []));
+      this._draft[evId] = JSON.parse(JSON.stringify(this._getSlotsForEvent(ev)));
     }
     if (this._draft[evId][slotIdx]) {
       this._draft[evId][slotIdx].name = null;
@@ -489,7 +669,7 @@ const Planner = {
   _removeSlot(evId, slotIdx) {
     if (!this._draft[evId]) {
       const ev = EVENTS.find(e => e.id === evId);
-      this._draft[evId] = JSON.parse(JSON.stringify(ev?.barStaff || []));
+      this._draft[evId] = JSON.parse(JSON.stringify(this._getSlotsForEvent(ev)));
     }
     this._draft[evId].splice(slotIdx, 1);
     this._draft[evId].forEach((s, i) => { s.pos = i + 1; });
@@ -500,7 +680,7 @@ const Planner = {
   _addSlot(evId) {
     const ev = EVENTS.find(e => e.id === evId);
     if (!this._draft[evId]) {
-      this._draft[evId] = JSON.parse(JSON.stringify(ev?.barStaff || []));
+      this._draft[evId] = JSON.parse(JSON.stringify(this._getSlotsForEvent(ev)));
     }
     const pos = (this._draft[evId].length || 0) + 1;
     this._draft[evId].push({ pos, name: null, miss: true });
@@ -542,6 +722,7 @@ const Planner = {
           events: this._monthEvents,
           employees: emps,
           availability: avList,
+          selectedRoles: this._selectedRoles,
         }}),
       });
       const data = await resp.json();
@@ -550,7 +731,6 @@ const Planner = {
     } catch (e) {
       alert('Fehler bei der Analyse: ' + e.message);
     }
-    // Re-render AI area
     const aiArea = document.getElementById('planner-ai-area');
     if (aiArea) aiArea.innerHTML = this._renderAIArea();
   },
@@ -571,17 +751,16 @@ const Planner = {
         body: JSON.stringify({ action: 'generate', payload: {
           period: p, events: this._monthEvents, employees: emps,
           availability: avList, applications: appsList, answers,
+          selectedRoles: this._selectedRoles,
         }}),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || 'Fehler');
       if (!data.assignments) throw new Error('Keine Zuteilungen erhalten');
 
-      // Snapshot before applying
       const snapshot = JSON.stringify(EVENTS);
       await Planning.update(p.id, { plan_snapshot: snapshot });
 
-      // Apply assignments to draft
       this._draft = data.assignments;
       await this._saveDraft();
       await Planning.update(p.id, { status: 'ai_proposal' });
@@ -604,7 +783,6 @@ const Planner = {
     if (!confirm(`Plan für ${MONS[p.month - 1]} ${p.year} veröffentlichen?\n\nAlle Entwurf-Zuteilungen werden in die Event-Besetzung übernommen.`)) return;
 
     try {
-      // Apply draft to EVENTS
       let changed = 0;
       for (const [evId, staff] of Object.entries(this._draft)) {
         const ev = EVENTS.find(e => e.id === evId);
@@ -627,15 +805,11 @@ const Planner = {
   async _approveSwap(swapId) {
     const { data: swap, error } = await db.from('shift_swaps').select('*').eq('id', swapId).single();
     if (error || !swap) { alert('Fehler beim Laden'); return; }
-
-    // Swap the assignments in EVENTS
     const evA = EVENTS.find(e => swap.event_id_a && e.id === swap.event_id_a);
     const evB = EVENTS.find(e => swap.event_id_b && e.id === swap.event_id_b);
     const empA = Employees.getById(swap.requester_id);
     const empB = Employees.getById(swap.target_id);
-
     if (evA && evB && empA && empB) {
-      // Swap names in barStaff
       const swapInStaff = (staff, from, to) => staff.forEach(s => {
         if (s.name === from.name || s.employeeId === from.id) { s.name = to.name; s.employeeId = to.id; }
       });
@@ -643,7 +817,6 @@ const Planner = {
       swapInStaff(evB.barStaff || [], empB, empA);
       await Cloud.push();
     }
-
     await db.from('shift_swaps').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', swapId);
     App.render();
     this._tab = 'swaps';
@@ -666,8 +839,6 @@ const Planner = {
     this._render();
     Planning.renderBanner();
   },
-
-  _setStatus(status) { /* same as advance */ },
 
   async _createPeriod() {
     const month = parseInt(document.getElementById('pn-month').value);
@@ -727,13 +898,11 @@ const ShiftSwap = {
     return data || [];
   },
 
-  // Render swap widget in Profile page
   async renderProfileSwaps(empId, container) {
     if (!container) return;
     const swaps = await this.loadForEmployee(empId);
     const pendingTarget = swaps.filter(s => s.target_id === empId && s.status === 'pending');
     if (!pendingTarget.length && !swaps.length) { container.innerHTML = ''; return; }
-
     const statusMap = { pending: '⏳ Ausstehend', target_approved: '✓ Bestätigt', admin_review: '🔍 Admin', approved: '✅ Genehmigt', rejected: '❌ Abgelehnt' };
     const rows = swaps.map(s => {
       const isReq = s.requester_id === empId;
@@ -744,7 +913,6 @@ const ShiftSwap = {
         ${!isReq && s.status === 'pending' ? `<button class="btn btn-primary" style="font-size:.72rem" onclick="ShiftSwap.approveAsTarget('${s.id}').then(()=>ShiftSwap.renderProfileSwaps('${empId}',document.getElementById('profil-swaps')))">Annehmen</button>` : ''}
       </div>`;
     }).join('');
-
     container.innerHTML = `<div class="swap-profile-wrap">
       <div class="stg-subsec">Schichttausch-Anfragen</div>
       ${rows}
