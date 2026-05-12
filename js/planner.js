@@ -111,7 +111,8 @@ const Planner = {
   /* ─── Overview Tab ──────────────────────────────────────── */
   _renderOverview() {
     const p = this._period;
-    const statusFlow = ['open', 'collecting', 'ai_proposal', 'editing', 'published'];
+    const allSteps = ['open', 'collecting', 'ai_proposal', 'editing', 'published'];
+    const statusFlow = Config.data.aiEnabled ? allSteps : allSteps.filter(s => s !== 'ai_proposal');
     const curIdx = statusFlow.indexOf(p.status);
     const nextStatus = statusFlow[curIdx + 1];
 
