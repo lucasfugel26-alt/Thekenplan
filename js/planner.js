@@ -151,7 +151,7 @@ const Planner = {
             <ul style="margin:6px 0 0;padding-left:18px;font-size:.8rem">
               ${missingReq.map(ev => `<li>${_fmtDate(ev.date)} · ${_esc(ev.event)}
                 <button class="btn btn-ghost" style="font-size:.68rem;padding:1px 6px;margin-left:6px"
-                  onclick="App.openEntry(${ev.location});Form.load(EVENTS.find(e=>e.id==='${ev.id}'))">Bearbeiten →</button>
+                  onclick="Planner._editEvent('${ev.id}')">Bearbeiten →</button>
               </li>`).join('')}
             </ul>
           </div>` : ''}
@@ -864,6 +864,14 @@ const Planner = {
       Planning.renderBanner();
       await this.open();
     } catch (e) { alert('Fehler: ' + e.message); }
+  },
+
+  _editEvent(evId) {
+    const ev = EVENTS.find(e => e.id === evId);
+    if (!ev) return;
+    this.close();
+    App.openEntry(ev.location);
+    Form.load(ev);
   },
 
   _showNewPeriod() {
