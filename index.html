@@ -118,7 +118,7 @@
     <div class="spacer"></div>
     <span class="cnt" id="cnt"></span>
     <div style="width:1px;height:22px;background:var(--bd)"></div>
-    <button class="btn btn-ghost admin-only btn-mob-hide" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
+    <button class="btn btn-ghost admin-only btn-mob-hide ai-feature" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
     <button class="btn btn-primary admin-only" onclick="App.openEntry(S.filterLoc||1)" title="Neues Event erstellen">&#43; Event erstellen</button>
   </div>
 
@@ -298,7 +298,7 @@
         </div>
 
         <div class="fsec">Benötigter Personalbedarf
-          <span style="font-size:.68rem;color:var(--txm);font-weight:400;text-transform:none;margin-left:8px">
+          <span class="ai-feature" style="font-size:.68rem;color:var(--txm);font-weight:400;text-transform:none;margin-left:8px">
             Wird für die KI-Dienstplanung verwendet</span>
         </div>
         <div id="f-req-staff-rows"></div>
@@ -429,6 +429,18 @@
         <div class="admin-only" id="stg-pr-editor-wrap">
           <p style="font-size:.78rem;color:var(--txm);margin-bottom:10px">Stunden-Limits und Pausenabzüge pro Rolle:</p>
           <div id="stg-pr-editor"></div>
+        </div>
+
+        <div class="stg-sec admin-only">KI-Funktionen</div>
+        <div class="admin-only" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+          <label class="toggle-switch">
+            <input type="checkbox" id="stg-ai-toggle" onchange="Config.data.aiEnabled=this.checked;Config.saveAiEnabled()">
+            <span class="toggle-slider"></span>
+          </label>
+          <div>
+            <div style="font-size:.88rem;font-weight:600">&#129302; KI-Funktionen aktiviert</div>
+            <div style="font-size:.75rem;color:var(--txm)">Blendet KI-Dienstplanung, OCR-Import und alle KI-Hinweise ein oder aus.</div>
+          </div>
         </div>
 
         <div class="stg-sec admin-only">Datensicherung</div>

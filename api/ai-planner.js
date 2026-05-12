@@ -17,6 +17,15 @@ async function isAdminUser(userId, serviceKey) {
   return (await r.json())?.[0]?.role === 'admin';
 }
 
+async function isAiEnabled(serviceKey) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_config?key=eq.ai_enabled&select=value`, {
+    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+  });
+  const rows = await r.json();
+  if (!rows || rows.length === 0) return true; // default: enabled
+  return rows[0].value !== false;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -27,6 +36,7 @@ module.exports = async function handler(req, res) {
   const userId = await getCallerUserId(token);
   if (!userId) return res.status(401).json({ error: 'Invalid token' });
   if (!(await isAdminUser(userId, serviceKey))) return res.status(403).json({ error: 'Admin only' });
+  if (!(await isAiEnabled(serviceKey))) return res.status(403).json({ error: 'AI features disabled' });
 
   const { action, payload } = req.body || {};
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

@@ -62,6 +62,13 @@ module.exports = async function handler(req, res) {
     if (roleData?.[0]?.role !== 'admin') {
       return res.status(403).json({ error: 'Nur Admins können Dateien importieren.' });
     }
+    const aiCfgRes = await fetch(`${supabaseUrl}/rest/v1/app_config?key=eq.ai_enabled&select=value`, {
+      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+    });
+    const aiCfg = await aiCfgRes.json();
+    if (aiCfg?.[0]?.value === false) {
+      return res.status(403).json({ error: 'AI features disabled' });
+    }
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

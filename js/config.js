@@ -15,6 +15,7 @@ const Config = {
       notizen:  {show:true,  staff:true},
     },
     employeeRoles: ['Thekenkraft','Produktionsleiter','Garderobe','Runner'],
+    aiEnabled: true,
   },
   async load() {
     try {
@@ -30,10 +31,26 @@ const Config = {
         if (row.key === 'employee_roles' && Array.isArray(row.value)) {
           this.data.employeeRoles = row.value;
         }
+        if (row.key === 'ai_enabled' && typeof row.value === 'boolean') {
+          this.data.aiEnabled = row.value;
+        }
       });
     } catch(e) { console.warn('[Config] using defaults:', e.message); }
+    this._applyAiMode();
     // Load planning rules in parallel (non-blocking)
     PlanningRules.load().catch(()=>{});
+  },
+  async saveAiEnabled() {
+    try {
+      await db.from('app_config').upsert({
+        key: 'ai_enabled', value: this.data.aiEnabled,
+        updated_at: new Date().toISOString()
+      });
+    } catch(e) { console.warn('[Config] saveAiEnabled error:', e.message); }
+    this._applyAiMode();
+  },
+  _applyAiMode() {
+    document.body.classList.toggle('ai-disabled', !this.data.aiEnabled);
   },
   async saveEmployeeRoles() {
     try {

@@ -910,6 +910,8 @@ const App={
     renderRolesConfig();
     Defaults.loadIntoSettings();
     CardFields.loadIntoSettings();
+    const aiToggle = document.getElementById('stg-ai-toggle');
+    if (aiToggle) aiToggle.checked = Config.data.aiEnabled;
     if(isAdmin()){
       await this._loadUsersList();
       PlanningRules.renderEditor('stg-pr-editor');
