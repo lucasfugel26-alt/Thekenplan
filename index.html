@@ -431,12 +431,7 @@
           <div id="stg-pr-editor"></div>
         </div>
 
-        <div class="stg-sec">Rollen &amp; Rechte</div>
-        <div id="stg-roles-section" style="margin-bottom:18px">
-          <div style="color:var(--txm);font-size:.82rem">Wird geladen…</div>
-        </div>
-
-        <div class="stg-sec admin-only">KI-Funktionen</div>
+<div class="stg-sec admin-only">KI-Funktionen</div>
         <div class="admin-only" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
           <label class="toggle-switch">
             <input type="checkbox" id="stg-ai-toggle" onchange="Config.data.aiEnabled=this.checked;Config.saveAiEnabled()">
@@ -516,13 +511,25 @@
     </div>
 
     <!-- Zugänge tab -->
-    <div class="team-content" id="tcontent-acc" style="display:none">
-      <div style="padding:18px 24px;flex:1;overflow-y:auto">
-        <p style="font-size:.8rem;color:var(--txm);margin:0 0 14px">Zugänge werden über den Mitarbeiter-Tab erstellt. Hier kannst du Rollen verwalten und Zugänge mit Mitarbeitern verknüpfen.</p>
+    <div class="team-content" id="tcontent-acc" style="display:none;flex-direction:column">
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--bd);flex-shrink:0;padding:0 18px">
+        <button class="acc-subtab active" id="asub-users" onclick="App.showAccSubTab('users')">&#128273; Zugänge</button>
+        <button class="acc-subtab" id="asub-roles" onclick="App.showAccSubTab('roles')">&#127959; Rollen</button>
+      </div>
+      <!-- Users sub-tab -->
+      <div id="asub-content-users" style="padding:18px 24px;flex:1;overflow-y:auto">
+        <p style="font-size:.8rem;color:var(--txm);margin:0 0 14px">Zugänge werden über den Mitarbeiter-Tab erstellt. Hier kannst du Zugänge mit Mitarbeitern verknüpfen und Rollen zuweisen.</p>
         <div class="team-tbl-head" style="grid-template-columns:1fr 140px 1fr 180px">
           <span>Name</span><span>Rolle</span><span>Mitarbeiter</span><span style="text-align:right">Aktionen</span>
         </div>
         <div id="team-table"></div>
+      </div>
+      <!-- Roles sub-tab -->
+      <div id="asub-content-roles" style="display:none;padding:18px 24px;flex:1;overflow-y:auto">
+        <div id="acc-roles-section">
+          <div style="color:var(--txm);font-size:.82rem">Wird geladen…</div>
+        </div>
       </div>
     </div>
   </div>

@@ -36,9 +36,9 @@ const RolesMgr = {
       .map(rp => rp.permission_id);
   },
 
-  /* ── EINSTELLUNGSSEITE: Rollen-Sektion rendern ──────────── */
-  async renderSettingsSection() {
-    const container = document.getElementById('stg-roles-section');
+  /* ── ROLLEN-SEKTION RENDERN ─────────────────────────────── */
+  async renderSettingsSection(containerId = 'acc-roles-section') {
+    const container = document.getElementById(containerId);
     if (!container) return;
     await this.load();
     container.innerHTML = this._buildSectionHTML();
