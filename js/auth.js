@@ -53,7 +53,9 @@ const Auth = {
 
   async _onSignIn(user){
     currentUser=user;
-    const {data}=await db.from('profiles').select('*').eq('id',user.id).single();
+    const {data}=await db.from('profiles').select('*, roles(name, color)').eq('id',user.id).single();
+    // Flach machen: role_name + role_color direkt ans Profil hängen
+    if(data?.roles){ data.role_name=data.roles.name; data.role_color=data.roles.color; }
     currentProfile=data;
     // Permissions laden bevor UI gerendert wird
     await loadPermissions();
