@@ -218,15 +218,17 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  -- Nur prüfen wenn role_id geändert wird
-  IF OLD.role_id IS DISTINCT FROM NEW.role_id THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM profiles pr
-      JOIN roles r ON r.id = pr.role_id
-      WHERE r.is_system = true
-        AND pr.id != NEW.id
-    ) THEN
-      RAISE EXCEPTION 'Mindestens ein Benutzer muss die Owner-Rolle behalten.';
+  -- Nur prüfen wenn die ALTE Rolle eine System-Rolle war (nicht beim Hinzufügen)
+  IF OLD.role_id IS NOT NULL AND OLD.role_id IS DISTINCT FROM NEW.role_id THEN
+    IF EXISTS (SELECT 1 FROM roles WHERE id = OLD.role_id AND is_system = true) THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM profiles pr
+        JOIN roles r ON r.id = pr.role_id
+        WHERE r.is_system = true
+          AND pr.id != NEW.id
+      ) THEN
+        RAISE EXCEPTION 'Mindestens ein Benutzer muss die Owner-Rolle behalten.';
+      END IF;
     END IF;
   END IF;
   RETURN NEW;
