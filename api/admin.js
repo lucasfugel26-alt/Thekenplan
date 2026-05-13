@@ -1,21 +1,4 @@
-const SUPABASE_URL = 'https://anagoloyaaikuexzbxae.supabase.co';
-
-async function getCallerUserId(token) {
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: `Bearer ${token}`, apikey: process.env.SUPABASE_SERVICE_ROLE_KEY }
-  });
-  if (!r.ok) return null;
-  const u = await r.json();
-  return u.id || null;
-}
-
-async function isAdmin(userId, serviceKey) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=role`, {
-    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
-  });
-  const data = await r.json();
-  return data?.[0]?.role === 'admin';
-}
+import { getCallerUserId, hasPermissionOrLegacyAdmin, SUPABASE_URL } from './_auth.js';
 
 function makeTempPassword() {
   const { randomBytes } = require('crypto');
@@ -34,7 +17,7 @@ export default async function handler(req, res) {
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Nicht angemeldet' });
 
-    const callerId = await getCallerUserId(token);
+    const callerId = await getCallerUserId(token, serviceKey);
     if (!callerId) return res.status(401).json({ error: 'Ungültiger Token' });
 
     const { action } = req.query;
@@ -71,13 +54,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    if (!(await isAdmin(callerId, serviceKey))) {
-      return res.status(403).json({ error: 'Nur Admins erlaubt' });
-    }
-
-    // ── Zugang erstellen (mit temporärem Passwort) ───────────────────────────
+    // ── Nutzer einladen ──────────────────────────────────────────────────────
     if (action === 'inviteUser') {
-      const { email, display_name } = req.body;
+      if (!(await hasPermissionOrLegacyAdmin(callerId, 'users.invite', serviceKey))) {
+        return res.status(403).json({ error: 'Keine Berechtigung: users.invite' });
+      }
+      const { email, display_name, role_id } = req.body;
       if (!email || !display_name) return res.status(400).json({ error: 'E-Mail und Name erforderlich' });
 
       const tempPassword = makeTempPassword();
@@ -112,6 +94,10 @@ export default async function handler(req, res) {
         });
       }
 
+      // Neuer User erhält Mitarbeiter-Rolle als Standard (UUID 000...003)
+      // oder die explizit übergebene role_id
+      const defaultRoleId = role_id || '00000000-0000-0000-0000-000000000003';
+
       await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
@@ -120,7 +106,7 @@ export default async function handler(req, res) {
           apikey: serviceKey,
           Prefer: 'resolution=merge-duplicates,return=minimal',
         },
-        body: JSON.stringify({ id: userId, display_name, role: 'viewer' }),
+        body: JSON.stringify({ id: userId, display_name, role: 'viewer', role_id: defaultRoleId }),
       });
 
       return res.status(200).json({ id: userId, display_name, temp_password: tempPassword });
@@ -128,6 +114,9 @@ export default async function handler(req, res) {
 
     // ── Temporäres Passwort zurücksetzen ─────────────────────────────────────
     if (action === 'resetLink') {
+      if (!(await hasPermissionOrLegacyAdmin(callerId, 'users.reset_password', serviceKey))) {
+        return res.status(403).json({ error: 'Keine Berechtigung: users.reset_password' });
+      }
       const { email } = req.body;
       if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
 
@@ -151,6 +140,9 @@ export default async function handler(req, res) {
 
     // ── Benutzer löschen ──────────────────────────────────────────────────────
     if (action === 'deleteUser') {
+      if (!(await hasPermissionOrLegacyAdmin(callerId, 'users.delete', serviceKey))) {
+        return res.status(403).json({ error: 'Keine Berechtigung: users.delete' });
+      }
       const { userId } = req.body;
       if (!userId) return res.status(400).json({ error: 'userId erforderlich' });
       if (userId === callerId) return res.status(400).json({ error: 'Du kannst dich nicht selbst löschen' });
@@ -162,6 +154,32 @@ export default async function handler(req, res) {
       if (!delRes.ok) {
         const err = await delRes.json().catch(() => ({}));
         return res.status(400).json({ error: err.message || 'Fehler beim Löschen' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Rolle eines Nutzers ändern ────────────────────────────────────────────
+    if (action === 'updateUserRole') {
+      if (!(await hasPermissionOrLegacyAdmin(callerId, 'roles.assign', serviceKey))) {
+        return res.status(403).json({ error: 'Keine Berechtigung: roles.assign' });
+      }
+      const { userId, roleId } = req.body;
+      if (!userId || !roleId) return res.status(400).json({ error: 'userId und roleId erforderlich' });
+      if (userId === callerId) return res.status(400).json({ error: 'Eigene Rolle nicht änderbar' });
+
+      const updRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ role_id: roleId }),
+      });
+      if (!updRes.ok) {
+        const err = await updRes.json().catch(() => ({}));
+        return res.status(400).json({ error: err.message || 'Fehler beim Aktualisieren' });
       }
       return res.status(200).json({ success: true });
     }

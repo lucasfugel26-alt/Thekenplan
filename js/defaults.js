@@ -38,12 +38,11 @@ const CardFields = {
   get() { return Config.data.cardFields; },
   forRole() {
     const cf = this.get();
-    const adm = isAdmin();
     return {
-      becher:   adm ? cf.becher.show   : cf.becher.staff,
-      zeiten:   adm ? cf.zeiten.show   : cf.zeiten.staff,
-      besucher: adm ? cf.besucher.show : cf.besucher.staff,
-      notizen:  adm ? cf.notizen.show  : cf.notizen.staff,
+      becher:   can(PERM.EVENTS_EDIT)    ? cf.becher.show   : cf.becher.staff,
+      zeiten:   can(PERM.EVENTS_EDIT)    ? cf.zeiten.show   : cf.zeiten.staff,
+      besucher: can(PERM.VISITORS_VIEW)  ? cf.besucher.show : cf.besucher.staff,
+      notizen:  can(PERM.EVENTS_VIEW_NOTES) ? cf.notizen.show : cf.notizen.staff,
     };
   },
   save() {

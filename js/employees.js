@@ -114,17 +114,17 @@ const Employees = {
       <span class="emp-badge lg" style="background:${bg};color:${fg}">${emp.kuerzel||'?'}</span>
       <h3>${_esc(emp.name)}</h3>
       <span class="emp-status-pill ${emp.status||'aktiv'}">${emp.status||'aktiv'}</span>
-      ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px" onclick="Employees.openEdit('${emp.id}')">&#9998; Bearbeiten</button>`:''}
-      ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)" onclick="Employees.remove('${emp.id}')" title="Löschen">&#128465;</button>`:''}
+      ${can(PERM.STAFF_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px" onclick="Employees.openEdit('${emp.id}')">&#9998; Bearbeiten</button>`:''}
+      ${can(PERM.STAFF_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)" onclick="Employees.remove('${emp.id}')" title="Löschen">&#128465;</button>`:''}
     </div>
     <div class="emp-det-meta">
       ${emp.default_role?`<span class="emp-det-meta-item">&#127970; ${_esc(emp.default_role)}</span>`:''}
       ${emp.email?`<span class="emp-det-meta-item">&#128140; ${_esc(emp.email)}</span>`:''}
       ${emp.phone?`<span class="emp-det-meta-item">&#128222; ${_esc(emp.phone)}</span>`:''}
       ${sollLabel?`<span class="emp-det-meta-item">&#8987; Soll: ${sollLabel}</span>`:''}
-      ${isAdmin()&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
+      ${can(PERM.STAFF_VIEW_NOTES)&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
     </div>
-    ${isAdmin()?`<div class="emp-access-row">
+    ${can(PERM.STAFF_MANAGE_ACCESS)?`<div class="emp-access-row">
       <span class="emp-access-label">&#128273; Zugang</span>
       ${emp.profile_id
         ?`<span class="emp-status-pill aktiv" style="font-size:.72rem">&#10003; Aktiv</span>

@@ -25,7 +25,7 @@ const Chat={
   // Check if current user can access this event's chat
   canAccess(ev){
     if(!currentUser)return false;
-    if(isAdmin())return true;
+    if(can(PERM.CHAT_ACCESS_ALL))return true;
     // Use employee name (primary) — barStaff names come from employees.name, not display_name
     const myEmp=Employees.getAll().find(e=>e.profile_id===currentUser.id);
     const myName=(myEmp?.name||currentProfile?.display_name||'').toLowerCase().trim();
@@ -121,7 +121,7 @@ const Chat={
     const{data,error}=await db.from('event_messages').select('*').eq('event_id',evId).order('created_at',{ascending:true});
     if(error){
       if(error.code==='42P01')
-        msgEl.innerHTML=isAdmin()?`<div class="chat-empty">⚠ Tabelle event_messages fehlt. SQL bitte im Supabase Editor ausführen.</div>`:'';
+        msgEl.innerHTML=can(PERM.SETTINGS_EDIT_GENERAL)?`<div class="chat-empty">⚠ Tabelle event_messages fehlt. SQL bitte im Supabase Editor ausführen.</div>`:'';
       else msgEl.innerHTML=`<div class="chat-empty">Chat momentan nicht verfügbar.</div>`;
       return;
     }
@@ -134,7 +134,7 @@ const Chat={
     if(!msgs.length){el.innerHTML='<div class="chat-empty">Noch keine Nachrichten.</div>';return;}
     el.innerHTML=msgs.map(msg=>{
       const mine=msg.user_id===currentUser?.id;
-      const canDel=mine||isAdmin();
+      const canDel=mine||can(PERM.CHAT_DELETE_MESSAGES);
       const t=new Date(msg.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       return`<div class="chat-msg${mine?' mine':''}">
         <div class="chat-meta">${_esc(msg.display_name)} · ${t}</div>

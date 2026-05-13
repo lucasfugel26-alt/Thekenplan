@@ -754,6 +754,39 @@
   </div>
 </div>
 
+<!-- ── ROLES MODAL ── -->
+<div class="m-ov" id="roles-modal" style="display:none;z-index:1050" onclick="if(event.target===this)RolesMgr.closeModal()">
+  <div class="m-box" style="max-width:640px;width:95vw;max-height:90vh;display:flex;flex-direction:column">
+    <div class="m-hdr">
+      <span id="roles-modal-title">Rolle bearbeiten</span>
+      <button class="m-x" onclick="RolesMgr.closeModal()">&#10005;</button>
+    </div>
+    <div id="roles-modal-body" style="overflow-y:auto;flex:1;padding:16px 20px"></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="RolesMgr.closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="roles-modal-save">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROLES ASSIGN MODAL ── -->
+<div class="m-ov" id="roles-assign-modal" style="display:none;z-index:1050" onclick="if(event.target===this)RolesMgr.closeAssignModal()">
+  <div class="m-box" style="max-width:360px;width:95vw">
+    <div class="m-hdr">
+      <span>Rolle zuweisen</span>
+      <button class="m-x" onclick="RolesMgr.closeAssignModal()">&#10005;</button>
+    </div>
+    <div style="padding:16px 20px">
+      <label class="stg-label">Rolle</label>
+      <select id="ram-role-select" class="stg-input"></select>
+    </div>
+    <div style="padding:0 20px 16px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="RolesMgr.closeAssignModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="ram-save">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── LOCATION INFO SHEET ── -->
 <div class="loc-info-ov" id="loc-info-ov" onclick="App.closeLocInfo()">
   <div class="loc-info-sheet" onclick="event.stopPropagation()">
@@ -773,6 +806,7 @@
 </div>
 
 
+<script src="js/permissions.js"></script>
 <script src="js/main.js"></script>
 <script src="js/cloud.js"></script>
 <script src="js/config.js"></script>
@@ -785,6 +819,7 @@
 <script src="js/chat.js"></script>
 <script src="js/import.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/roles.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
