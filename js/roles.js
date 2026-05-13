@@ -85,7 +85,9 @@ const RolesMgr = {
   },
 
   /* ── ROLLE BEARBEITEN ───────────────────────────────────── */
-  openEdit(roleId) {
+  async openEdit(roleId) {
+    // Neu laden falls Daten fehlen (z.B. nach Page-Reload)
+    if (!this._roles.length || !this._permissions.length) await this.load();
     const role = this._roles.find(r => r.id === roleId);
     if (!role) return;
     this._openModal({
@@ -278,7 +280,8 @@ const RolesMgr = {
   },
 
   /* ── ROLLE ZUWEISEN (User-Liste) ────────────────────────── */
-  openAssign(userId, currentRoleId) {
+  async openAssign(userId, currentRoleId) {
+    if (!this._roles.length) await this.load();
     const modal = document.getElementById('roles-assign-modal');
     if (!modal) return;
     const select = document.getElementById('ram-role-select');

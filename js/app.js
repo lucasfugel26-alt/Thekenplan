@@ -927,7 +927,7 @@ const App={
     const cnt=document.getElementById('team-count');
     if(!tbl)return;
     tbl.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:18px 14px">Lade…</div>';
-    const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
+    const {data:profiles,error}=await db.from('profiles').select('*, roles(id, name, color)').order('display_name');
     if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
     if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
     const allEmps=Employees.getAll();
@@ -944,12 +944,12 @@ const App={
           </select>`;
       return `<div class="team-row" style="grid-template-columns:1fr 140px 1fr 180px">
         <div class="team-name">${_esc(p.display_name)}</div>
-        <div><span class="role-pill" style="background:${p.role_color||'#6b7280'}22;color:${p.role_color||'#6b7280'};border:1px solid ${p.role_color||'#6b7280'}44">${_esc(p.role_name||p.role||'Mitarbeiter')}</span></div>
+        <div><span class="role-pill" style="background:${(p.roles?.color||'#6b7280')}22;color:${p.roles?.color||'#6b7280'};border:1px solid ${(p.roles?.color||'#6b7280')}44">${_esc(p.roles?.name||p.role||'Mitarbeiter')}</span></div>
         <div>${empCol}</div>
         <div class="team-acts">
           ${!isSelf?`
             ${can(PERM.ROLES_ASSIGN)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
-              onclick="RolesMgr.openAssign('${p.id}','${p.role_id||''}')">Rolle ändern</button>`:''}
+              onclick="RolesMgr.openAssign('${p.id}','${p.roles?.id||p.role_id||''}')">Rolle ändern</button>`:''}
             ${can(PERM.USERS_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
               onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>`:''}
           `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
@@ -968,6 +968,7 @@ const App={
 
   showTeamTab(tab){
     Employees.showTab(tab);
+    if(tab==='acc') RolesMgr.load().then(()=>this._loadUsersList());
   },
 
   async openTeam(){
