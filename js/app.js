@@ -1,12 +1,13 @@
-/* --- Admin-Modus ------------------------------------------ */
-function isAdmin() { return currentProfile?.role === 'admin'; }
+/* --- Legacy-Shim: isAdmin() bleibt während Migration aktiv ---
+   Neu: can(PERM.xxx) aus permissions.js verwenden.
+   Dieser Shim gibt true wenn der User events.edit ODER die alte
+   'admin'-Rolle hat, so dass bestehender Code weiter funktioniert. */
+function isAdmin() {
+  return can(PERM.EVENTS_EDIT) || currentProfile?.role === 'admin';
+}
 
 function applyAdminMode() {
-  if(isAdmin()){
-    document.body.classList.add('admin');
-  } else {
-    document.body.classList.remove('admin');
-  }
+  applyPermissionClasses();
 }
 
 /* --- Reset ----------------------------------------------- */
@@ -343,8 +344,8 @@ function renderCalendar(){
             ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
             ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
             <div class="cdp-actions">
-              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
-              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
+              ${can(PERM.EVENTS_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
+              ${can(PERM.EVENTS_EDIT_BRIEFING)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
               ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
             </div>
           </div>`:''}
@@ -527,9 +528,9 @@ function updateStaffSel(){
   const hamAv=document.getElementById('ham-av');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
-  // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
+  // Non-privileged: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
   const hamProfil=document.getElementById('ham-profil');
-  if(!isAdmin()){
+  if(!can(PERM.SHIFTS_VIEW_ALL)){
     sel.style.display='none';
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
@@ -544,7 +545,7 @@ function updateStaffSel(){
   if(avBtn) avBtn.style.display='none';
   if(hamAv) hamAv.style.display='none';
 
-  // Admins: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
+  // Full access: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
   if(myShiftsBtn) myShiftsBtn.style.display='none';
   if(profilBtn) profilBtn.style.display='none';
   sel.style.display='';
@@ -723,7 +724,7 @@ const App={
     SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';
     document.getElementById('search-inp').value='';
     const mm=document.getElementById('mob-miss');if(mm)mm.classList.remove('active');
-    if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
+    if(can(PERM.SHIFTS_VIEW_ALL)){S.filterStaff='';document.getElementById('filter-staff').value='';}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
 
@@ -892,19 +893,17 @@ const App={
 
   /* ── Settings Modal ── */
   async openSettings(){
-    applyAdminMode();
+    applyPermissionClasses();
     document.getElementById('stg-page').style.display='block';
     document.body.style.overflow='hidden';
     const info=document.getElementById('stg-user-info');
     if(currentProfile&&info){
-      // Prefer full name from linked employee record
       const linkedEmp=Employees.getAll().find(e=>e.profile_id===currentUser?.id);
       const fullName=linkedEmp?.name||currentProfile.display_name||currentUser?.email;
+      const roleName=currentProfile.role_name||currentProfile.role||'Mitarbeiter';
       info.innerHTML=`<div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${_esc(fullName)}</div>
         <div style="color:var(--txd);font-size:.78rem">${currentUser?.email}&nbsp;·&nbsp;
-          <span style="color:${currentProfile.role==='admin'?'#22d4a4':'var(--txd)'}">
-            ${currentProfile.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}
-          </span></div>`;
+          <span style="color:var(--accent)">${_esc(roleName)}</span></div>`;
     }
     renderStatusConfig();
     renderRolesConfig();
@@ -912,9 +911,14 @@ const App={
     CardFields.loadIntoSettings();
     const aiToggle = document.getElementById('stg-ai-toggle');
     if (aiToggle) aiToggle.checked = Config.data.aiEnabled;
-    if(isAdmin()){
+    if(can(PERM.USERS_VIEW)){
       await this._loadUsersList();
+    }
+    if(can(PERM.PLANNING_MANAGE_RULES)){
       PlanningRules.renderEditor('stg-pr-editor');
+    }
+    if(can(PERM.ROLES_VIEW)){
+      RolesMgr.renderSettingsSection();
     }
   },
 
@@ -940,14 +944,14 @@ const App={
           </select>`;
       return `<div class="team-row" style="grid-template-columns:1fr 140px 1fr 180px">
         <div class="team-name">${_esc(p.display_name)}</div>
-        <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'&#128273; Admin':'&#128065; Mitarbeiter'}</span></div>
+        <div><span class="role-pill" style="background:${p.role_color||'#6b7280'}22;color:${p.role_color||'#6b7280'};border:1px solid ${p.role_color||'#6b7280'}44">${_esc(p.role_name||p.role||'Mitarbeiter')}</span></div>
         <div>${empCol}</div>
         <div class="team-acts">
           ${!isSelf?`
-            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
-              onclick="App.toggleUserRole('${p.id}','${p.role}')">${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
-            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
-              onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>
+            ${can(PERM.ROLES_ASSIGN)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
+              onclick="RolesMgr.openAssign('${p.id}','${p.role_id||''}')">Rolle ändern</button>`:''}
+            ${can(PERM.USERS_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
+              onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>`:''}
           `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
         </div>
       </div>`;
@@ -979,10 +983,11 @@ const App={
     document.body.style.overflow='';
   },
 
-  async toggleUserRole(userId,currentRole){
-    const newRole=currentRole==='admin'?'viewer':'admin';
-    const {error}=await db.from('profiles').update({role:newRole}).eq('id',userId);
-    if(error){alert('Fehler: '+error.message);return;}
+  async toggleUserRole(userId, currentRole) {
+    // Legacy-Methode – wird von RolesMgr.openAssign() abgelöst
+    const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
+    const { error } = await db.from('profiles').update({ role: newRole }).eq('id', userId);
+    if (error) { alert('Fehler: ' + error.message); return; }
     await this._loadUsersList();
   },
 
@@ -1372,7 +1377,7 @@ App.openLocInfo = function(locId) {
   if (loc.capacity) rows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazität</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
   if (loc.notes) rows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
   const bodyHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem;padding:4px 0">Noch keine Infos hinterlegt.</div>';
-  const adminActions = isAdmin() ? `<div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
+  const adminActions = can(PERM.SETTINGS_EDIT_LOCATIONS) ? `<div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
     <button class="btn btn-ghost" style="flex:1" onclick="App.closeLocInfo();App.openLocations()">&#9998; Bearbeiten</button>
     <button class="btn btn-ghost" style="flex:1;color:var(--miss);border-color:rgba(255,80,80,.3)"
       onclick="if(confirm('Location &quot;${loc.name}&quot; wirklich löschen?')){App.closeLocInfo();LocationsMgr.remove(${locId})}">&#128465; L&ouml;schen</button>
@@ -1401,7 +1406,7 @@ App._renderBriefing = function(ev) {
   } else {
     html += `<div style="color:var(--txm);font-size:.8rem;font-style:italic;padding:6px 0">Kein Briefing-Text hinterlegt.</div>`;
   }
-  if (isAdmin()) {
+  if (can(PERM.EVENTS_EDIT_BRIEFING)) {
     html += `<button class="btn btn-ghost" style="font-size:.75rem;padding:4px 10px;margin-top:8px"
       onclick="App.editBriefing('${ev.id}')">&#9998; Briefing bearbeiten</button>`;
   }

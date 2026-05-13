@@ -1,21 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
-
-const SUPABASE_URL = 'https://anagoloyaaikuexzbxae.supabase.co';
-
-async function getCallerUserId(token) {
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: `Bearer ${token}`, apikey: process.env.SUPABASE_SERVICE_ROLE_KEY }
-  });
-  if (!r.ok) return null;
-  return (await r.json()).id || null;
-}
-
-async function isAdminUser(userId, serviceKey) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=role`, {
-    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
-  });
-  return (await r.json())?.[0]?.role === 'admin';
-}
+const { getCallerUserId, hasPermissionOrLegacyAdmin, SUPABASE_URL } = require('./_auth.js');
 
 async function isAiEnabled(serviceKey) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_config?key=eq.ai_enabled&select=value`, {
@@ -33,9 +17,11 @@ module.exports = async function handler(req, res) {
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const userId = await getCallerUserId(token);
+  const userId = await getCallerUserId(token, serviceKey);
   if (!userId) return res.status(401).json({ error: 'Invalid token' });
-  if (!(await isAdminUser(userId, serviceKey))) return res.status(403).json({ error: 'Admin only' });
+  if (!(await hasPermissionOrLegacyAdmin(userId, 'planning.ai_generate', serviceKey))) {
+    return res.status(403).json({ error: 'Keine Berechtigung: planning.ai_generate' });
+  }
   if (!(await isAiEnabled(serviceKey))) return res.status(403).json({ error: 'AI features disabled' });
 
   const { action, payload } = req.body || {};

@@ -55,10 +55,12 @@ const Auth = {
     currentUser=user;
     const {data}=await db.from('profiles').select('*').eq('id',user.id).single();
     currentProfile=data;
+    // Permissions laden bevor UI gerendert wird
+    await loadPermissions();
     document.getElementById('pw-screen').style.display='none';
     document.getElementById('set-pw-screen').style.display='none';
     document.getElementById('app-root').style.display='block';
-    applyAdminMode();
+    applyPermissionClasses();
     App._start();
   },
 
@@ -76,10 +78,11 @@ const Auth = {
   _onSignOut(){
     currentUser=null;
     currentProfile=null;
+    clearPermissions();
     EVENTS.length=0;
     document.getElementById('app-root').style.display='none';
     document.getElementById('pw-screen').style.display='flex';
-    applyAdminMode();
+    applyPermissionClasses();
     setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
   },
 
