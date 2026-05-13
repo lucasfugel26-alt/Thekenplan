@@ -917,9 +917,6 @@ const App={
     if(can(PERM.PLANNING_MANAGE_RULES)){
       PlanningRules.renderEditor('stg-pr-editor');
     }
-    if(can(PERM.ROLES_VIEW)){
-      RolesMgr.renderSettingsSection();
-    }
   },
 
    async _loadUsersList(){
@@ -968,7 +965,22 @@ const App={
 
   showTeamTab(tab){
     Employees.showTab(tab);
-    if(tab==='acc') RolesMgr.load().then(()=>this._loadUsersList());
+    if(tab==='acc'){
+      RolesMgr.load().then(()=>this._loadUsersList());
+      // Activate the users sub-tab by default when switching to Zugänge
+      this.showAccSubTab('users');
+    }
+  },
+
+  showAccSubTab(sub){
+    const tabs = ['users','roles'];
+    tabs.forEach(t=>{
+      const btn = document.getElementById('asub-'+t);
+      const content = document.getElementById('asub-content-'+t);
+      if(btn) btn.classList.toggle('active', t===sub);
+      if(content) content.style.display = t===sub ? '' : 'none';
+    });
+    if(sub==='roles') RolesMgr.renderSettingsSection('acc-roles-section');
   },
 
   async openTeam(){
