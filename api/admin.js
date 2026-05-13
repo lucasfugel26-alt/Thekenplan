@@ -158,6 +158,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── Legacy-Migration: alter role='admin' ohne role_id → Owner setzen ────────
+    if (action === 'migrateLegacyRole') {
+      const profileRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${callerId}&select=role,role_id`,
+        { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } }
+      );
+      const profileData = await profileRes.json();
+      const profile = profileData?.[0];
+      // Nur migrieren wenn tatsächlich legacy-admin ohne role_id
+      if (!profile || profile.role !== 'admin' || profile.role_id) {
+        return res.status(200).json({ skipped: true });
+      }
+      const OWNER_ROLE_ID = '00000000-0000-0000-0000-000000000001';
+      const updRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${callerId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ role_id: OWNER_ROLE_ID }),
+      });
+      if (!updRes.ok) {
+        const err = await updRes.json().catch(() => ({}));
+        return res.status(400).json({ error: err.message || 'Migration fehlgeschlagen' });
+      }
+      return res.status(200).json({ success: true, migrated: true });
+    }
+
     // ── Rolle eines Nutzers ändern ────────────────────────────────────────────
     if (action === 'updateUserRole') {
       if (!(await hasPermissionOrLegacyAdmin(callerId, 'roles.assign', serviceKey))) {

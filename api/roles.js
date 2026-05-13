@@ -59,7 +59,27 @@ export default async function handler(req, res) {
           }
         );
         const perms = await permRes.json();
-        return res.status(200).json({ permissions: perms.map(p => p.permission_key) });
+        const permKeys = Array.isArray(perms) ? perms.map(p => p.permission_key) : [];
+
+        // Legacy-Fallback: Nutzer mit altem role='admin' und noch keiner role_id
+        // erhalten alle Permissions (entspricht Owner) bis zur Migration
+        if (permKeys.length === 0) {
+          const profileRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/profiles?id=eq.${targetId}&select=role,role_id`,
+            { headers }
+          );
+          const profileData = await profileRes.json();
+          if (profileData?.[0]?.role === 'admin' && !profileData?.[0]?.role_id) {
+            const allPermRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/permissions?select=key`,
+              { headers }
+            );
+            const allPerms = await allPermRes.json();
+            return res.status(200).json({ permissions: allPerms.map(p => p.key) });
+          }
+        }
+
+        return res.status(200).json({ permissions: permKeys });
       }
     }
 

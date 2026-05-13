@@ -53,7 +53,22 @@ const Auth = {
 
   async _onSignIn(user){
     currentUser=user;
-    const {data}=await db.from('profiles').select('*, roles(name, color)').eq('id',user.id).single();
+    let {data}=await db.from('profiles').select('*, roles(id, name, color)').eq('id',user.id).single();
+    // Legacy-Migration: alter role='admin' ohne role_id → Owner-Rolle setzen
+    if(data?.role==='admin'&&!data?.role_id){
+      const session=await db.auth.getSession();
+      const token=session?.data?.session?.access_token;
+      if(token){
+        await fetch('/api/admin?action=migrateLegacyRole',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+          body:'{}',
+        });
+        // Profil neu laden damit role_id und roles-Join stimmen
+        const {data:refreshed}=await db.from('profiles').select('*, roles(id, name, color)').eq('id',user.id).single();
+        if(refreshed) data=refreshed;
+      }
+    }
     // Flach machen: role_name + role_color direkt ans Profil hängen
     if(data?.roles){ data.role_name=data.roles.name; data.role_color=data.roles.color; }
     currentProfile=data;
