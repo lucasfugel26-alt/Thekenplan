@@ -320,6 +320,8 @@ const RolesMgr = {
       const data = await r.json();
       if (!r.ok) { alert('Fehler: ' + (data.error || 'Unbekannt')); return; }
       this.closeAssignModal();
+      // Cache leeren damit _loadUsersList() frische Rollendaten verwendet
+      this._roles = [];
       await App._loadUsersList();
     } finally {
       btn.disabled = false;
