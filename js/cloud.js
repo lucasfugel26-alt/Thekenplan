@@ -131,4 +131,28 @@ const Cloud = {
   },
 
   async push() { saveLocal(); return await this.save(); },
+
+  /* Löscht ein Event dauerhaft aus Supabase (events + shifts).
+     Muss zusätzlich zu EVENTS.splice() aufgerufen werden. */
+  async deleteEvent(id) {
+    if (!currentUser) return false;
+    this.setSyncStatus('busy', 'Löschen…');
+    try {
+      // Shifts zuerst löschen (FK-Constraint)
+      const { error: shErr } = await this._withRetry(
+        () => db.from('shifts').delete().eq('event_id', id), 'deleteShifts');
+      if (shErr) throw shErr;
+      const { error: evErr } = await this._withRetry(
+        () => db.from('events').delete().eq('id', id), 'deleteEvent');
+      if (evErr) throw evErr;
+      saveLocal();
+      const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      this.setSyncStatus('ok', `Gelöscht ${now}`);
+      return true;
+    } catch (e) {
+      this.setSyncStatus('err', 'Löschen fehlgeschlagen!');
+      console.error('[Supabase] deleteEvent error:', e);
+      return false;
+    }
+  },
 };

@@ -7,9 +7,15 @@ const Form={
   mode:'create',   /* 'create' | 'edit' */
   editId:null,
 
+  _setDelBtn(show){
+    const btn=document.getElementById('form-del-btn');
+    if(btn)btn.style.display=show&&can(PERM.EVENTS_DELETE)?'':'none';
+  },
+
   init(locId){
     this.mode='create'; this.editId=null;
     this.currentLoc=locId; this.staffRows=0;
+    this._setDelBtn(false);
     document.getElementById('entry-title').textContent='\uD83D\uDCCB Event erfassen';
     document.getElementById('f-loc').value=locId;
     document.getElementById('f-date').value='';
@@ -50,6 +56,7 @@ const Form={
   load(ev){
     this.mode='edit'; this.editId=ev.id;
     this.currentLoc=ev.location; this.staffRows=0;
+    this._setDelBtn(true);
     document.getElementById('entry-title').textContent='\u270F Event bearbeiten';
     document.getElementById('f-loc').value=ev.location;
     document.getElementById('f-date').value=ev.date;

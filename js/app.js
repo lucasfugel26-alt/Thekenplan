@@ -49,6 +49,43 @@ function allNames(ev){
 }
 function uid(){return'ev-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)}
 
+/* Prüft ob ein Event den S.filterStaff-Filter besteht.
+   Unterstützt Mitarbeiternamen und Sonderwerte __unbesetzt__ / __teilbesetzt__ / __ersatz__ */
+function passesStaffFilter(ev){
+  const f=S.filterStaff;
+  if(!f)return true;
+  if(f==='__unbesetzt__'){
+    // Mindestens eine offene Stelle (miss=true) oder missingStaff-Flag
+    return ev.missingStaff||ev.barStaff.some(s=>s.miss);
+  }
+  if(f==='__teilbesetzt__'){
+    const hasPresent=ev.barStaff.some(s=>!s.miss&&s.name);
+    const hasMissing=ev.barStaff.some(s=>s.miss)||ev.missingStaff;
+    return hasPresent&&hasMissing;
+  }
+  if(f==='__ersatz__'){
+    return ev.barStaff.some(s=>(s.statuses||[]).some(sid=>sid==='ersatz'||sid.includes('ersatz')));
+  }
+  return[...allNames(ev)].includes(f);
+}
+
+/* Kurze Toast-Meldung oben rechts anzeigen */
+function showToast(msg, ok=true){
+  let t=document.getElementById('app-toast');
+  if(!t){
+    t=document.createElement('div');t.id='app-toast';
+    t.style.cssText='position:fixed;top:18px;right:18px;z-index:9999;padding:10px 18px;'+
+      'border-radius:10px;font-size:.82rem;font-weight:600;pointer-events:none;'+
+      'transition:opacity .4s;opacity:0;max-width:300px;box-shadow:0 4px 18px rgba(0,0,0,.3)';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.background=ok?'rgba(34,212,164,.92)':'rgba(255,64,64,.92)';
+  t.style.color='#fff';t.style.opacity='1';
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>{t.style.opacity='0';},3000);
+}
+
 /* ============================================================
    STATE
    ============================================================ */
@@ -116,7 +153,7 @@ function renderSearch(){
   let results=EVENTS.filter(ev=>{
     if(q&&![ev.event,...allNames(ev)].join(' ').toLowerCase().includes(q))return false;
     if(S.filterLoc&&ev.location!==S.filterLoc)return false;
-    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return false;
+    if(!passesStaffFilter(ev))return false;
     if(SF.status==='active'&&(ev.cancelled||ev.relocated))return false;
     if(SF.status==='cancelled'&&!ev.cancelled)return false;
     if(SF.status==='relocated'&&!ev.relocated)return false;
@@ -180,7 +217,7 @@ function getWeek(filtered=true){
     if(filtered){
       if(S.filterLoc&&e.location!==S.filterLoc)return false;
       if(S.onlyMiss&&!e.missingStaff)return false;
-      if(S.filterStaff&&![...allNames(e)].includes(S.filterStaff))return false;
+      if(!passesStaffFilter(e))return false;
       if(S.search){
         const q=S.search.toLowerCase();
         if(![e.event,...[...allNames(e)]].join(' ').toLowerCase().includes(q))return false;
@@ -257,7 +294,7 @@ function renderCalendar(){
   EVENTS.forEach(ev=>{
     if(S.filterLoc&&ev.location!==S.filterLoc)return;
     if(S.onlyMiss&&!ev.missingStaff)return;
-    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return;
+    if(!passesStaffFilter(ev))return;
     if(!evByDate[ev.date])evByDate[ev.date]=[];
     evByDate[ev.date].push(ev);
   });
@@ -334,21 +371,51 @@ function renderCalendar(){
               <span class="cdp-chevron">${expanded?'▲':'▼'}</span>
             </div>
           </div>
-          ${expanded?`<div class="cdp-body">
-            <div class="cdp-row"><span class="cdp-lbl">Gastro</span><span>${ev.startGastro||'–'}</span></div>
-            ${ev.schlussShow?`<div class="cdp-row"><span class="cdp-lbl">Schluss</span><span>${ev.schlussShow}</span></div>`:''}
-            ${ev.belegungsende?`<div class="cdp-row"><span class="cdp-lbl">Belegungsende</span><span>${ev.belegungsende}</span></div>`:''}
-            ${ev.prodL?`<div class="cdp-row"><span class="cdp-lbl">Produktion</span><span>${_esc(ev.prodL.name||'')}${ev.prodL.startTime?' · '+ev.prodL.startTime:''}</span></div>`:''}
-            ${ev.cupType?`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span>${_esc(ev.cupType)}</span></div>`:''}
-            <div class="cdp-row cdp-row-staff"><span class="cdp-lbl">Besetzung</span><div class="cdp-staff-pills">${staffHtml}</div></div>
-            ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
-            ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
-            <div class="cdp-actions">
-              ${can(PERM.EVENTS_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
-              ${can(PERM.EVENTS_EDIT_BRIEFING)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
-              ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
-            </div>
-          </div>`:''}
+          ${(()=>{
+            if(!expanded)return'';
+            // Becher
+            const becherVal=ev.bechertyp||(ev.plastik?'plastik':null);
+            const becherHtml=becherVal&&becherVal!=='unbekannt'
+              ?(becherVal==='plastik'
+                ?`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span class="cdp-badge cdp-badge-plastik">\uD83E\uDDE3 Plastik</span></div>`
+                :`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span class="cdp-badge cdp-badge-glas">\uD83E\uDD64 Glas</span></div>`):'';
+            // Besetzung mit Rollen, Zeiten, Status
+            const detailStaffHtml=(()=>{
+              const rows=[];
+              if(ev.prodL&&ev.prodL.name){
+                rows.push(`<div class="cdp-srow"><span class="cdp-srole">Prod L</span><span class="cdp-sname">${_esc(ev.prodL.name)}</span><span class="cdp-stime">${ev.prodL.startTime||''}</span></div>`);
+              }
+              (ev.barStaff||[]).forEach(s=>{
+                const statuses=s.statuses||(s.miss?['fehlt']:[]);
+                const isFehlt=statuses.includes('fehlt');
+                const t=isFehlt?'–':barStart(s.pos,ev.startGastro,s.ov);
+                const stags=statuses.map(sid=>{
+                  const sc=Config.data.staffStatuses.find(x=>x.id===sid);
+                  return sc?`<span class="cdp-stag" style="background:${sc.color}22;color:${sc.color};border:1px solid ${sc.color}44">${sc.label}</span>`:'';
+                }).join('');
+                rows.push(`<div class="cdp-srow${isFehlt?' cdp-srow-miss':''}"><span class="cdp-srole">Bar ${s.pos}</span><span class="cdp-sname">${isFehlt?'<em>fehlt</em>':_esc(s.name)}</span><span class="cdp-stime">${t}</span>${stags?`<span class="cdp-stags">${stags}</span>`:''}</div>`);
+              });
+              if(!rows.length)return`<div class="cdp-empty" style="padding:6px 0">–</div>`;
+              return rows.join('');
+            })();
+            return`<div class="cdp-body">
+              <div class="cdp-row"><span class="cdp-lbl">Gastro</span><span>${ev.startGastro||'–'}</span></div>
+              ${ev.einlasszeit?`<div class="cdp-row"><span class="cdp-lbl">Einlass</span><span>${ev.einlasszeit}</span></div>`:''}
+              ${ev.schlussShow?`<div class="cdp-row"><span class="cdp-lbl">Schluss</span><span>${ev.schlussShow}</span></div>`:''}
+              ${ev.belegungsende?`<div class="cdp-row"><span class="cdp-lbl">Belegungsende</span><span>${ev.belegungsende}</span></div>`:''}
+              ${becherHtml}
+              ${ev.besucherzahl?`<div class="cdp-row"><span class="cdp-lbl">Besucher</span><span>\uD83D\uDC65 ${ev.besucherzahl}</span></div>`:''}
+              ${ev.kundenkarte?`<div class="cdp-row"><span class="cdp-lbl">Kundenkarte</span><span class="cdp-badge cdp-badge-kk">${_esc(ev.kundenkarte)}</span></div>`:''}
+              <div class="cdp-row cdp-row-staff"><span class="cdp-lbl">Besetzung</span><div class="cdp-detail-staff">${detailStaffHtml}</div></div>
+              ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
+              ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
+              <div class="cdp-actions">
+                ${can(PERM.EVENTS_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
+                ${can(PERM.EVENTS_EDIT_BRIEFING)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
+                ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
+              </div>
+            </div>`;
+          })()}
         </div>`;
       }).join('')
     }</div>`;
@@ -528,13 +595,15 @@ function updateStaffSel(){
   const hamAv=document.getElementById('ham-av');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
-  // Non-privileged: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
+  const unbesesztBtn=document.getElementById('btn-unbesetzt');
+  // Non-privileged: hide the staff dropdown, show "Meine Schichten" + "Unbesetzte" toggle
   const hamProfil=document.getElementById('ham-profil');
   if(!can(PERM.SHIFTS_VIEW_ALL)){
     sel.style.display='none';
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
     if(hamProfil) hamProfil.style.display=myEmp?'':'none';
+    if(unbesesztBtn) unbesesztBtn.style.display='';
     const p=typeof Planning!=='undefined'?Planning.getActive():null;
     const avVisible=myEmp&&p&&(p.status==='open'||p.status==='collecting')?'':'none';
     if(avBtn) avBtn.style.display=avVisible;
@@ -544,14 +613,19 @@ function updateStaffSel(){
   if(hamProfil) hamProfil.style.display='none';
   if(avBtn) avBtn.style.display='none';
   if(hamAv) hamAv.style.display='none';
+  if(unbesesztBtn) unbesesztBtn.style.display='none';
 
-  // Full access: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
+  // Full access: full dropdown with special filter options + staff names
   if(myShiftsBtn) myShiftsBtn.style.display='none';
   if(profilBtn) profilBtn.style.display='none';
   sel.style.display='';
   const cur=sel.value;
   const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
-  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
+  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>
+    <option value="__unbesetzt__"${cur==='__unbesetzt__'?' selected':''}>⚠ Nur unbesetzte Schichten</option>
+    <option value="__teilbesetzt__"${cur==='__teilbesetzt__'?' selected':''}>⚡ Teilweise besetzte Schichten</option>
+    <option value="__ersatz__"${cur==='__ersatz__'?' selected':''}>↔ Mit Ersatzbedarf</option>`+
+    `<option disabled style="color:var(--txm);font-size:.7rem">──── Mitarbeiter ────</option>`+
     empNames.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
 }
 
@@ -717,6 +791,24 @@ const App={
       btn.style.borderColor=active?'':'rgba(34,212,164,.5)';
       btn.style.color=active?'':'#22d4a4';
     }
+    // Unbesetzte-Button deaktivieren wenn Meine Schichten aktiv
+    const ub=document.getElementById('btn-unbesetzt');
+    if(ub){ub.style.background='';ub.style.borderColor='';ub.style.color='';}
+    renderGrid();
+  },
+
+  toggleUnbesetzt(){
+    const btn=document.getElementById('btn-unbesetzt');
+    const active=S.filterStaff==='__unbesetzt__';
+    S.filterStaff=active?'':'__unbesetzt__';
+    if(btn){
+      btn.style.background=active?'':'rgba(255,166,0,.18)';
+      btn.style.borderColor=active?'':'rgba(255,166,0,.5)';
+      btn.style.color=active?'':'#f5a623';
+    }
+    // Meine Schichten deaktivieren
+    const ms=document.getElementById('btn-my-shifts');
+    if(ms){ms.style.background='';ms.style.borderColor='';ms.style.color='';}
     renderGrid();
   },
 
@@ -724,6 +816,8 @@ const App={
     SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';
     document.getElementById('search-inp').value='';
     const mm=document.getElementById('mob-miss');if(mm)mm.classList.remove('active');
+    const ub=document.getElementById('btn-unbesetzt');
+    if(ub){ub.style.background='';ub.style.borderColor='';ub.style.color='';}
     if(can(PERM.SHIFTS_VIEW_ALL)){S.filterStaff='';document.getElementById('filter-staff').value='';}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
@@ -761,38 +855,48 @@ const App={
   editEventById(id){
     const ev=EVENTS.find(e=>e.id===id);
     if(!ev)return;
+    this._currentEvId=id;
     this._fillLocSelect(ev.location);
     Form.load(ev);
     document.getElementById('entry-ov').classList.add('open');
     document.body.style.overflow='hidden';
   },
 
-  /* L\u00f6schen – Best\u00e4tigungsschritt anzeigen */
-  confirmDelete(){
-    document.getElementById('m-del-confirm').style.display='flex';
-  },
-  cancelDelete(){
-    document.getElementById('m-del-confirm').style.display='none';
-  },
-
-  /* Löschen – aus Modal bestätigt */
+  /* Löschen – aus Edit-Form aufgerufen (mit confirm-Dialog) */
   deleteEvent(){
-    const idx=EVENTS.findIndex(e=>e.id===this._currentEvId);
+    const id=this._currentEvId;
+    if(!id)return;
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev||!confirm(`"${ev.event}" wirklich löschen?\nDiese Aktion kann nicht rükgängig gemacht werden.`))return;
+    const snapshot=Object.assign({},ev);
+    const idx=EVENTS.findIndex(e=>e.id===id);
     if(idx!==-1)EVENTS.splice(idx,1);
-    Cloud.push();
-    this.closeDet({target:document.getElementById('det-ov')});
+    saveLocal();
+    document.getElementById('entry-ov').classList.remove('open');
+    document.body.style.overflow='';
     this.render();
+    Cloud.deleteEvent(id).then(ok=>{
+      showToast(ok?'Event gelöscht.':'Löschen fehlgeschlagen – bitte nochmals versuchen.',ok);
+      if(!ok){EVENTS.push(snapshot);saveLocal();this.render();}
+    });
   },
 
   /* Löschen – direkt von Karte (Hover-Button) */
   deleteEventById(id){
-    if(!confirm('Dieses Event wirklich l\u00f6schen?'))return;
+    if(!confirm('Dieses Event wirklich löschen?'))return;
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev)return;
+    const snapshot=Object.assign({},ev);
     const idx=EVENTS.findIndex(e=>e.id===id);
     if(idx!==-1)EVENTS.splice(idx,1);
-    Cloud.push();
-    db.from('shifts').delete().eq('event_id',id).then(()=>{});
+    saveLocal();
     this.render();
+    Cloud.deleteEvent(id).then(ok=>{
+      showToast(ok?'Event gelöscht.':'Löschen fehlgeschlagen – bitte nochmals versuchen.',ok);
+      if(!ok){EVENTS.push(snapshot);saveLocal();this.render();}
+    });
   },
+
 
   cancelEventById(id){
     const ev=EVENTS.find(e=>e.id===id);
@@ -814,6 +918,7 @@ const App={
 
   /* Neues Event erfassen */
   openEntry(locId){
+    this._currentEvId=null;
     const sel=document.getElementById('f-loc');
     sel.innerHTML=Object.entries(LOCS).map(([id,l])=>`<option value="${id}">${l.short} · ${l.name}</option>`).join('');
     Form.init(locId||Number(Object.keys(LOCS)[0])||1);
