@@ -1,6 +1,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { getCallerUserId, hasPermissionOrLegacyAdmin } = require('./_auth.js');
 
 const ALLOWED_MEDIA_TYPES = ['image/png','image/jpeg','image/webp','image/gif','application/pdf'];
+const SUPABASE_URL = 'https://anagoloyaaikuexzbxae.supabase.co';
 
 function buildPrompt(locations, fields = []) {
   const locList = locations && locations.length
@@ -21,7 +23,7 @@ Format jedes Eintrags:
 {
   "date": "YYYY-MM-DD",
   "event": "Name der Veranstaltung",
-  "einlasszeit": "HH:MM Einlasszeit/Türöffnung/Doors Open, sonst leer",
+  "einlasszeit": "HH:MM Einlasszeit/Töröffnung/Doors Open, sonst leer",
   "schlussShow": "HH:MM Show-Ende/Konzertende, sonst leer",
   "location": "Kürzel aus der Liste oben, oder leerer String wenn unklar",
 ${optionalFields.join(',\n')}
@@ -46,22 +48,23 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Verify token and check admin role via Supabase
-  const supabaseUrl = 'https://anagoloyaaikuexzbxae.supabase.co';
+  // Verify token and check permission via Supabase
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceKey) {
-    const profileRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey }
-    });
-    if (!profileRes.ok) return res.status(401).json({ error: 'Ungültiger Token' });
-    const user = await profileRes.json();
-    const roleRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
-      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
-    });
-    const roleData = await roleRes.json();
-    if (roleData?.[0]?.role !== 'admin') {
-      return res.status(403).json({ error: 'Nur Admins können Dateien importieren.' });
-    }
+  if (!serviceKey) return res.status(500).json({ error: 'Service key nicht konfiguriert' });
+
+  const userId = await getCallerUserId(token, serviceKey);
+  if (!userId) return res.status(401).json({ error: 'Ungültiger Token' });
+
+  if (!(await hasPermissionOrLegacyAdmin(userId, 'events.import_ai', serviceKey))) {
+    return res.status(403).json({ error: 'Keine Berechtigung: events.import_ai' });
+  }
+
+  const aiCfgRes = await fetch(`${SUPABASE_URL}/rest/v1/app_config?key=eq.ai_enabled&select=value`, {
+    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey }
+  });
+  const aiCfg = await aiCfgRes.json();
+  if (aiCfg?.[0]?.value === false) {
+    return res.status(403).json({ error: 'AI features disabled' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

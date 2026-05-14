@@ -54,11 +54,15 @@ const Planner = {
             <option value="">— Zeitraum wählen —</option>
             ${periods.map(pp => `<option value="${pp.id}" ${p?.id === pp.id ? 'selected' : ''}>${MONS[pp.month - 1]} ${pp.year} · ${Planning.statusLabel(pp.status)}</option>`).join('')}
           </select>
-          <button class="btn btn-ghost" onclick="Planner._showNewPeriod()" title="Neuen Zeitraum erstellen">+ Neu</button>
+          ${can(PERM.PLANNING_CREATE_PERIOD) ? `<button class="btn btn-ghost" onclick="Planner._showNewPeriod()" title="Neuen Zeitraum erstellen">+ Neu</button>` : ''}
         </div>
       </div>`;
 
     if (this._tab === 'new' || !p) {
+      if (!can(PERM.PLANNING_CREATE_PERIOD)) {
+        root.innerHTML = headerHtml + `<div class="plan-section"><div style="color:var(--miss);font-size:.84rem">Kein Planungszeitraum vorhanden. Du benötigst das Recht <strong>planning.create_period</strong> um einen zu erstellen.</div></div>`;
+        return;
+      }
       root.innerHTML = headerHtml + `<div class="planner-new-form">
         <h3>Neuen Planungszeitraum erstellen</h3>
         <div class="planner-form-grid">
@@ -82,10 +86,10 @@ const Planner = {
 
     const tabs = [
       ['overview', '📊 Übersicht'],
-      ['assignments', '📝 Besetzung'],
+      ...(can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE) ? [['assignments', '📝 Besetzung']] : []),
       ['availability', '📆 Verfügbarkeiten'],
       ['swaps', '🔄 Schichttausch'],
-      ['rules', '⚙ Regelwerk'],
+      ...(can(PERM.PLANNING_MANAGE_RULES) ? [['rules', '⚙ Regelwerk']] : []),
     ];
     const tabsHtml = `<div class="planner-tabs">${tabs.map(([id, label]) =>
       `<button class="planner-tab${this._tab === id ? ' active' : ''}" onclick="Planner._setTab('${id}')">${label}</button>`
@@ -111,7 +115,8 @@ const Planner = {
   /* ─── Overview Tab ──────────────────────────────────────── */
   _renderOverview() {
     const p = this._period;
-    const statusFlow = ['open', 'collecting', 'ai_proposal', 'editing', 'published'];
+    const allSteps = ['open', 'collecting', 'ai_proposal', 'editing', 'published'];
+    const statusFlow = Config.data.aiEnabled ? allSteps : allSteps.filter(s => s !== 'ai_proposal');
     const curIdx = statusFlow.indexOf(p.status);
     const nextStatus = statusFlow[curIdx + 1];
 
@@ -122,7 +127,7 @@ const Planner = {
 
     // Rollen-Auswahl für KI
     const roles = Config.data.employeeRoles || [];
-    const rolesHtml = roles.length ? `
+    const rolesHtml = Config.data.aiEnabled && roles.length ? `
       <div class="plan-section">
         <div class="plan-sec-title">🎯 Zu planende Rollen</div>
         <p style="font-size:.82rem;color:var(--txm);margin-bottom:10px">
@@ -140,7 +145,7 @@ const Planner = {
     // Events ohne required_staff
     const missingReq = this._monthEvents.filter(ev => !ev.cancelled && (!ev.required_staff || !ev.required_staff.length));
 
-    const aiSection = p.status !== 'published' ? `
+    const aiSection = Config.data.aiEnabled && p.status !== 'published' ? `
       <div class="plan-section">
         <div class="plan-sec-title">🤖 KI-Dienstplan</div>
         ${missingReq.length ? `
@@ -158,7 +163,7 @@ const Planner = {
         <div id="planner-ai-area">${this._renderAIArea()}</div>
       </div>` : '';
 
-    const publishBtn = (p.status === 'ai_proposal' || p.status === 'editing') ? `
+    const publishBtn = can(PERM.PLANNING_PUBLISH) && (p.status === 'ai_proposal' || p.status === 'editing') ? `
       <div class="plan-section">
         <div class="plan-sec-title">🚀 Veröffentlichen</div>
         <p style="font-size:.83rem;color:var(--txm);margin-bottom:12px">
@@ -238,7 +243,7 @@ const Planner = {
   _renderAssignments() {
     const p = this._period;
     const hasDraft = Object.keys(this._draft).length > 0;
-    const isEditing = p.status !== 'published';
+    const isEditing = p.status !== 'published' && (can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE));
 
     let evHtml = '';
     if (!this._monthEvents.length) {
@@ -284,15 +289,28 @@ const Planner = {
         }
       }
     } else {
-      slots = ev.barStaff || [];
+      // Auto-generate one slot per role using event times as default
+      const barStaff = ev.barStaff || [];
+      const roles = Config.data.employeeRoles || [];
+      if (roles.length && !barStaff.some(s => !s.miss)) {
+        slots = roles.map((role, i) => ({
+          pos: i + 1, name: null, miss: true, role,
+          req_start: ev.startGastro || null,
+          req_end: ev.schlussShow || null,
+        }));
+      } else {
+        slots = barStaff;
+      }
     }
 
     const slotRows = slots.map((s, idx) => {
-      const removeBtn = isEditing ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${idx})" title="Entfernen">✕</button>` : '';
+      // Nur Slots im Scope sind bearbeitbar; außerhalb: sichtbar aber read-only
+      const canEdit = isEditing && (isInStaffScope(s.role || 'Thekenkraft') || can(PERM.PLANNING_EDIT_ALL_CATEGORIES));
+      const removeBtn = canEdit ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${idx})" title="Entfernen">✕</button>` : '';
       const roleTag = s.role ? `<span class="slot-role">${_esc(s.role)}</span>` : '';
       const timeTag = (s.req_start || s.req_end) ? `<span class="slot-time">${s.req_start||''}${s.req_end?'–'+s.req_end:''}</span>` : '';
       if (s.miss || !s.name) {
-        return `<div class="assign-slot empty" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
+        return `<div class="assign-slot empty${canEdit?'':' scope-readonly'}" ${canEdit ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
           <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
           ${roleTag}${timeTag}
           <span class="slot-empty-txt">Nicht besetzt</span>
@@ -301,7 +319,7 @@ const Planner = {
       }
       const emp = Employees.getAll().find(e => e.name === s.name || e.id === s.employeeId);
       const bg = emp?.color || '#555';
-      return `<div class="assign-slot filled" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
+      return `<div class="assign-slot filled${canEdit?'':' scope-readonly'}" ${canEdit ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
         <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
         ${roleTag}${timeTag}
         <span class="emp-badge sm" style="background:${bg};color:${_contrastColor(bg)}">${emp?.kuerzel || s.name.slice(0, 2)}</span>
@@ -326,7 +344,6 @@ const Planner = {
         ${hoursTag}
         ${ev.cancelled ? '<span class="tag tag-canc">Abgesagt</span>' : ''}
         ${isDraft ? '<span class="draft-badge">Entwurf</span>' : ''}
-        ${!reqStaff.length ? '<span class="tag tag-warn" title="Kein Personalbedarf hinterlegt">⚠ Bedarf fehlt</span>' : ''}
       </div>
       <div class="assign-slots">${slotRows}</div>
       ${addBtn}
@@ -338,7 +355,7 @@ const Planner = {
     if (!el) return;
     const p = this._period;
     if (!p) { el.innerHTML = ''; return; }
-    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden');
+    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden' && (isInStaffScope(e.default_role||'Thekenkraft') || can(PERM.PLANNING_VIEW_ALL_CATEGORIES)));
     const rows = emps.map(emp => {
       const { gross, net, breakMin, events } = this._calcHours(emp);
       const soll = Number(emp.soll_stunden) || 0;
@@ -611,20 +628,31 @@ const Planner = {
     document.body.appendChild(ov);
   },
 
-  // Returns the effective slot list for an event (required_staff → slots or barStaff)
+  // Returns the effective slot list for an event (required_staff → slots, else auto from roles)
   _getSlotsForEvent(ev) {
     const reqStaff = ev.required_staff || [];
-    if (!reqStaff.length) return ev.barStaff || [];
-    let pos = 1;
-    const slots = [];
-    for (const req of reqStaff) {
-      for (let i = 0; i < req.count; i++) {
-        const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
-        slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
-        pos++;
+    if (reqStaff.length) {
+      let pos = 1;
+      const slots = [];
+      for (const req of reqStaff) {
+        for (let i = 0; i < req.count; i++) {
+          const assigned = (ev.barStaff || []).find(s => s.pos === pos && !s.miss);
+          slots.push(assigned || { pos, name: null, miss: true, role: req.role, req_start: req.start_time, req_end: req.end_time });
+          pos++;
+        }
       }
+      return slots;
     }
-    return slots;
+    const barStaff = ev.barStaff || [];
+    const roles = Config.data.employeeRoles || [];
+    if (roles.length && !barStaff.some(s => !s.miss)) {
+      return roles.map((role, i) => ({
+        pos: i + 1, name: null, miss: true, role,
+        req_start: ev.startGastro || null,
+        req_end: ev.schlussShow || null,
+      }));
+    }
+    return barStaff;
   },
 
   _assignSlot(evId, slotIdx, empId) {
@@ -692,7 +720,7 @@ const Planner = {
     const list = document.getElementById('assign-events-list');
     if (!list) return;
     const p = this._period;
-    const isEditing = p.status !== 'published';
+    const isEditing = p.status !== 'published' && (can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE));
     list.innerHTML = this._monthEvents.map(ev => this._buildEventAssignCard(ev, isEditing)).join('');
     this._renderHoursSidebar();
   },

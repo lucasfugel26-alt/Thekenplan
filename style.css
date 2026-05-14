@@ -136,6 +136,38 @@ body.admin .stg-toggles-grid.admin-only{display:grid!important}
 .ev-card:hover .card-acts{display:none}
 body.admin .ev-card:hover .card-acts{display:flex}
 
+/* ── GRANULARE PERMISSION-OVERRIDES ──────────────────────
+   Jede perm-* Klasse blendet ein Element aus, auch wenn body.admin
+   gesetzt ist – wenn die spezifische Permission fehlt.
+   Reihenfolge: override NACH den allgemeinen admin-only Regeln.     */
+/* Import */
+body.admin:not(.can-import-ai) .perm-import-ai{display:none!important}
+/* Event erstellen */
+body.admin:not(.can-create-events) .perm-create-events{display:none!important}
+/* Team / Zugänge */
+body.admin:not(.can-view-users) .perm-view-users{display:none!important}
+/* Planung (sichtbar wenn PLANNING_EDIT oder PLANNING_AI_GENERATE) */
+body.admin:not(.can-edit-planning):not(.can-ai-generate) .perm-planning{display:none!important}
+/* Locations */
+body.admin:not(.can-edit-locations) .perm-edit-locations{display:none!important}
+/* Allgemeine Einstellungen / PDF */
+body.admin:not(.can-edit-settings) .perm-edit-settings{display:none!important}
+/* KI-Funktionen Einstellungen */
+body.admin:not(.can-edit-ai-settings) .perm-ai-settings{display:none!important}
+/* Event bearbeiten (Karte + Detail-Modal) */
+body.admin:not(.can-edit-events) .perm-edit-events{display:none!important}
+body.admin:not(.can-edit-events) .ev-card:hover .card-acts{display:none!important}
+/* Neuer Mitarbeiter */
+body.admin:not(.can-create-staff) .perm-create-staff{display:none!important}
+/* Dienstplan-Regelwerk */
+body.admin:not(.can-manage-rules) .perm-manage-rules{display:none!important}
+/* Rollen & Rechte */
+body.admin:not(.can-view-roles):not(.can-edit-roles):not(.can-create-roles) .perm-roles{display:none!important}
+/* Kundenkarten-Einstellungen */
+body.admin:not(.can-edit-card-fields) .perm-card-fields{display:none!important}
+/* Planung auch für reine Lese-Berechtigung sichtbar */
+body.admin.can-view-planning:not(.can-edit-planning):not(.can-ai-generate) .perm-planning{display:block!important}
+
 /* ── SYNC BUTTON ─────────────────────────────────────── */
 .btn-sync{display:flex;align-items:center;gap:8px;
   background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
@@ -598,6 +630,22 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .cdp-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
 .cdp-note{font-size:.64rem;color:var(--miss);font-style:italic;margin-top:2px}
 .cdp-empty{text-align:center;color:var(--txm);font-size:.78rem;font-style:italic;padding:20px 0}
+/* Erweiterte Besetzungszeilen im Dropdown */
+.cdp-detail-staff{display:flex;flex-direction:column;gap:4px;width:100%}
+.cdp-srow{display:flex;align-items:center;gap:6px;font-size:.75rem;
+  background:var(--bg4);border-radius:6px;padding:4px 8px;flex-wrap:wrap}
+.cdp-srow.cdp-srow-miss{opacity:.65}
+.cdp-srole{font-size:.62rem;font-weight:700;color:var(--txm);min-width:46px;flex-shrink:0;text-transform:uppercase}
+.cdp-sname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx)}
+.cdp-sname em{color:var(--miss);font-style:normal;font-weight:700}
+.cdp-stime{font-variant-numeric:tabular-nums;color:var(--txd);font-size:.72rem;flex-shrink:0}
+.cdp-stags{display:flex;gap:3px;flex-wrap:wrap}
+.cdp-stag{font-size:.6rem;padding:1px 5px;border-radius:5px;font-weight:600;white-space:nowrap}
+/* Kleine Status-Badges für Becher / Kundenkarte */
+.cdp-badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px}
+.cdp-badge-plastik{background:rgba(245,166,35,.15);color:#f5a623;border:1px solid rgba(245,166,35,.3)}
+.cdp-badge-glas{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.cdp-badge-kk{background:rgba(34,212,164,.15);color:#22d4a4;border:1px solid rgba(34,212,164,.3)}
 
 /* ── ENTRY MODAL ─────────────────────────────────────── */
 .entry-modal{background:var(--bg3);border:1px solid var(--bda);border-radius:var(--rl);
@@ -610,7 +658,35 @@ body.admin .gear-btn{background:rgba(34,212,164,.1);border-color:rgba(34,212,164
 .entry-body{display:flex;flex:1;overflow:hidden}
 
 .entry-form-col{flex:1;overflow-y:auto;padding:20px}
-@media(max-width:700px){.entry-form-col{padding:14px}}
+@media(max-width:700px){
+  /* Modal: Vollbild von unten auf Mobile */
+  .entry-modal{width:100%;max-width:100%;max-height:95vh;border-radius:16px 16px 0 0;
+    position:fixed;bottom:0;left:0;right:0;margin:0}
+  #entry-ov{align-items:flex-end;padding:0}
+  #entry-ov.open .entry-modal{transform:none}
+  .entry-form-col{padding:14px}
+  /* Felder untereinander statt nebeneinander */
+  .frow,.frow3{grid-template-columns:1fr;gap:0}
+  /* Besetzungszeile: Felder umbrechen */
+  .staff-entry-row{flex-wrap:wrap;gap:6px;padding:8px 10px}
+  .staff-entry-row .fi[style*="flex:2"]{flex:1 1 100%!important;min-width:0}
+  .staff-entry-row .fi[style*="width:88px"]{width:100%!important;flex:1 1 calc(50% - 3px)}
+  .se-statuses{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:4px}
+  .se-rm{margin-left:auto}
+  /* Benötigte Besetzung */
+  .req-staff-row{flex-wrap:wrap;gap:6px;padding:6px 0}
+  .req-staff-row .fi[style*="flex:2"]{flex:1 1 100%!important}
+  .req-staff-row .fi[style*="width:60px"]{width:70px}
+  .req-staff-row .fi[style*="width:90px"]{flex:1 1 calc(50% - 3px)}
+  /* Aktionen-Leiste */
+  .factions{flex-direction:column;gap:8px;margin-top:16px}
+  .factions .btn{width:100%;justify-content:center;min-height:44px}
+  /* Löschen-Button in eigene Zeile, Abstand oben */
+  #form-del-btn{margin-left:0!important;margin-top:4px}
+  /* Becher-Toggle */
+  .becher-toggle{flex-wrap:wrap}
+  .bt-btn{flex:1 1 calc(33% - 4px)}
+}
 
 /* Form elements */
 .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
@@ -733,7 +809,7 @@ body.light{
   .ctrl-input{flex:1;min-width:130px;font-size:.9rem;padding:9px 12px}
   #filter-staff,.btn-mob-hide,.spacer,.cnt{display:none!important}
   #mob-miss{display:none} /* shown via JS when hasMiss */
-  #btn-my-shifts{flex-shrink:0}
+  #btn-my-shifts,#btn-unbesetzt{flex-shrink:0}
   /* Cards */
   .ev-card{padding:10px 12px}
   .ev-name{font-size:.9rem;white-space:normal}
@@ -1252,6 +1328,7 @@ body.light .app-title h1{
 .av-wrap{padding:0 0 20px}
 .av-title{font-family:var(--fh);font-size:.95rem;font-weight:800;margin-bottom:8px}
 .av-deadline{font-size:.78rem;color:var(--l1);margin-bottom:6px}
+.av-early-hint{font-size:.78rem;color:var(--txm);margin-bottom:8px;padding:7px 10px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);border-radius:8px}
 .av-submitted{font-size:.78rem;color:#22d4a4;margin-bottom:8px}
 .av-hint{font-size:.8rem;color:var(--txm);margin-bottom:10px}
 .av-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:320px;margin-bottom:14px}
@@ -1412,3 +1489,44 @@ body.light .app-title h1{
 .picker-wish{font-size:.7rem;color:#22d4a4;background:rgba(34,212,164,.12);
   border-radius:4px;padding:1px 5px}
 .warn-from{background:rgba(255,166,0,.12);border-radius:4px;padding:1px 5px}
+
+/* ─── AI feature toggle ──────────────────────────────────── */
+.ai-disabled .ai-feature{display:none!important}
+.toggle-switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--bd);border-radius:24px;cursor:pointer;transition:.2s}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-switch input:checked+.toggle-slider{background:#22d4a4}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(18px)}
+
+/* ─── Rollen Modal Overlay ──────────────────────────────── */
+.m-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:1050;display:flex;align-items:center;justify-content:center;padding:16px}
+.m-box{background:var(--bg2);border-radius:16px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.4);display:flex;flex-direction:column;max-height:90vh;overflow:hidden}
+.m-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd);font-weight:600;font-size:.95rem;flex-shrink:0}
+
+/* ─── Zugänge sub-tabs ──────────────────────────────────── */
+.acc-subtab{padding:8px 18px;font-size:.8rem;font-weight:700;font-family:var(--fb);
+  background:none;border:none;border-bottom:2px solid transparent;color:var(--txm);
+  cursor:pointer;transition:color .13s,border-color .13s;margin-bottom:-1px}
+.acc-subtab.active{color:var(--tx);border-bottom-color:var(--l2)}
+.acc-subtab:hover{color:var(--txd)}
+
+/* ─── Roles Manager ─────────────────────────────────────── */
+.roles-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--bg2);margin-bottom:6px;flex-wrap:wrap}
+.roles-list{display:flex;flex-direction:column;gap:0}
+.stg-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.perm-matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;max-height:420px;overflow-y:auto;padding-right:4px}
+.perm-category{background:var(--bg2);border-radius:10px;padding:10px 12px}
+.perm-cat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.perm-row{display:flex;align-items:flex-start;gap:8px;padding:4px 0;cursor:pointer;font-size:.82rem}
+.perm-row input{margin-top:2px;flex-shrink:0;accent-color:var(--accent)}
+.perm-label{font-weight:500;color:var(--tx)}
+.perm-desc{color:var(--txm);font-size:.75rem;margin-left:auto;text-align:right;max-width:140px}
+/* Einträge außerhalb des Dienstplan-Scopes: sichtbar, aber nicht bearbeitbar */
+.scope-readonly{opacity:.5;cursor:default!important;pointer-events:none}
+.scope-readonly.assign-slot{background:var(--bg2)!important;border-style:dashed}
+.scope-readonly.staff-entry-row{filter:grayscale(.4)}
+.scope-cat-list{display:flex;flex-wrap:wrap;gap:8px}
+.scope-cat-label{display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;transition:border-color .15s}
+.scope-cat-label:has(input:checked){border-color:var(--accent);background:rgba(34,212,164,.08);color:var(--accent)}
+.scope-cat-label input{accent-color:var(--accent);flex-shrink:0}

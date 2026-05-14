@@ -1,12 +1,13 @@
-/* --- Admin-Modus ------------------------------------------ */
-function isAdmin() { return currentProfile?.role === 'admin'; }
+/* --- Legacy-Shim: isAdmin() bleibt während Migration aktiv ---
+   Neu: can(PERM.xxx) aus permissions.js verwenden.
+   Dieser Shim gibt true wenn der User events.edit ODER die alte
+   'admin'-Rolle hat, so dass bestehender Code weiter funktioniert. */
+function isAdmin() {
+  return can(PERM.EVENTS_EDIT) || currentProfile?.role === 'admin';
+}
 
 function applyAdminMode() {
-  if(isAdmin()){
-    document.body.classList.add('admin');
-  } else {
-    document.body.classList.remove('admin');
-  }
+  applyPermissionClasses();
 }
 
 /* --- Reset ----------------------------------------------- */
@@ -47,6 +48,45 @@ function allNames(ev){
   ev.barStaff.filter(x=>!x.miss&&x.name).forEach(x=>s.add(x.name));return s;
 }
 function uid(){return'ev-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)}
+
+/* Prüft ob ein Event den S.filterStaff-Filter besteht.
+   Unterstützt Mitarbeiternamen und Sonderwerte __unbesetzt__ / __teilbesetzt__ / __ersatz__ */
+function passesStaffFilter(ev){
+  const f=S.filterStaff;
+  if(!f)return true;
+  if(f==='__unbesetzt__'){
+    // Mindestens eine offene Stelle (miss=true) oder missingStaff-Flag
+    return ev.missingStaff||ev.barStaff.some(s=>s.miss);
+  }
+  if(f==='__teilbesetzt__'){
+    const hasPresent=ev.barStaff.some(s=>!s.miss&&s.name);
+    const hasMissing=ev.barStaff.some(s=>s.miss)||ev.missingStaff;
+    return hasPresent&&hasMissing;
+  }
+  if(f==='__ersatz__'){
+    // Nutzt den konfigurierten Status-ID 'ersatz' aus config.js (exakter Match)
+    const ersatzIds=new Set(Config.data.staffStatuses.map(s=>s.id).filter(id=>id==='ersatz'));
+    return ev.barStaff.some(s=>(s.statuses||[]).some(sid=>ersatzIds.has(sid)));
+  }
+  return[...allNames(ev)].includes(f);
+}
+
+/* Kurze Toast-Meldung oben rechts anzeigen */
+function showToast(msg, ok=true){
+  let t=document.getElementById('app-toast');
+  if(!t){
+    t=document.createElement('div');t.id='app-toast';
+    t.style.cssText='position:fixed;top:18px;right:18px;z-index:9999;padding:10px 18px;'+
+      'border-radius:10px;font-size:.82rem;font-weight:600;pointer-events:none;'+
+      'transition:opacity .4s;opacity:0;max-width:300px;box-shadow:0 4px 18px rgba(0,0,0,.3)';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.background=ok?'rgba(34,212,164,.92)':'rgba(255,64,64,.92)';
+  t.style.color='#fff';t.style.opacity='1';
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>{t.style.opacity='0';},3000);
+}
 
 /* ============================================================
    STATE
@@ -115,7 +155,7 @@ function renderSearch(){
   let results=EVENTS.filter(ev=>{
     if(q&&![ev.event,...allNames(ev)].join(' ').toLowerCase().includes(q))return false;
     if(S.filterLoc&&ev.location!==S.filterLoc)return false;
-    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return false;
+    if(!passesStaffFilter(ev))return false;
     if(SF.status==='active'&&(ev.cancelled||ev.relocated))return false;
     if(SF.status==='cancelled'&&!ev.cancelled)return false;
     if(SF.status==='relocated'&&!ev.relocated)return false;
@@ -179,7 +219,7 @@ function getWeek(filtered=true){
     if(filtered){
       if(S.filterLoc&&e.location!==S.filterLoc)return false;
       if(S.onlyMiss&&!e.missingStaff)return false;
-      if(S.filterStaff&&![...allNames(e)].includes(S.filterStaff))return false;
+      if(!passesStaffFilter(e))return false;
       if(S.search){
         const q=S.search.toLowerCase();
         if(![e.event,...[...allNames(e)]].join(' ').toLowerCase().includes(q))return false;
@@ -194,7 +234,13 @@ function detectConflicts(eventsForWeek){
   const conflicts=[]; /* [{name, date, ev1, ev2}] */
   const byDay={};
   eventsForWeek.filter(e=>!e.cancelled&&!e.relocated).forEach(ev=>{
-    allNames(ev).forEach(name=>{
+    // Nur Mitarbeiter im Scope in die Konflikterkennung einbeziehen
+    const viewAll=can(PERM.PLANNING_VIEW_ALL_CATEGORIES);
+    const scopedNames=new Set();
+    if(ev.prodL?.name && (viewAll||isInStaffScope('Produktionsleiter'))) scopedNames.add(ev.prodL.name);
+    if(ev.prodL2?.name && (viewAll||isInStaffScope('Produktionsleiter'))) scopedNames.add(ev.prodL2.name);
+    (ev.barStaff||[]).filter(s=>!s.miss&&s.name&&(viewAll||isInStaffScope(s.role||'Thekenkraft'))).forEach(s=>scopedNames.add(s.name));
+    scopedNames.forEach(name=>{
       if(!name)return;
       if(!byDay[ev.date])byDay[ev.date]={};
       if(!byDay[ev.date][name])byDay[ev.date][name]=[];
@@ -256,7 +302,7 @@ function renderCalendar(){
   EVENTS.forEach(ev=>{
     if(S.filterLoc&&ev.location!==S.filterLoc)return;
     if(S.onlyMiss&&!ev.missingStaff)return;
-    if(S.filterStaff&&![...allNames(ev)].includes(S.filterStaff))return;
+    if(!passesStaffFilter(ev))return;
     if(!evByDate[ev.date])evByDate[ev.date]=[];
     evByDate[ev.date].push(ev);
   });
@@ -333,21 +379,51 @@ function renderCalendar(){
               <span class="cdp-chevron">${expanded?'▲':'▼'}</span>
             </div>
           </div>
-          ${expanded?`<div class="cdp-body">
-            <div class="cdp-row"><span class="cdp-lbl">Gastro</span><span>${ev.startGastro||'–'}</span></div>
-            ${ev.schlussShow?`<div class="cdp-row"><span class="cdp-lbl">Schluss</span><span>${ev.schlussShow}</span></div>`:''}
-            ${ev.belegungsende?`<div class="cdp-row"><span class="cdp-lbl">Belegungsende</span><span>${ev.belegungsende}</span></div>`:''}
-            ${ev.prodL?`<div class="cdp-row"><span class="cdp-lbl">Produktion</span><span>${_esc(ev.prodL.name||'')}${ev.prodL.startTime?' · '+ev.prodL.startTime:''}</span></div>`:''}
-            ${ev.cupType?`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span>${_esc(ev.cupType)}</span></div>`:''}
-            <div class="cdp-row cdp-row-staff"><span class="cdp-lbl">Besetzung</span><div class="cdp-staff-pills">${staffHtml}</div></div>
-            ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
-            ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
-            <div class="cdp-actions">
-              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
-              ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
-              ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
-            </div>
-          </div>`:''}
+          ${(()=>{
+            if(!expanded)return'';
+            // Becher
+            const becherVal=ev.bechertyp||(ev.plastik?'plastik':null);
+            const becherHtml=becherVal&&becherVal!=='unbekannt'
+              ?(becherVal==='plastik'
+                ?`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span class="cdp-badge cdp-badge-plastik">\uD83E\uDDE3 Plastik</span></div>`
+                :`<div class="cdp-row"><span class="cdp-lbl">Becher</span><span class="cdp-badge cdp-badge-glas">\uD83E\uDD64 Glas</span></div>`):'';
+            // Besetzung mit Rollen, Zeiten, Status
+            const detailStaffHtml=(()=>{
+              const rows=[];
+              if(ev.prodL&&ev.prodL.name){
+                rows.push(`<div class="cdp-srow"><span class="cdp-srole">Prod L</span><span class="cdp-sname">${_esc(ev.prodL.name)}</span><span class="cdp-stime">${ev.prodL.startTime||''}</span></div>`);
+              }
+              (ev.barStaff||[]).forEach(s=>{
+                const statuses=s.statuses||(s.miss?['fehlt']:[]);
+                const isFehlt=statuses.includes('fehlt');
+                const t=isFehlt?'–':barStart(s.pos,ev.startGastro,s.ov);
+                const stags=statuses.map(sid=>{
+                  const sc=Config.data.staffStatuses.find(x=>x.id===sid);
+                  return sc?`<span class="cdp-stag" style="background:${sc.color}22;color:${sc.color};border:1px solid ${sc.color}44">${sc.label}</span>`:'';
+                }).join('');
+                rows.push(`<div class="cdp-srow${isFehlt?' cdp-srow-miss':''}"><span class="cdp-srole">Bar ${s.pos}</span><span class="cdp-sname">${isFehlt?'<em>fehlt</em>':_esc(s.name)}</span><span class="cdp-stime">${t}</span>${stags?`<span class="cdp-stags">${stags}</span>`:''}</div>`);
+              });
+              if(!rows.length)return`<div class="cdp-empty" style="padding:6px 0">–</div>`;
+              return rows.join('');
+            })();
+            return`<div class="cdp-body">
+              <div class="cdp-row"><span class="cdp-lbl">Gastro</span><span>${ev.startGastro||'–'}</span></div>
+              ${ev.einlasszeit?`<div class="cdp-row"><span class="cdp-lbl">Einlass</span><span>${ev.einlasszeit}</span></div>`:''}
+              ${ev.schlussShow?`<div class="cdp-row"><span class="cdp-lbl">Schluss</span><span>${ev.schlussShow}</span></div>`:''}
+              ${ev.belegungsende?`<div class="cdp-row"><span class="cdp-lbl">Belegungsende</span><span>${ev.belegungsende}</span></div>`:''}
+              ${becherHtml}
+              ${ev.besucherzahl?`<div class="cdp-row"><span class="cdp-lbl">Besucher</span><span>\uD83D\uDC65 ${ev.besucherzahl}</span></div>`:''}
+              ${ev.kundenkarte?`<div class="cdp-row"><span class="cdp-lbl">Kundenkarte</span><span class="cdp-badge cdp-badge-kk">${_esc(ev.kundenkarte)}</span></div>`:''}
+              <div class="cdp-row cdp-row-staff"><span class="cdp-lbl">Besetzung</span><div class="cdp-detail-staff">${detailStaffHtml}</div></div>
+              ${ev.notes?`<div class="cdp-note-box">${_esc(ev.notes)}</div>`:''}
+              ${ev.staff_briefing?`<div class="cdp-brief-box"><strong>Briefing:</strong> ${_esc(ev.staff_briefing)}</div>`:''}
+              <div class="cdp-actions">
+                ${can(PERM.EVENTS_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editEventById('${ev.id}')">Bearbeiten</button>`:''}
+                ${can(PERM.EVENTS_EDIT_BRIEFING)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 10px" onclick="App.editBriefing('${ev.id}')">Briefing</button>`:''}
+                ${Chat.canAccess(ev)?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;position:relative" onclick="App.openDet(EVENTS.find(e=>e.id==='${ev.id}'))">Details / Chat${Chat.hasUnread(ev.id)?'<span class="chat-unread-dot btn-dot" data-chat-dot="'+ev.id+'"></span>':''}</button>`:''}
+              </div>
+            </div>`;
+          })()}
         </div>`;
       }).join('')
     }</div>`;
@@ -523,26 +599,41 @@ function updateStaffSel(){
   const sel=document.getElementById('filter-staff');
   const myShiftsBtn=document.getElementById('btn-my-shifts');
   const profilBtn=document.getElementById('profil-btn');
+  const avBtn=document.getElementById('av-btn');
+  const hamAv=document.getElementById('ham-av');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
 
-  // Non-admins: hide the staff dropdown, show "Meine Schichten" toggle + Mein Profil button
+  const unbesesztBtn=document.getElementById('btn-unbesetzt');
+  // Non-privileged: hide the staff dropdown, show "Meine Schichten" + "Unbesetzte" toggle
   const hamProfil=document.getElementById('ham-profil');
-  if(!isAdmin()){
+  if(!can(PERM.SHIFTS_VIEW_ALL)){
     sel.style.display='none';
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
     if(hamProfil) hamProfil.style.display=myEmp?'':'none';
+    if(unbesesztBtn) unbesesztBtn.style.display='';
+    const p=typeof Planning!=='undefined'?Planning.getActive():null;
+    const avVisible=myEmp&&p&&(p.status==='open'||p.status==='collecting')?'':'none';
+    if(avBtn) avBtn.style.display=avVisible;
+    if(hamAv) hamAv.style.display=avVisible;
     return;
   }
   if(hamProfil) hamProfil.style.display='none';
+  if(avBtn) avBtn.style.display='none';
+  if(hamAv) hamAv.style.display='none';
+  if(unbesesztBtn) unbesesztBtn.style.display='none';
 
-  // Admins: full dropdown, no "Meine Schichten" or "Mein Profil" button needed
+  // Full access: full dropdown with special filter options + staff names
   if(myShiftsBtn) myShiftsBtn.style.display='none';
   if(profilBtn) profilBtn.style.display='none';
   sel.style.display='';
   const cur=sel.value;
   const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
-  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>`+
+  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>
+    <option value="__unbesetzt__"${cur==='__unbesetzt__'?' selected':''}>⚠ Nur unbesetzte Schichten</option>
+    <option value="__teilbesetzt__"${cur==='__teilbesetzt__'?' selected':''}>⚡ Teilweise besetzte Schichten</option>
+    <option value="__ersatz__"${cur==='__ersatz__'?' selected':''}>↔ Mit Ersatzbedarf</option>`+
+    `<option disabled style="color:var(--txm);font-size:.7rem">──── Mitarbeiter ────</option>`+
     empNames.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
 }
 
@@ -708,6 +799,24 @@ const App={
       btn.style.borderColor=active?'':'rgba(34,212,164,.5)';
       btn.style.color=active?'':'#22d4a4';
     }
+    // Unbesetzte-Button deaktivieren wenn Meine Schichten aktiv
+    const ub=document.getElementById('btn-unbesetzt');
+    if(ub){ub.style.background='';ub.style.borderColor='';ub.style.color='';}
+    renderGrid();
+  },
+
+  toggleUnbesetzt(){
+    const btn=document.getElementById('btn-unbesetzt');
+    const active=S.filterStaff==='__unbesetzt__';
+    S.filterStaff=active?'':'__unbesetzt__';
+    if(btn){
+      btn.style.background=active?'':'rgba(255,166,0,.18)';
+      btn.style.borderColor=active?'':'rgba(255,166,0,.5)';
+      btn.style.color=active?'':'#f5a623';
+    }
+    // Meine Schichten deaktivieren
+    const ms=document.getElementById('btn-my-shifts');
+    if(ms){ms.style.background='';ms.style.borderColor='';ms.style.color='';}
     renderGrid();
   },
 
@@ -715,14 +824,15 @@ const App={
     SF.active=false;SF.status='all';SF.timeRange='all';SF.hasNotes=false;SF.dateFrom='';SF.dateTo='';
     document.getElementById('search-inp').value='';
     const mm=document.getElementById('mob-miss');if(mm)mm.classList.remove('active');
-    if(isAdmin()){S.filterStaff='';document.getElementById('filter-staff').value='';}
+    const ub=document.getElementById('btn-unbesetzt');
+    if(ub){ub.style.background='';ub.style.borderColor='';ub.style.color='';}
+    if(can(PERM.SHIFTS_VIEW_ALL)){S.filterStaff='';document.getElementById('filter-staff').value='';}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
 
   /* Detail-Modal */
   openDet(ev){
     this._currentEvId=ev.id;
-    document.getElementById('m-del-confirm').style.display='none';
     openDet(ev);
   },
   closeDet(e){
@@ -752,46 +862,60 @@ const App={
   editEventById(id){
     const ev=EVENTS.find(e=>e.id===id);
     if(!ev)return;
+    this._currentEvId=id;
     this._fillLocSelect(ev.location);
     Form.load(ev);
     document.getElementById('entry-ov').classList.add('open');
     document.body.style.overflow='hidden';
   },
 
-  /* L\u00f6schen – Best\u00e4tigungsschritt anzeigen */
-  confirmDelete(){
-    document.getElementById('m-del-confirm').style.display='flex';
-  },
-  cancelDelete(){
-    document.getElementById('m-del-confirm').style.display='none';
-  },
-
-  /* Löschen – aus Modal bestätigt */
+  /* Löschen – aus Edit-Form aufgerufen (mit confirm-Dialog) */
   deleteEvent(){
-    const idx=EVENTS.findIndex(e=>e.id===this._currentEvId);
+    const id=this._currentEvId;
+    if(!id)return;
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev||!confirm(`"${ev.event}" wirklich löschen?\nDiese Aktion kann nicht rükgängig gemacht werden.`))return;
+    const snapshot=Object.assign({},ev);
+    const idx=EVENTS.findIndex(e=>e.id===id);
     if(idx!==-1)EVENTS.splice(idx,1);
-    Cloud.push();
-    this.closeDet({target:document.getElementById('det-ov')});
+    saveLocal();
+    document.getElementById('entry-ov').classList.remove('open');
+    document.body.style.overflow='';
     this.render();
+    Cloud.deleteEvent(id).then(ok=>{
+      showToast(ok?'Event gelöscht.':'Löschen fehlgeschlagen – bitte nochmals versuchen.',ok);
+      if(!ok){EVENTS.push(snapshot);saveLocal();this.render();}
+    });
   },
 
   /* Löschen – direkt von Karte (Hover-Button) */
   deleteEventById(id){
-    if(!confirm('Dieses Event wirklich l\u00f6schen?'))return;
+    if(!confirm('Dieses Event wirklich löschen?'))return;
+    const ev=EVENTS.find(e=>e.id===id);
+    if(!ev)return;
+    const snapshot=Object.assign({},ev);
     const idx=EVENTS.findIndex(e=>e.id===id);
     if(idx!==-1)EVENTS.splice(idx,1);
-    Cloud.push();
-    db.from('shifts').delete().eq('event_id',id).then(()=>{});
+    saveLocal();
     this.render();
+    Cloud.deleteEvent(id).then(ok=>{
+      showToast(ok?'Event gelöscht.':'Löschen fehlgeschlagen – bitte nochmals versuchen.',ok);
+      if(!ok){EVENTS.push(snapshot);saveLocal();this.render();}
+    });
   },
+
 
   cancelEventById(id){
     const ev=EVENTS.find(e=>e.id===id);
     if(!ev||!confirm(`"${ev.event}" absagen?\n\nAlle verkn\u00fcpften Schichten werden als abgesagt markiert.`))return;
     ev.cancelled=true;
     Cloud.push();
-    db.from('shifts').update({cancelled:true}).eq('event_id',id).then(()=>{});
     this.render();
+    Cloud._withRetry(()=>db.from('shifts').update({cancelled:true}).eq('event_id',id),'cancelShifts')
+      .catch(e=>{
+        console.error('[Supabase] cancelShifts error:',e);
+        showToast('Schichten konnten nicht abgesagt werden \u2013 bitte neu laden.',false);
+      });
   },
 
   uncancelEventById(id){
@@ -799,12 +923,17 @@ const App={
     if(!ev)return;
     ev.cancelled=false;
     Cloud.push();
-    db.from('shifts').update({cancelled:false}).eq('event_id',id).then(()=>{});
     this.render();
+    Cloud._withRetry(()=>db.from('shifts').update({cancelled:false}).eq('event_id',id),'uncancelShifts')
+      .catch(e=>{
+        console.error('[Supabase] uncancelShifts error:',e);
+        showToast('Schichten konnten nicht reaktiviert werden \u2013 bitte neu laden.',false);
+      });
   },
 
   /* Neues Event erfassen */
   openEntry(locId){
+    this._currentEvId=null;
     const sel=document.getElementById('f-loc');
     sel.innerHTML=Object.entries(LOCS).map(([id,l])=>`<option value="${id}">${l.short} · ${l.name}</option>`).join('');
     Form.init(locId||Number(Object.keys(LOCS)[0])||1);
@@ -884,42 +1013,65 @@ const App={
 
   /* ── Settings Modal ── */
   async openSettings(){
-    applyAdminMode();
+    applyPermissionClasses();
     document.getElementById('stg-page').style.display='block';
     document.body.style.overflow='hidden';
     const info=document.getElementById('stg-user-info');
     if(currentProfile&&info){
-      // Prefer full name from linked employee record
       const linkedEmp=Employees.getAll().find(e=>e.profile_id===currentUser?.id);
       const fullName=linkedEmp?.name||currentProfile.display_name||currentUser?.email;
+      const roleName=currentProfile.role_name||currentProfile.role||'Mitarbeiter';
       info.innerHTML=`<div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${_esc(fullName)}</div>
         <div style="color:var(--txd);font-size:.78rem">${currentUser?.email}&nbsp;·&nbsp;
-          <span style="color:${currentProfile.role==='admin'?'#22d4a4':'var(--txd)'}">
-            ${currentProfile.role==='admin'?'🔑 Admin':'👁 Mitarbeiter'}
-          </span></div>`;
+          <span style="color:var(--accent)">${_esc(roleName)}</span></div>`;
     }
     renderStatusConfig();
     renderRolesConfig();
     Defaults.loadIntoSettings();
     CardFields.loadIntoSettings();
-    if(isAdmin()){
+    const aiToggle = document.getElementById('stg-ai-toggle');
+    if (aiToggle) aiToggle.checked = Config.data.aiEnabled;
+    if(can(PERM.USERS_VIEW)){
       await this._loadUsersList();
+    }
+    if(can(PERM.PLANNING_MANAGE_RULES)){
       PlanningRules.renderEditor('stg-pr-editor');
     }
   },
 
-   async _loadUsersList(){
+  async _loadUsersList(){
     const tbl=document.getElementById('team-table');
     const cnt=document.getElementById('team-count');
     if(!tbl)return;
     tbl.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:18px 14px">Lade…</div>';
-    const {data:profiles,error}=await db.from('profiles').select('*').order('display_name');
-    if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
+
+    // Rollen sicherstellen (wird gecacht, kein Doppel-Fetch)
+    if(!RolesMgr._roles.length) await RolesMgr.load();
+
+    // Nur eigene Spalten laden – kein PostgREST-Join der via Frontend-JWT
+    // an RLS-Policies scheitern kann und dann silent null liefert
+    const {data:profiles,error}=await db.from('profiles')
+      .select('id, display_name, role, role_id')
+      .order('display_name');
+    if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler beim Laden</div>';return;}
     if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
+
+    // Rollen-Lookup: zuerst Cache (role_id → roles-Tabelle), dann Legacy-Fallback
+    const roleInfo=p=>{
+      if(p.role_id){
+        const r=RolesMgr._roles.find(r=>r.id===p.role_id);
+        if(r)return r;
+      }
+      // Legacy: alte 'admin'/'viewer'-Strings auf sinnvolle Anzeige mappen
+      if(p.role==='admin')return{name:'Admin',color:'#ef4444'};
+      if(p.role==='viewer')return{name:'Mitarbeiter',color:'#6b7280'};
+      return{name:p.role||'Mitarbeiter',color:'#6b7280'};
+    };
+
     const allEmps=Employees.getAll();
-    // employees not yet linked to any profile
     const unlinkedEmps=allEmps.filter(e=>!e.profile_id);
     tbl.innerHTML=profiles.map(p=>{
+      const ri=roleInfo(p);
       const linkedEmp=allEmps.find(e=>e.profile_id===p.id);
       const isSelf=p.id===currentProfile?.id;
       const empCol=linkedEmp
@@ -930,14 +1082,14 @@ const App={
           </select>`;
       return `<div class="team-row" style="grid-template-columns:1fr 140px 1fr 180px">
         <div class="team-name">${_esc(p.display_name)}</div>
-        <div><span class="role-pill ${p.role==='admin'?'admin':'viewer'}">${p.role==='admin'?'&#128273; Admin':'&#128065; Mitarbeiter'}</span></div>
+        <div><span class="role-pill" style="background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44">${_esc(ri.name)}</span></div>
         <div>${empCol}</div>
         <div class="team-acts">
           ${!isSelf?`
-            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
-              onclick="App.toggleUserRole('${p.id}','${p.role}')">${p.role==='admin'?'→ Mitarbeiter':'→ Admin'}</button>
-            <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
-              onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>
+            ${can(PERM.ROLES_ASSIGN)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
+              onclick="RolesMgr.openAssign('${p.id}','${p.role_id||''}')">Rolle ändern</button>`:''}
+            ${can(PERM.USERS_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
+              onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>`:''}
           `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
         </div>
       </div>`;
@@ -954,6 +1106,25 @@ const App={
 
   showTeamTab(tab){
     Employees.showTab(tab);
+    if(tab==='acc'){
+      // Rollen-Tab nur anzeigen wenn Permission vorhanden
+      const rolesTab=document.getElementById('asub-roles');
+      if(rolesTab) rolesTab.style.display=
+        (can(PERM.ROLES_VIEW)||can(PERM.ROLES_EDIT)||can(PERM.ROLES_CREATE))?'':'none';
+      RolesMgr.load().then(()=>this._loadUsersList());
+      this.showAccSubTab('users');
+    }
+  },
+
+  showAccSubTab(sub){
+    const tabs = ['users','roles'];
+    tabs.forEach(t=>{
+      const btn = document.getElementById('asub-'+t);
+      const content = document.getElementById('asub-content-'+t);
+      if(btn) btn.classList.toggle('active', t===sub);
+      if(content) content.style.display = t===sub ? '' : 'none';
+    });
+    if(sub==='roles') RolesMgr.renderSettingsSection('acc-roles-section');
   },
 
   async openTeam(){
@@ -969,10 +1140,11 @@ const App={
     document.body.style.overflow='';
   },
 
-  async toggleUserRole(userId,currentRole){
-    const newRole=currentRole==='admin'?'viewer':'admin';
-    const {error}=await db.from('profiles').update({role:newRole}).eq('id',userId);
-    if(error){alert('Fehler: '+error.message);return;}
+  async toggleUserRole(userId, currentRole) {
+    // Legacy-Methode – wird von RolesMgr.openAssign() abgelöst
+    const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
+    const { error } = await db.from('profiles').update({ role: newRole }).eq('id', userId);
+    if (error) { alert('Fehler: ' + error.message); return; }
     await this._loadUsersList();
   },
 
@@ -1362,7 +1534,7 @@ App.openLocInfo = function(locId) {
   if (loc.capacity) rows.push(`<div class="li-row"><span class="li-icon">&#128101;</span><div><div class="li-label">Kapazität</div><div class="li-val">max. ${loc.capacity} Besucher</div></div></div>`);
   if (loc.notes) rows.push(`<div class="li-row"><span class="li-icon">&#128221;</span><div><div class="li-label">Hinweise</div><div class="li-val" style="white-space:pre-wrap">${loc.notes}</div></div></div>`);
   const bodyHTML = rows.join('') || '<div style="color:var(--txm);font-size:.83rem;padding:4px 0">Noch keine Infos hinterlegt.</div>';
-  const adminActions = isAdmin() ? `<div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
+  const adminActions = can(PERM.SETTINGS_EDIT_LOCATIONS) ? `<div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
     <button class="btn btn-ghost" style="flex:1" onclick="App.closeLocInfo();App.openLocations()">&#9998; Bearbeiten</button>
     <button class="btn btn-ghost" style="flex:1;color:var(--miss);border-color:rgba(255,80,80,.3)"
       onclick="if(confirm('Location &quot;${loc.name}&quot; wirklich löschen?')){App.closeLocInfo();LocationsMgr.remove(${locId})}">&#128465; L&ouml;schen</button>
@@ -1391,7 +1563,7 @@ App._renderBriefing = function(ev) {
   } else {
     html += `<div style="color:var(--txm);font-size:.8rem;font-style:italic;padding:6px 0">Kein Briefing-Text hinterlegt.</div>`;
   }
-  if (isAdmin()) {
+  if (can(PERM.EVENTS_EDIT_BRIEFING)) {
     html += `<button class="btn btn-ghost" style="font-size:.75rem;padding:4px 10px;margin-top:8px"
       onclick="App.editBriefing('${ev.id}')">&#9998; Briefing bearbeiten</button>`;
   }

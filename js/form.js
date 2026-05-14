@@ -7,9 +7,15 @@ const Form={
   mode:'create',   /* 'create' | 'edit' */
   editId:null,
 
+  _setDelBtn(show){
+    const btn=document.getElementById('form-del-btn');
+    if(btn)btn.style.display=show&&can(PERM.EVENTS_DELETE)?'':'none';
+  },
+
   init(locId){
     this.mode='create'; this.editId=null;
     this.currentLoc=locId; this.staffRows=0;
+    this._setDelBtn(false);
     document.getElementById('entry-title').textContent='\uD83D\uDCCB Event erfassen';
     document.getElementById('f-loc').value=locId;
     document.getElementById('f-date').value='';
@@ -50,6 +56,7 @@ const Form={
   load(ev){
     this.mode='edit'; this.editId=ev.id;
     this.currentLoc=ev.location; this.staffRows=0;
+    this._setDelBtn(true);
     document.getElementById('entry-title').textContent='\u270F Event bearbeiten';
     document.getElementById('f-loc').value=ev.location;
     document.getElementById('f-date').value=ev.date;
@@ -71,10 +78,25 @@ const Form={
     /* Benötigte Besetzung laden */
     document.getElementById('f-req-staff-rows').innerHTML='';
     (ev.required_staff||[]).forEach(r=>this._addReqStaffRowData(r));
+    // "+ Rolle hinzufügen" ausblenden wenn keine scoped Rolle verfügbar
+    const hasReqScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r))||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
+    const addReqBtn=document.getElementById('f-add-req-staff');
+    if(addReqBtn)addReqBtn.style.display=hasReqScope?'':'none';
     /* Besetzungszeilen aufbauen */
     document.getElementById('f-staff-rows').innerHTML='';
     ev.barStaff.forEach(s=>this._addStaffRowData(s));
     if(this.staffRows===0){this.addStaffRow();this.addStaffRow();}
+
+    // Felder außerhalb des Dienstplan-Scopes sperren (sichtbar, aber nicht bearbeitbar)
+    if(!isInStaffScope('Produktionsleiter')&&!can(PERM.STAFF_EDIT_ALL_CATEGORIES)){
+      ['f-pl-name','f-pl-time'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.disabled=true;el.title='Kein Zugriff (außerhalb deines Dienstplan-Scopes)';}
+      });
+    }
+    // "Zeile hinzufügen"-Button ausblenden wenn Thekenkraft nicht im Scope
+    const addRowBtn=document.getElementById('f-add-staff-row');
+    if(addRowBtn)addRowBtn.style.display=(isInStaffScope('Thekenkraft')||can(PERM.STAFF_EDIT_ALL_CATEGORIES))?'':'none';
   },
 
   _buildStatusBtns(activeStatuses){
@@ -91,43 +113,56 @@ const Form={
     const statuses=s.statuses||(s.miss?['fehlt']:[]);
     const defaultTime=s.ov||(document.getElementById('f-gastro')?.value||'');
     const empId=s.employeeId||'';
+    const inScope=isInStaffScope(s.role||'Thekenkraft')||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
+    const dis=inScope?'':'disabled';
+    const title=inScope?'':'Kein Zugriff (außerhalb deines Dienstplan-Scopes)';
     const div=document.createElement('div');
-    div.className='staff-entry-row';
+    div.className='staff-entry-row'+(inScope?'':' scope-readonly');
     div.id=`srow-${n}`;
     div.innerHTML=`<span class="se-pos">${n}</span>
       <input class="fi" type="text" placeholder="Name" id="sn-${n}" value="${s.name||''}" style="flex:2"
-        data-empid-target="sei-${n}"
+        data-empid-target="sei-${n}" ${dis} title="${title}"
         oninput="Employees.autocomplete(event,this)" onblur="Employees.hideAC()">
       <input type="hidden" id="sei-${n}" value="${empId}">
-      <input class="fi" type="time" id="st-${n}" value="${defaultTime}" style="width:88px" title="Manuelle Startzeit">
-      <div class="se-statuses">${this._buildStatusBtns(statuses)}</div>
-      <button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`;
+      <input class="fi" type="time" id="st-${n}" value="${defaultTime}" style="width:88px" ${dis} title="${title||'Manuelle Startzeit'}">
+      <div class="se-statuses" style="${inScope?'':'pointer-events:none;opacity:.45'}">${this._buildStatusBtns(statuses)}</div>
+      ${inScope?`<button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`:''}`;
     document.getElementById('f-staff-rows').appendChild(div);
   },
 
   addStaffRow(){
+    if(!isInStaffScope('Thekenkraft'))return;
     this._addStaffRowData({name:'',pos:this.staffRows+1,ov:null,miss:false,statuses:[]});
   },
 
   _addReqStaffRowData(r){
-    const roles=Config.data.employeeRoles||[];
+    const allRoles=Config.data.employeeRoles||[];
+    const inScope=isInStaffScope(r.role||'')||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
+    // Nur Rollen im Scope als Optionen anzeigen
+    const visibleRoles=allRoles.filter(ro=>isInStaffScope(ro)||can(PERM.STAFF_EDIT_ALL_CATEGORIES));
+    // Aktuelle Rolle immer anzeigen (auch wenn außerhalb Scope – read-only)
+    if(r.role && !visibleRoles.includes(r.role)) visibleRoles.unshift(r.role);
     const id='rsr-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
-    const roleOpts=roles.map(ro=>`<option value="${_esc(ro)}" ${ro===(r.role||'')?'selected':''}>${_esc(ro)}</option>`).join('');
+    const roleOpts=visibleRoles.map(ro=>`<option value="${_esc(ro)}" ${ro===(r.role||'')?'selected':''}>${_esc(ro)}</option>`).join('');
+    const dis=inScope?'':'disabled';
+    const title=inScope?'':'Kein Zugriff (außerhalb deines Dienstplan-Scopes)';
     const div=document.createElement('div');
-    div.className='req-staff-row';
+    div.className='req-staff-row'+(inScope?'':' scope-readonly');
     div.id=id;
     div.innerHTML=`
-      <select class="fi req-role" style="flex:2" title="Rolle">
+      <select class="fi req-role" style="flex:2" title="${title||'Rolle'}" ${dis}>
         <option value="">– Rolle –</option>${roleOpts}
       </select>
-      <input class="fi req-count" type="number" min="1" max="20" value="${r.count||1}" style="width:60px" title="Anzahl">
-      <input class="fi req-start" type="time" value="${r.start_time||''}" style="width:90px" title="Startzeit (opt.)">
-      <input class="fi req-end" type="time" value="${r.end_time||''}" style="width:90px" title="Endzeit (opt.)">
-      <button class="se-rm" onclick="document.getElementById('${id}').remove()" title="Entfernen">✕</button>`;
+      <input class="fi req-count" type="number" min="1" max="20" value="${r.count||1}" style="width:60px" title="${title||'Anzahl'}" ${dis}>
+      <input class="fi req-start" type="time" value="${r.start_time||''}" style="width:90px" title="${title||'Startzeit (opt.)'}" ${dis}>
+      <input class="fi req-end" type="time" value="${r.end_time||''}" style="width:90px" title="${title||'Endzeit (opt.)'}" ${dis}>
+      ${inScope?`<button class="se-rm" onclick="document.getElementById('${id}').remove()" title="Entfernen">✕</button>`:''}`;
     document.getElementById('f-req-staff-rows').appendChild(div);
   },
 
   addReqStaffRow(){
+    const hasScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r))||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
+    if(!hasScope)return;
     this._addReqStaffRowData({role:'',count:1});
   },
 

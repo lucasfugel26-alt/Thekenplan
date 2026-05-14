@@ -53,12 +53,16 @@ const Auth = {
 
   async _onSignIn(user){
     currentUser=user;
-    const {data}=await db.from('profiles').select('*').eq('id',user.id).single();
+    const {data}=await db.from('profiles').select('*, roles(name, color)').eq('id',user.id).single();
+    // Flach machen: role_name + role_color direkt ans Profil hängen
+    if(data?.roles){ data.role_name=data.roles.name; data.role_color=data.roles.color; }
     currentProfile=data;
+    // Permissions laden bevor UI gerendert wird
+    await loadPermissions();
     document.getElementById('pw-screen').style.display='none';
     document.getElementById('set-pw-screen').style.display='none';
     document.getElementById('app-root').style.display='block';
-    applyAdminMode();
+    applyPermissionClasses();
     App._start();
   },
 
@@ -76,10 +80,11 @@ const Auth = {
   _onSignOut(){
     currentUser=null;
     currentProfile=null;
+    clearPermissions();
     EVENTS.length=0;
     document.getElementById('app-root').style.display='none';
     document.getElementById('pw-screen').style.display='flex';
-    applyAdminMode();
+    applyPermissionClasses();
     setTimeout(()=>document.getElementById('pw-email')?.focus(),100);
   },
 

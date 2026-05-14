@@ -57,6 +57,7 @@ const Employees = {
     const list=document.getElementById('emp-list');
     if(!list) return;
     const rows=this._rows.filter(e=>{
+      if(!isInStaffScope(e.default_role||'Thekenkraft') && !can(PERM.STAFF_VIEW_ALL_CATEGORIES)) return false;
       if(sf && e.status!==sf) return false;
       if(q && !e.name.toLowerCase().includes(q) && !(e.default_role||'').toLowerCase().includes(q)) return false;
       return true;
@@ -114,26 +115,27 @@ const Employees = {
       <span class="emp-badge lg" style="background:${bg};color:${fg}">${emp.kuerzel||'?'}</span>
       <h3>${_esc(emp.name)}</h3>
       <span class="emp-status-pill ${emp.status||'aktiv'}">${emp.status||'aktiv'}</span>
-      ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px" onclick="Employees.openEdit('${emp.id}')">&#9998; Bearbeiten</button>`:''}
-      ${isAdmin()?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)" onclick="Employees.remove('${emp.id}')" title="Löschen">&#128465;</button>`:''}
+      ${can(PERM.STAFF_EDIT)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px" onclick="Employees.openEdit('${emp.id}')">&#9998; Bearbeiten</button>`:''}
+      ${can(PERM.STAFF_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)" onclick="Employees.remove('${emp.id}')" title="Löschen">&#128465;</button>`:''}
     </div>
     <div class="emp-det-meta">
       ${emp.default_role?`<span class="emp-det-meta-item">&#127970; ${_esc(emp.default_role)}</span>`:''}
-      ${emp.email?`<span class="emp-det-meta-item">&#128140; ${_esc(emp.email)}</span>`:''}
-      ${emp.phone?`<span class="emp-det-meta-item">&#128222; ${_esc(emp.phone)}</span>`:''}
+      ${can(PERM.STAFF_VIEW_CONTACT)&&emp.email?`<span class="emp-det-meta-item">&#128140; ${_esc(emp.email)}</span>`:''}
+      ${can(PERM.STAFF_VIEW_CONTACT)&&emp.phone?`<span class="emp-det-meta-item">&#128222; ${_esc(emp.phone)}</span>`:''}
       ${sollLabel?`<span class="emp-det-meta-item">&#8987; Soll: ${sollLabel}</span>`:''}
-      ${isAdmin()&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
+      ${can(PERM.STAFF_VIEW_NOTES)&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
     </div>
-    ${isAdmin()?`<div class="emp-access-row">
+    ${can(PERM.STAFF_MANAGE_ACCESS)?`<div class="emp-access-row">
       <span class="emp-access-label">&#128273; Zugang</span>
       ${emp.profile_id
         ?`<span class="emp-status-pill aktiv" style="font-size:.72rem">&#10003; Aktiv</span>
-          <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
-            onclick="App.resetEmployeePassword('${emp.id}')">&#128279; Reset-Link generieren</button>`
+          ${can(PERM.USERS_RESET_PASSWORD)?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
+            onclick="App.resetEmployeePassword('${emp.id}')">&#128279; Reset-Link generieren</button>`:'<span style="font-size:.72rem;color:var(--txm)">(Kein Passwort-Reset-Recht)</span>'}`
         :`<span style="font-size:.78rem;color:var(--txm)">Kein Zugang</span>
-          ${emp.email
+          ${emp.email&&can(PERM.USERS_INVITE)
             ?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
                 onclick="App.createEmployeeAccess('${emp.id}')">&#43; Zugang erstellen</button>`
+            :emp.email?`<span style="font-size:.72rem;color:var(--txm);font-style:italic">(Kein Einladungs-Recht)</span>`
             :`<span style="font-size:.72rem;color:var(--txm);font-style:italic">(E&#8209;Mail erforderlich)</span>`
           }`
       }
@@ -162,13 +164,14 @@ const Employees = {
     const durStr=dur>0?(dur%1===0?dur+'h':dur.toFixed(1)+'h'):'–';
     const becherIcon=s.bechertyp==='plastik'?'🥤':s.bechertyp==='glas'?'🍺':'–';
     const timeChanged=past&&s.confirmed&&(s.actual_start_time||s.actual_end_time);
+    const canEditShift=isInStaffScope(s.role||'Thekenkraft')||can(PERM.SHIFTS_MANAGE_ALL_CATEGORIES);
     const confirmCell=past
       ?`<td style="white-space:nowrap">
           ${s.confirmed?`<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span> `:''}
-          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px" title="Anpassen"
-            onclick="Employees._openConfirmShift('${s.id}','${s.actual_start_time||s.start_time||''}','${s.actual_end_time||s.end_time||''}')">&#9998;</button>
-          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 6px;color:var(--miss);border-color:rgba(255,80,80,.3)" title="L&ouml;schen"
-            onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>
+          ${canEditShift?`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px" title="Anpassen"
+            onclick="Employees._openConfirmShift('${s.id}','${s.actual_start_time||s.start_time||''}','${s.actual_end_time||s.end_time||''}')">&#9998;</button>`:''}
+          ${canEditShift?`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 6px;color:var(--miss);border-color:rgba(255,80,80,.3)" title="L&ouml;schen"
+            onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>`:''}
         </td>`
       :'';
     const ev=EVENTS.find(e=>e.id===s.event_id);
@@ -424,6 +427,9 @@ const Employees = {
 
   /* ── MODAL (create/edit) ─── */
   openCreate() {
+    // Anlegen nur erlauben wenn mindestens eine Kategorie im Scope liegt
+    const scopedRoles=Config.data.employeeRoles.filter(r=>isInStaffScope(r)||can(PERM.STAFF_EDIT_ALL_CATEGORIES));
+    if(scopedRoles.length===0){alert('Du hast keinen Schreibzugriff auf Mitarbeiterkategorien.');return;}
     document.getElementById('em-id').value='';
     document.getElementById('em-title').textContent='Mitarbeiter anlegen';
     document.getElementById('em-name').value='';
@@ -465,9 +471,12 @@ const Employees = {
 
   _fillRoleSelect(current) {
     const sel=document.getElementById('em-role');
-    sel.innerHTML=Config.data.employeeRoles.map(r=>`<option value="${_esc(r)}" ${r===current?'selected':''}>${_esc(r)}</option>`).join('');
-    if(current && !Config.data.employeeRoles.includes(current)) {
-      sel.innerHTML+=`<option value="${_esc(current)}" selected>${_esc(current)}</option>`;
+    // Nur Rollen anzeigen die im Scope liegen (leer = alle)
+    const visibleRoles=Config.data.employeeRoles.filter(r=>isInStaffScope(r)||can(PERM.STAFF_EDIT_ALL_CATEGORIES));
+    sel.innerHTML=visibleRoles.map(r=>`<option value="${_esc(r)}" ${r===current?'selected':''}>${_esc(r)}</option>`).join('');
+    // Aktuelle Rolle immer anzeigen, auch wenn außerhalb Scope (beim Bearbeiten)
+    if(current && !visibleRoles.includes(current)) {
+      sel.innerHTML+=`<option value="${_esc(current)}" selected>${_esc(current)} (außerh. Scope)</option>`;
     }
   },
 
@@ -499,6 +508,11 @@ const Employees = {
     const errEl=document.getElementById('em-err');
     errEl.style.display='none';
     if(!name){errEl.textContent='Name ist Pflichtfeld.';errEl.style.display='';return;}
+    const selectedRole=document.getElementById('em-role').value||null;
+    if(!isInStaffScope(selectedRole||'Thekenkraft')&&!can(PERM.STAFF_EDIT_ALL_CATEGORIES)){
+      errEl.textContent='Diese Mitarbeiterkategorie liegt außerhalb deines Dienstplan-Scopes.';
+      errEl.style.display='';return;
+    }
     const payload={
       name,
       kuerzel: document.getElementById('em-kuerzel').value.trim().toUpperCase()||name.slice(0,2).toUpperCase(),
