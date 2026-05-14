@@ -4,7 +4,7 @@
 
 ## 1. Überblick
 
-Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veranstaltungsbetriebe. Die App ermöglicht es einem Admin-Team, Veranstaltungen zu erfassen und zu verwalten, Mitarbeiter einzuplanen, Schichtzeiten zu verfolgen und pro Event einen internen Chat zu führen. Mitarbeiter sehen ausschließlich ihre eigenen Schichten und können in den jeweiligen Event-Chats kommunizieren.
+Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veranstaltungsbetriebe. Die App ermöglicht es einem Team, Veranstaltungen zu erfassen, Mitarbeiter einzuplanen, Schichtzeiten zu verfolgen und pro Event einen internen Chat zu führen. Der Zugriff auf einzelne Funktionen wird über ein granulares Rechte- und Rollensystem gesteuert.
 
 ---
 
@@ -12,125 +12,139 @@ Thekenplan ist eine webbasierte Planungs- und Kommunikationsplattform für Veran
 
 | Bereich | Technologie |
 |---|---|
-| Frontend | Vanilla JavaScript, HTML5, CSS3 — kein Framework, kein Build-Step |
-| Backend/Hosting | Vercel (Hobby-Plan), Serverless Functions (Node.js) |
+| Frontend | Vanilla JavaScript (Module-Dateien), HTML5, CSS3 — kein Framework, kein Build-Step |
+| Backend/Hosting | Vercel (Hobby-Plan), Serverless Functions (Node.js ESM) |
 | Datenbank & Auth | Supabase (PostgreSQL + Supabase Auth) |
 | Realtime | Supabase Realtime (WebSocket-Subscriptions) |
 | KI-Import | Anthropic Claude API (`claude-opus-4-7`) via `@anthropic-ai/sdk` |
+| KI-Dienstplanung | Anthropic Claude API (`claude-opus-4-7`) via Serverless Function |
 | Excel-Parsing | SheetJS (`xlsx`) via CDN |
 | Schriften | Google Fonts: Syne (Überschriften), DM Sans (Fließtext) |
-| Deployment | GitHub → Vercel Auto-Deploy (Main-Branch = Production) |
+| Deployment | GitHub → Vercel Auto-Deploy (`main` = Production) |
 
 ---
 
 ## 3. Architektur
 
-### 3.1 Single-File SPA
+### 3.1 Frontend-Struktur
 
-Die gesamte Frontend-Anwendung lebt in **einer einzigen Datei: `index.html`** (~6.000 Zeilen). Sie enthält:
+Das Frontend ist in separate Dateien aufgeteilt:
 
-- alle CSS-Styles (`<style>`)
-- das komplette HTML-Grundgerüst mit allen Modals, Overlays und Panels
-- die gesamte Anwendungslogik als Vanilla JavaScript (`<script>`)
-
-Es gibt **keinen Build-Prozess, keinen Bundler, keine Abhängigkeiten im Frontend**. Externe Bibliotheken werden direkt per CDN eingebunden (Supabase JS Client, SheetJS).
-
-> **Geplant:** Die Datei wird in Kürze in separate CSS-, JS- und HTML-Dateien aufgeteilt, um die Wartbarkeit zu verbessern.
-
-### 3.2 Serverless API
-
-Im Ordner `/api/` liegen zwei Node.js-Serverless-Functions:
-
-- **`/api/ocr.js`** — Empfängt Base64-kodierte Bilddaten, PDFs oder tabellarischen Text und leitet sie an die Anthropic Claude API weiter. Nur für Admins zugänglich. Validiert den Dateityp gegen eine Whitelist. Gibt ein strukturiertes JSON-Array mit den erkannten Veranstaltungsdaten zurück.
-- **`/api/admin.js`** — Administriert Benutzer per Supabase Admin-API (Benutzer anlegen mit temporärem Passwort, Passwort zurücksetzen, Benutzer löschen). Schützt alle Aktionen mit einer Admin-Rollenprüfung. Verwendet `crypto.randomBytes()` für sichere Passwort-Generierung.
-
-Die API-Functions benötigen zwei Umgebungsvariablen in Vercel:
-
-- `ANTHROPIC_API_KEY` — für die KI-Import-Funktion
-- `SUPABASE_SERVICE_ROLE_KEY` — für Admin-Operationen (hat vollen DB-Zugriff, nur serverseitig verwenden)
-
-### 3.3 Globaler Zustand (In-Memory)
-
-```js
-let EVENTS = [];  // Array aller Veranstaltungsobjekte
-let LOCS = {};    // Dictionary der Locations: { 1: { name, short, color }, ... }
+```
+index.html        — HTML-Grundgerüst mit allen Modals und Panels (~835 Zeilen)
+style.css         — Alle Styles inkl. Permission-abhängiger CSS-Selektoren (~1.530 Zeilen)
+js/
+  main.js         — Einstiegspunkt: globale Hilfsfunktionen, Konstanten, Supabase-Init
+  permissions.js  — PERM-Konstanten, can(), setPermissions(), applyPermissionClasses()
+  app.js          — Haupt-Controller: Navigation, Rendering, Wochenansicht, Kalender
+  auth.js         — Login/Logout, Passwort-Flow
+  cloud.js        — Supabase-Sync: fetch/push Events
+  config.js       — App-Konfiguration (Statuses, Kartenfelder, Rollen)
+  defaults.js     — Standardwerte für neue Events
+  form.js         — Event erstellen/bearbeiten
+  employees.js    — Mitarbeiterverzeichnis, Stundenübersicht, Zugangsverwaltung
+  shifts.js       — Schichtverwaltung, Arbeitsstunden-Berechnung
+  planning.js     — Planungszeiträume, Verfügbarkeiten, Regelwerk
+  planner.js      — Dienstplanungs-UI (Übersicht, Besetzung, KI-Plan)
+  roles.js        — Rollen-UI: erstellen/bearbeiten/zuweisen
+  import.js       — KI-Import: Bild/PDF/Excel → Claude API → Vorschau → Events
+  chat.js         — Event-Chats via Supabase Realtime
 ```
 
-Änderungen an `EVENTS` werden direkt im Array vorgenommen und dann per `Cloud.push()` zu Supabase synchronisiert sowie per `App.render()` neu gerendert. Es gibt keinen reaktiven State-Manager.
+Externe Bibliotheken werden per CDN eingebunden (Supabase JS Client, SheetJS). Es gibt keinen Bundler und keinen Build-Prozess.
+
+### 3.2 Serverless API (`/api/`)
+
+| Datei | Funktion |
+|---|---|
+| `_auth.js` | Shared Helper: `getCallerUserId()`, `hasPermission()`, `hasPermissionOrLegacyAdmin()` |
+| `roles.js` | Rollenverwaltung: list, createRole, updateRole, deleteRole, setRolePermissions, setRoleStaffScope, userPermissions |
+| `admin.js` | Benutzerverwaltung: inviteUser, resetLink, deleteUser, updateUserRole |
+| `ocr.js` | KI-Import: Bild/PDF → Claude API → JSON-Array |
+| `ai-planner.js` | KI-Dienstplanung: Verfügbarkeiten + Events → Claude → Dienstplan-Vorschlag |
+
+Jeder Handler prüft via `hasPermissionOrLegacyAdmin()` ob der aufrufende User das erforderliche Recht hat (403 bei Fehler). Alle Handlers benötigen ein gültiges Supabase-JWT im `Authorization`-Header.
+
+### 3.3 Permission-System
+
+#### Rechte-Prüfung (Frontend)
+
+```js
+// permissions.js
+can(PERM.EVENTS_EDIT)          // true/false — O(1) via Set-Lookup
+setPermissions(['events.edit', ...])  // nach Login befüllt
+applyPermissionClasses()        // setzt can-* Klassen auf body
+```
+
+`applyPermissionClasses()` setzt CSS-Body-Klassen (`can-edit-events`, `can-view-roles`, …). CSS-Selektoren der Form `body.admin:not(.can-edit-events) .perm-edit-events { display:none!important }` blenden UI-Elemente aus.
+
+Die `admin`-Body-Klasse (für Legacy-CSS-Selektoren) wird gesetzt wenn der User `events.edit` oder `staff.edit` hat.
+
+#### Rechte-Prüfung (Backend)
+
+Jede API-Aktion ruft `hasPermissionOrLegacyAdmin(userId, permissionKey, serviceKey)` auf. Die Funktion prüft:
+1. Hat der User die alte Rolle `admin` in der `profiles`-Tabelle? (Legacy-Fallback)
+2. Hat der User das Permission via `user_has_permission()` DB-Funktion?
+
+#### Scope-System
+
+Rollen können auf Mitarbeiterkategorien eingeschränkt werden (`role_staff_scopes`). Ein User mit Scope sieht und bearbeitet nur Mitarbeiter/Schichten seiner Kategorien. Scope-Bypass-Rechte (`staff.view_all_categories` etc.) heben die Einschränkung auf.
 
 ---
 
 ## 4. Datenbank (Supabase / PostgreSQL)
 
-Die Datenbank läuft auf Supabase (`anagoloyaaikuexzbxae.supabase.co`).
+### Kern-Tabellen
 
-### `events`
-
+**`events`**
 ```
 id           TEXT PRIMARY KEY
 date         TEXT  (YYYY-MM-DD)
 location_id  INTEGER
-data         JSONB  ← das vollständige Event-Objekt
+data         JSONB  — vollständiges Event-Objekt (barStaff, prodL, Zeiten, …)
 updated_at   TIMESTAMPTZ
 ```
 
-Ein Event-Objekt in `data` enthält:
-
-```js
-{
-  id, date, location,
-  event,                // Veranstaltungsname
-  notes,                // Bemerkungen
-  einlasszeit,          // HH:MM Einlasszeit (Türöffnung)
-  startGastro,          // HH:MM (auto: Einlass −30 Min)
-  schlussShow,          // HH:MM Show-Ende
-  belegungsende,        // HH:MM
-  bechertyp,            // 'plastik' | 'glas' | 'unbekannt'
-  missingStaff,         // bool
-  kundenkarte,          // 'intern' | 'extern' | ...
-  besucherzahl,         // number | null
-  veranstaltungsnummer, // string | null
-  prodL: { name, startTime, employeeId },
-  barStaff: [{ name, ov, statuses[], miss, employeeId }],
-  cancelled             // bool
-}
-```
-
-### `profiles`
-
+**`profiles`**
 ```
 id            UUID (= auth.users.id)
 display_name  TEXT
-role          TEXT  ('admin' | 'viewer')
+role          TEXT  ('admin' | 'viewer')  — Legacy-Spalte
+role_id       UUID → roles.id             — neues Rollensystem
 ```
 
-### `employees`
-
+**`employees`**
 ```
-id              UUID
-name            TEXT
-profile_id      UUID (→ profiles.id, nullable)
-email, phone    TEXT
-emergency_*     TEXT
-role            TEXT  (Thekenkraft | Produktionsleiter | ...)
-active          BOOL
-```
-
-### `shifts`
-
-```
-id                        UUID
-event_id                  TEXT (→ events.id)
-employee_id               UUID (→ employees.id)
-event_date                TEXT
-start_time / end_time     TEXT
-actual_start_time / actual_end_time  TEXT
-confirmed                 BOOL
-cancelled                 BOOL
+id                    UUID
+name, kuerzel         TEXT
+color                 TEXT (Hex)
+display_name          TEXT
+profile_id            UUID → profiles.id (nullable)
+email, phone          TEXT
+emergency_name/phone/email  TEXT
+default_role          TEXT  (Mitarbeiterkategorie)
+status                TEXT  ('aktiv' | 'inaktiv' | 'ausgeschieden')
+soll_stunden          NUMERIC
+soll_period           TEXT  ('week' | 'month')
+notes                 TEXT
+sort_order            INTEGER
 ```
 
-### `event_messages`
+**`shifts`**
+```
+id                              UUID
+event_id                        TEXT → events.id
+employee_id                     UUID → employees.id
+event_date                      TEXT
+role                            TEXT
+start_time / end_time           TEXT (HH:MM)
+actual_start_time/end_time      TEXT
+confirmed                       BOOL
+cancelled                       BOOL
+bechertyp                       TEXT
+```
 
+**`event_messages`** (Chat)
 ```
 id            UUID
 event_id      TEXT
@@ -140,85 +154,209 @@ text          TEXT
 created_at    TIMESTAMPTZ
 ```
 
-### `app_config`
-
+**`locations`**
 ```
-key    TEXT PRIMARY KEY  ('staff_statuses' | 'card_fields' | 'employee_roles')
+id            SERIAL PRIMARY KEY
+name, short   TEXT
+color         TEXT
+address, maps_url, contact_name, contact_phone  TEXT
+capacity      INTEGER
+image         TEXT (Base64)
+notes         TEXT
+```
+
+**`app_config`**
+```
+key    TEXT PRIMARY KEY  ('staff_statuses' | 'card_fields' | 'employee_roles' | 'aiEnabled' | …)
 value  JSONB
+```
+
+### Rollen & Rechte
+
+**`roles`**
+```
+id          UUID PRIMARY KEY
+name        TEXT
+description TEXT
+color       TEXT
+is_system   BOOL
+sort_order  INTEGER
+```
+
+**`permissions`**
+```
+id          UUID PRIMARY KEY
+key         TEXT UNIQUE  (z.B. 'events.edit')
+label       TEXT
+description TEXT
+category    TEXT
+sort_order  INTEGER
+```
+
+**`role_permissions`**
+```
+role_id        UUID → roles.id
+permission_id  UUID → permissions.id
+```
+
+**`role_staff_scopes`**
+```
+role_id   UUID → roles.id
+category  TEXT  (Mitarbeiterkategorie)
+```
+
+### Dienstplanung
+
+**`planning_periods`**
+```
+id                    UUID
+year, month           INTEGER
+status                TEXT  ('open' | 'collecting' | 'ai_proposal' | 'editing' | 'published')
+deadline              DATE
+notes                 TEXT
+proposed_assignments  JSONB
+```
+
+**`employee_availability`**
+```
+employee_id    UUID
+period_id      UUID
+available_dates  TEXT[]
+notes          TEXT
+```
+
+**`planning_rules`**
+```
+role                 TEXT PRIMARY KEY
+max_shift_hours      NUMERIC
+min_rest_hours       NUMERIC
+max_weekly_hours     NUMERIC
+max_monthly_hours    NUMERIC
+target_monthly_hours NUMERIC
+break_rules          JSONB  — [{after_hours, deduct_minutes}]
+```
+
+**`shift_swaps`**
+```
+id              UUID
+shift_id        UUID → shifts.id
+requested_by    UUID
+offered_to      UUID
+status          TEXT  ('pending' | 'accepted' | 'rejected')
 ```
 
 ---
 
 ## 5. Row Level Security (RLS)
 
-Alle Tabellen haben RLS aktiviert. Die Policies verwenden eine `SECURITY DEFINER`-Funktion `is_admin()` die prüft ob der aktuelle User die Rolle `admin` in der `profiles`-Tabelle hat.
+RLS ist auf allen Tabellen aktiv. Die Policies nutzen zwei DB-Funktionen:
+
+- `is_admin()` — Legacy: prüft `profiles.role = 'admin'`
+- `user_has_permission(p_user_id, p_permission_key)` — neues System: prüft via `role_permissions`
 
 | Tabelle | Lesen | Schreiben |
 |---|---|---|
-| `events` | authenticated | nur Admins |
-| `profiles` | authenticated | nur Admins |
-| `employees` | authenticated | nur Admins |
-| `shifts` | authenticated | nur Admins |
-| `app_config` | authenticated | nur Admins |
-| `locations` | public | nur Admins |
+| `events` | authenticated | Admins / `events.edit` |
+| `profiles` | authenticated | Admins |
+| `employees` | authenticated | Admins / `staff.edit` |
+| `shifts` | authenticated | Admins / Scope-abhängig |
+| `app_config` | authenticated | Admins |
+| `locations` | public | Admins / `settings.edit_locations` |
+| `roles` / `permissions` | authenticated (mit Recht) | Admins / `roles.edit` |
 | `event_messages` | authenticated | authenticated (eigene user_id) |
+| `planning_periods` | authenticated | Admins / Planner-Rechte |
+| `planning_rules` | authenticated | Admins / `planning.manage_rules` |
 
 ---
 
-## 6. Frontend-Module
+## 6. Alle 58 Permissions (Übersicht)
 
-| Modul | Verantwortlichkeit |
+| Kategorie | Rechte |
 |---|---|
-| `App` | Haupt-Controller: Wochen-Navigation, Rendering, Filter, Modals |
-| `Form` | Event erstellen/bearbeiten. Auto-Berechnung startGastro = Einlasszeit −30 Min |
-| `Cloud` | Supabase-Sync: fetch/push Events, Sync-Status-Indikator |
-| `Auth` | Login/Logout, Passwort-Management, Erstpasswort-Flow |
-| `Chat` | Event-Chats via Supabase Realtime, Unread-Dots, Zugriffsschutz |
-| `Import` | KI-Import: Bild/PDF/Excel → Claude API → Vorschau → Events |
-| `Shifts` | Schichtverwaltung, Arbeitsstunden-Berechnung |
-| `Employees` | Mitarbeiterverzeichnis, Autocomplete, Kontaktdaten |
-| `Config` | App-Konfiguration (Statuses, Kartenfelder, Rollen) |
-| `Defaults` | Standardwerte für neue Events |
+| Veranstaltungen | `events.view` `events.create` `events.edit` `events.delete` `events.import_ai` `events.edit_briefing` `events.view_notes` |
+| Mitarbeiter | `staff.view` `staff.create` `staff.edit` `staff.delete` `staff.view_contact` `staff.edit_contact_own` `staff.view_notes` `staff.manage_access` |
+| Schichten | `shifts.view_all` `shifts.view_own` `shifts.assign` `shifts.edit` `shifts.swap_approve` |
+| Dienstplanung | `planning.view` `planning.create_period` `planning.edit` `planning.publish` `planning.ai_generate` `planning.manage_rules` |
+| Kalender | `calendar.view` `calendar.view_details` |
+| Statistiken | `statistics.view` `statistics.view_hours` `statistics.export` |
+| Besucherzahlen | `visitors.view` `visitors.edit` |
+| Kundenkarten | `customer_cards.view` `customer_cards.edit` |
+| Einstellungen | `settings.view` `settings.edit_general` `settings.edit_locations` `settings.edit_card_fields` `settings.edit_ai` |
+| Rollenverwaltung | `roles.view` `roles.create` `roles.edit` `roles.delete` `roles.assign` |
+| Benutzerverwaltung | `users.view` `users.invite` `users.delete` `users.reset_password` `users.toggle_role` |
+| Chat | `chat.access_all` `chat.delete_messages` |
+| Scope-Bypass | `scope.manage` `staff.view_all_categories` `staff.edit_all_categories` `shifts.manage_all_categories` `planning.view_all_categories` `planning.edit_all_categories` |
+
+Backend-gesicherte Rechte (API-Guard): `roles.create/edit/delete/view/assign`, `users.invite/delete/reset_password`, `planning.ai_generate`, `events.import_ai`, `scope.manage`.
 
 ---
 
-## 7. Authentifizierung
+## 7. Authentifizierung & Benutzerverwaltung
 
-1. Admin legt Benutzer an → zufälliges Temporärpasswort (via `crypto.randomBytes`) wird generiert
+1. Admin legt Benutzer an → zufälliges Temporärpasswort (`crypto.randomBytes`) wird generiert
 2. Benutzer meldet sich an → Passwort-Setzen-Screen beim ersten Login
-3. Rolle (`admin`/`viewer`) wird aus `profiles`-Tabelle gelesen
-4. Publishable Key im Frontend, Service Role Key nur serverseitig in `/api/admin.js`
+3. Rolle und Permissions werden aus `profiles.role_id → roles → role_permissions` geladen
+4. `loadPermissions()` wird nach Login aufgerufen → befüllt `_currentPermissions` Set
+5. Publishable Key im Frontend, Service Role Key nur serverseitig
 
 ---
 
-## 8. Import-Feature (KI-gestützt)
+## 8. Dienstplanung (Planner)
 
-1. Vor dem Upload: optionale Felder auswählen (Veranstaltungsnummer, Belegungsende, Besucherzahl, Bemerkungen)
+Der Planner läuft als eigene Vollbild-Seite (`planner-page`) mit fünf Tabs:
+
+| Tab | Funktion | Recht |
+|---|---|---|
+| Übersicht | Status-Workflow, KI-Trigger, Veröffentlichen | `planning.view` |
+| Besetzung | Mitarbeiter manuell zu Slots zuweisen | `planning.edit` / `planning.ai_generate` |
+| Verfügbarkeiten | Mitarbeiter-Eingaben einsehen | `planning.view` |
+| Schichttausch | Tausch-Anfragen verwalten | `planning.view` |
+| Regelwerk | Pausenregeln, Stunden-Limits pro Rolle | `planning.manage_rules` |
+
+KI-Ablauf:
+1. Preflight-Analyse → Claude stellt Rückfragen
+2. User beantwortet → Claude generiert `proposed_assignments` JSON
+3. Admin prüft Vorschlag im Besetzungs-Tab
+4. Veröffentlichen → Schichten werden in `shifts`-Tabelle übertragen
+
+---
+
+## 9. KI-Import
+
+1. Optionale Felder vorab auswählen (Veranstaltungsnummer, Belegungsende, Besucherzahl, Bemerkungen)
 2. **Excel**: SheetJS → pipe-delimitierter Text → Claude
-3. **Bild/PDF**: Base64 → Claude (Dateityp wird gegen Whitelist validiert)
+3. **Bild/PDF**: Base64 → Claude (Dateityp gegen Whitelist validiert)
 4. Claude (`claude-opus-4-7`) gibt reines JSON-Array zurück
 5. Vorschau: editierbar (Location-Dropdown, Checkboxen)
-6. Import: `einlasszeit` → `startGastro` (−30 Min) wird automatisch berechnet
+6. `einlasszeit → startGastro` (−30 Min) wird automatisch berechnet
+
+Recht: `events.import_ai` (Frontend + Backend-Guard in `/api/ocr.js`).
 
 ---
 
-## 9. Deployment & Repository
+## 10. Deployment & Repository
 
 - **Repository**: `lucasfugel26-alt/Thekenplan` (GitHub)
 - **Produktions-Branch**: `main` — jeder Push löst automatisch Vercel-Deployment aus
 - **Produktions-URL**: `thekenplan.vercel.app`
 - **Vercel-Plan**: Hobby — Serverless Functions max. 60s (konfiguriert in `vercel.json`)
 - **npm**: `package.json` enthält nur `@anthropic-ai/sdk`
-- **Env-Variablen** erfordern nach Änderung ein manuelles Redeploy:
+- **Env-Variablen** (erfordern nach Änderung manuelles Redeploy):
   - `ANTHROPIC_API_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
 
 ---
 
-## 10. Bekannte Eigenheiten & technische Schulden
+## 11. Bekannte Lücken & technische Schulden
 
-- **Single-File**: ~6.000 Zeilen in einer Datei — Aufteilung in separate Dateien ist geplant
-- **Kein State-Manager**: `EVENTS`-Array muss manuell mit `App.render()` + `Cloud.push()` abgeschlossen werden
-- **Event-IDs**: Generiert mit `Date.now() + Math.random()` — keine echten UUIDs
-- **Event-Daten als JSONB**: Flexibel, aber SQL-seitige Abfragen aufwändiger
-- **Realtime**: Nur `events`-Tabelle löst Auto-Render aus; Chat hat eigene Subscription
+| Thema | Status |
+|---|---|
+| `statistics.*`-Rechte | Permissions definiert, Statistik-Modul noch nicht gebaut |
+| `calendar.view/view_details` | Permissions definiert, kein dedizierter Frontend-Guard |
+| `visitors.edit`, `customer_cards.*` | Permissions definiert, UI nicht implementiert |
+| `shifts.assign` | Body-Klasse gesetzt, kein UI-Element referenziert sie |
+| `shifts.swap_approve` | Tausch-Genehmigung UI nicht implementiert |
+| `users.toggle_role` | Legacy-Methode, abgelöst durch `roles.assign` |
+| Event-IDs | Generiert mit `Date.now() + Math.random()` — keine echten UUIDs |
+| Event-Daten als JSONB | Flexibel, aber SQL-seitige Abfragen aufwändiger |
+| Kein State-Manager | `EVENTS`-Array manuell mit `App.render()` + `Cloud.push()` abschließen |
