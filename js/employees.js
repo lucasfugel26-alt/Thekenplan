@@ -120,8 +120,8 @@ const Employees = {
     </div>
     <div class="emp-det-meta">
       ${emp.default_role?`<span class="emp-det-meta-item">&#127970; ${_esc(emp.default_role)}</span>`:''}
-      ${emp.email?`<span class="emp-det-meta-item">&#128140; ${_esc(emp.email)}</span>`:''}
-      ${emp.phone?`<span class="emp-det-meta-item">&#128222; ${_esc(emp.phone)}</span>`:''}
+      ${can(PERM.STAFF_VIEW_CONTACT)&&emp.email?`<span class="emp-det-meta-item">&#128140; ${_esc(emp.email)}</span>`:''}
+      ${can(PERM.STAFF_VIEW_CONTACT)&&emp.phone?`<span class="emp-det-meta-item">&#128222; ${_esc(emp.phone)}</span>`:''}
       ${sollLabel?`<span class="emp-det-meta-item">&#8987; Soll: ${sollLabel}</span>`:''}
       ${can(PERM.STAFF_VIEW_NOTES)&&emp.notes?`<div style="width:100%;margin-top:6px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:.8rem;color:var(--txm)">${_esc(emp.notes)}</div>`:''}
     </div>
@@ -129,12 +129,13 @@ const Employees = {
       <span class="emp-access-label">&#128273; Zugang</span>
       ${emp.profile_id
         ?`<span class="emp-status-pill aktiv" style="font-size:.72rem">&#10003; Aktiv</span>
-          <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
-            onclick="App.resetEmployeePassword('${emp.id}')">&#128279; Reset-Link generieren</button>`
+          ${can(PERM.USERS_RESET_PASSWORD)?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
+            onclick="App.resetEmployeePassword('${emp.id}')">&#128279; Reset-Link generieren</button>`:'<span style="font-size:.72rem;color:var(--txm)">(Kein Passwort-Reset-Recht)</span>'}`
         :`<span style="font-size:.78rem;color:var(--txm)">Kein Zugang</span>
-          ${emp.email
+          ${emp.email&&can(PERM.USERS_INVITE)
             ?`<button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
                 onclick="App.createEmployeeAccess('${emp.id}')">&#43; Zugang erstellen</button>`
+            :emp.email?`<span style="font-size:.72rem;color:var(--txm);font-style:italic">(Kein Einladungs-Recht)</span>`
             :`<span style="font-size:.72rem;color:var(--txm);font-style:italic">(E&#8209;Mail erforderlich)</span>`
           }`
       }

@@ -54,11 +54,15 @@ const Planner = {
             <option value="">— Zeitraum wählen —</option>
             ${periods.map(pp => `<option value="${pp.id}" ${p?.id === pp.id ? 'selected' : ''}>${MONS[pp.month - 1]} ${pp.year} · ${Planning.statusLabel(pp.status)}</option>`).join('')}
           </select>
-          <button class="btn btn-ghost" onclick="Planner._showNewPeriod()" title="Neuen Zeitraum erstellen">+ Neu</button>
+          ${can(PERM.PLANNING_CREATE_PERIOD) ? `<button class="btn btn-ghost" onclick="Planner._showNewPeriod()" title="Neuen Zeitraum erstellen">+ Neu</button>` : ''}
         </div>
       </div>`;
 
     if (this._tab === 'new' || !p) {
+      if (!can(PERM.PLANNING_CREATE_PERIOD)) {
+        root.innerHTML = headerHtml + `<div class="plan-section"><div style="color:var(--miss);font-size:.84rem">Kein Planungszeitraum vorhanden. Du benötigst das Recht <strong>planning.create_period</strong> um einen zu erstellen.</div></div>`;
+        return;
+      }
       root.innerHTML = headerHtml + `<div class="planner-new-form">
         <h3>Neuen Planungszeitraum erstellen</h3>
         <div class="planner-form-grid">
@@ -82,10 +86,10 @@ const Planner = {
 
     const tabs = [
       ['overview', '📊 Übersicht'],
-      ['assignments', '📝 Besetzung'],
+      ...(can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE) ? [['assignments', '📝 Besetzung']] : []),
       ['availability', '📆 Verfügbarkeiten'],
       ['swaps', '🔄 Schichttausch'],
-      ['rules', '⚙ Regelwerk'],
+      ...(can(PERM.PLANNING_MANAGE_RULES) ? [['rules', '⚙ Regelwerk']] : []),
     ];
     const tabsHtml = `<div class="planner-tabs">${tabs.map(([id, label]) =>
       `<button class="planner-tab${this._tab === id ? ' active' : ''}" onclick="Planner._setTab('${id}')">${label}</button>`
@@ -159,7 +163,7 @@ const Planner = {
         <div id="planner-ai-area">${this._renderAIArea()}</div>
       </div>` : '';
 
-    const publishBtn = (p.status === 'ai_proposal' || p.status === 'editing') ? `
+    const publishBtn = can(PERM.PLANNING_PUBLISH) && (p.status === 'ai_proposal' || p.status === 'editing') ? `
       <div class="plan-section">
         <div class="plan-sec-title">🚀 Veröffentlichen</div>
         <p style="font-size:.83rem;color:var(--txm);margin-bottom:12px">
@@ -239,7 +243,7 @@ const Planner = {
   _renderAssignments() {
     const p = this._period;
     const hasDraft = Object.keys(this._draft).length > 0;
-    const isEditing = p.status !== 'published';
+    const isEditing = p.status !== 'published' && (can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE));
 
     let evHtml = '';
     if (!this._monthEvents.length) {
@@ -716,7 +720,7 @@ const Planner = {
     const list = document.getElementById('assign-events-list');
     if (!list) return;
     const p = this._period;
-    const isEditing = p.status !== 'published';
+    const isEditing = p.status !== 'published' && (can(PERM.PLANNING_EDIT) || can(PERM.PLANNING_AI_GENERATE));
     list.innerHTML = this._monthEvents.map(ev => this._buildEventAssignCard(ev, isEditing)).join('');
     this._renderHoursSidebar();
   },

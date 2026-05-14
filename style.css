@@ -159,6 +159,14 @@ body.admin:not(.can-edit-events) .perm-edit-events{display:none!important}
 body.admin:not(.can-edit-events) .ev-card:hover .card-acts{display:none!important}
 /* Neuer Mitarbeiter */
 body.admin:not(.can-create-staff) .perm-create-staff{display:none!important}
+/* Dienstplan-Regelwerk */
+body.admin:not(.can-manage-rules) .perm-manage-rules{display:none!important}
+/* Rollen & Rechte */
+body.admin:not(.can-view-roles):not(.can-edit-roles):not(.can-create-roles) .perm-roles{display:none!important}
+/* Kundenkarten-Einstellungen */
+body.admin:not(.can-edit-card-fields) .perm-card-fields{display:none!important}
+/* Planung auch für reine Lese-Berechtigung sichtbar */
+body.admin.can-view-planning:not(.can-edit-planning):not(.can-ai-generate) .perm-planning{display:block!important}
 
 /* ── SYNC BUTTON ─────────────────────────────────────── */
 .btn-sync{display:flex;align-items:center;gap:8px;

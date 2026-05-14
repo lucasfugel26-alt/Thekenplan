@@ -167,18 +167,22 @@ function applyPermissionClasses() {
     [PERM.STAFF_EDIT,               'can-edit-staff'],
     [PERM.STAFF_CREATE,             'can-create-staff'],
     [PERM.STAFF_MANAGE_ACCESS,      'can-manage-access'],
+    [PERM.PLANNING_VIEW,            'can-view-planning'],
     [PERM.PLANNING_EDIT,            'can-edit-planning'],
     [PERM.PLANNING_AI_GENERATE,     'can-ai-generate'],
     [PERM.PLANNING_MANAGE_RULES,    'can-manage-rules'],
     [PERM.SHIFTS_ASSIGN,            'can-assign-shifts'],
+    [PERM.SETTINGS_VIEW,            'can-view-settings'],
     [PERM.SETTINGS_EDIT_GENERAL,    'can-edit-settings'],
     [PERM.SETTINGS_EDIT_AI,         'can-edit-ai-settings'],
     [PERM.SETTINGS_EDIT_LOCATIONS,  'can-edit-locations'],
     [PERM.SETTINGS_EDIT_CARD_FIELDS,'can-edit-card-fields'],
     [PERM.ROLES_VIEW,               'can-view-roles'],
+    [PERM.ROLES_CREATE,             'can-create-roles'],
     [PERM.ROLES_EDIT,               'can-edit-roles'],
     [PERM.USERS_VIEW,               'can-view-users'],
     [PERM.USERS_INVITE,             'can-invite-users'],
+    [PERM.CALENDAR_VIEW,            'can-view-calendar'],
   ];
   classes.forEach(([perm, cls]) => {
     document.body.classList.toggle(cls, can(perm));

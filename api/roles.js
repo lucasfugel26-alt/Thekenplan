@@ -23,6 +23,15 @@ export default async function handler(req, res) {
 
       // Alle Rollen laden
       if (!action || action === 'list') {
+        // roles.view ODER eine der Unterberechtigungen die die Liste benötigen
+        const canList = await hasPermissionOrLegacyAdmin(callerId, 'roles.view', serviceKey)
+          || await hasPermissionOrLegacyAdmin(callerId, 'roles.edit', serviceKey)
+          || await hasPermissionOrLegacyAdmin(callerId, 'roles.create', serviceKey)
+          || await hasPermissionOrLegacyAdmin(callerId, 'roles.assign', serviceKey)
+          || await hasPermissionOrLegacyAdmin(callerId, 'users.view', serviceKey);
+        if (!canList) {
+          return res.status(403).json({ error: 'Keine Berechtigung: roles.view' });
+        }
         const rolesRes = await fetch(
           `${SUPABASE_URL}/rest/v1/roles?order=sort_order`,
           { headers }
