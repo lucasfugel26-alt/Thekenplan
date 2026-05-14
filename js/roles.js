@@ -7,7 +7,8 @@
 const RolesMgr = {
   _roles: [],
   _permissions: [],
-  _rolePerms: [],   // [{role_id, permission_id}]
+  _rolePerms: [],          // [{role_id, permission_id}]
+  _roleStaffScopes: [],    // [{role_id, category}]
 
   /* ── LADEN ─────────────────────────────────────────────── */
   async load() {
@@ -23,6 +24,7 @@ const RolesMgr = {
       this._roles = data.roles || [];
       this._permissions = data.permissions || [];
       this._rolePerms = data.rolePerms || [];
+      this._roleStaffScopes = data.roleStaffScopes || [];
     } catch (e) {
       console.warn('[RolesMgr] load:', e.message);
     }
@@ -34,6 +36,12 @@ const RolesMgr = {
     return this._rolePerms
       .filter(rp => rp.role_id === roleId)
       .map(rp => rp.permission_id);
+  },
+
+  getScopeForRole(roleId) {
+    return this._roleStaffScopes
+      .filter(s => s.role_id === roleId)
+      .map(s => s.category);
   },
 
   /* ── ROLLEN-SEKTION RENDERN ─────────────────────────────── */
@@ -81,6 +89,7 @@ const RolesMgr = {
       description: '',
       color: '#6b7280',
       permissionIds: [],
+      scopeCategories: [],
     });
   },
 
@@ -97,11 +106,12 @@ const RolesMgr = {
       description: role.description || '',
       color: role.color || '#6b7280',
       permissionIds: this.getPermissionsForRole(roleId),
+      scopeCategories: this.getScopeForRole(roleId),
       isSystem: role.is_system,
     });
   },
 
-  _openModal({ title, roleId, name, description, color, permissionIds, isSystem }) {
+  _openModal({ title, roleId, name, description, color, permissionIds, scopeCategories, isSystem }) {
     const modal = document.getElementById('roles-modal');
     if (!modal) return;
 
@@ -142,6 +152,17 @@ const RolesMgr = {
       </div>`;
     }).join('');
 
+    // Scope-Checkboxen aus Config.data.employeeRoles (dynamisch)
+    const allCategories = Config.data.employeeRoles || [];
+    const scopeChecks = allCategories.map(cat => {
+      const checked = scopeCategories.includes(cat) ? 'checked' : '';
+      const disabled = isSystem ? 'disabled' : '';
+      return `<label class="scope-cat-label">
+        <input type="checkbox" class="scope-cat-cb" value="${_esc(cat)}" ${checked} ${disabled}>
+        <span>${_esc(cat)}</span>
+      </label>`;
+    }).join('');
+
     document.getElementById('roles-modal-title').textContent = title;
     document.getElementById('roles-modal-body').innerHTML = `
       <div style="display:grid;gap:12px">
@@ -158,6 +179,17 @@ const RolesMgr = {
         <div>
           <label class="stg-label">Beschreibung (optional)</label>
           <input id="rm-desc" class="stg-input" value="${_esc(description)}" placeholder="Kurze Beschreibung" ${isSystem ? 'disabled' : ''}>
+        </div>
+        <div>
+          <label class="stg-label" style="margin-bottom:4px">Dienstplan-Scope</label>
+          <div style="font-size:.75rem;color:var(--txm);margin-bottom:8px">
+            Welche Mitarbeiterkategorien darf diese Rolle sehen und bearbeiten?
+            <strong>Keine Auswahl = Vollzugriff</strong> (alle Kategorien).
+          </div>
+          ${allCategories.length === 0
+            ? '<div style="font-size:.78rem;color:var(--txm)">Keine Kategorien definiert (Einstellungen → Mitarbeiterkategorien).</div>'
+            : `<div class="scope-cat-list">${scopeChecks}</div>`
+          }
         </div>
         <div>
           <label class="stg-label" style="margin-bottom:8px">Berechtigungen</label>
@@ -252,6 +284,17 @@ const RolesMgr = {
         body: JSON.stringify({ roleId: targetRoleId, permissionIds }),
       });
       if (!permRes.ok) { const e = await permRes.json(); alert('Fehler Permissions: ' + (e.error || 'Unbekannt')); return; }
+
+      // Dienstplan-Scope setzen
+      const scopeCategories = Array.from(
+        document.querySelectorAll('.scope-cat-cb:checked')
+      ).map(cb => cb.value);
+      const scopeRes = await fetch('/api/roles?action=setRoleStaffScope', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roleId: targetRoleId, categories: scopeCategories }),
+      });
+      if (!scopeRes.ok) { const e = await scopeRes.json(); alert('Fehler Scope: ' + (e.error || 'Unbekannt')); return; }
 
       this.closeModal();
       await this.renderSettingsSection();
