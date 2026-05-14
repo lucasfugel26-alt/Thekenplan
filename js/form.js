@@ -82,6 +82,17 @@ const Form={
     document.getElementById('f-staff-rows').innerHTML='';
     ev.barStaff.forEach(s=>this._addStaffRowData(s));
     if(this.staffRows===0){this.addStaffRow();this.addStaffRow();}
+
+    // Felder außerhalb des Dienstplan-Scopes sperren (sichtbar, aber nicht bearbeitbar)
+    if(!isInStaffScope('Produktionsleiter')){
+      ['f-pl-name','f-pl-time'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.disabled=true;el.title='Kein Zugriff (außerhalb deines Dienstplan-Scopes)';}
+      });
+    }
+    // "Zeile hinzufügen"-Button ausblenden wenn Thekenkraft nicht im Scope
+    const addRowBtn=document.getElementById('f-add-staff-row');
+    if(addRowBtn)addRowBtn.style.display=isInStaffScope('Thekenkraft')?'':'none';
   },
 
   _buildStatusBtns(activeStatuses){
@@ -98,21 +109,25 @@ const Form={
     const statuses=s.statuses||(s.miss?['fehlt']:[]);
     const defaultTime=s.ov||(document.getElementById('f-gastro')?.value||'');
     const empId=s.employeeId||'';
+    const inScope=isInStaffScope(s.role||'Thekenkraft');
+    const dis=inScope?'':'disabled';
+    const title=inScope?'':'Kein Zugriff (außerhalb deines Dienstplan-Scopes)';
     const div=document.createElement('div');
-    div.className='staff-entry-row';
+    div.className='staff-entry-row'+(inScope?'':' scope-readonly');
     div.id=`srow-${n}`;
     div.innerHTML=`<span class="se-pos">${n}</span>
       <input class="fi" type="text" placeholder="Name" id="sn-${n}" value="${s.name||''}" style="flex:2"
-        data-empid-target="sei-${n}"
+        data-empid-target="sei-${n}" ${dis} title="${title}"
         oninput="Employees.autocomplete(event,this)" onblur="Employees.hideAC()">
       <input type="hidden" id="sei-${n}" value="${empId}">
-      <input class="fi" type="time" id="st-${n}" value="${defaultTime}" style="width:88px" title="Manuelle Startzeit">
-      <div class="se-statuses">${this._buildStatusBtns(statuses)}</div>
-      <button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`;
+      <input class="fi" type="time" id="st-${n}" value="${defaultTime}" style="width:88px" ${dis} title="${title||'Manuelle Startzeit'}">
+      <div class="se-statuses" style="${inScope?'':'pointer-events:none;opacity:.45'}">${this._buildStatusBtns(statuses)}</div>
+      ${inScope?`<button class="se-rm" onclick="document.getElementById('srow-${n}').remove()" title="Zeile entfernen">&#10005;</button>`:''}`;
     document.getElementById('f-staff-rows').appendChild(div);
   },
 
   addStaffRow(){
+    if(!isInStaffScope('Thekenkraft'))return;
     this._addStaffRowData({name:'',pos:this.staffRows+1,ov:null,miss:false,statuses:[]});
   },
 

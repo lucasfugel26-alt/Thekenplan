@@ -1514,6 +1514,10 @@ body.light .app-title h1{
 .perm-row input{margin-top:2px;flex-shrink:0;accent-color:var(--accent)}
 .perm-label{font-weight:500;color:var(--tx)}
 .perm-desc{color:var(--txm);font-size:.75rem;margin-left:auto;text-align:right;max-width:140px}
+/* Einträge außerhalb des Dienstplan-Scopes: sichtbar, aber nicht bearbeitbar */
+.scope-readonly{opacity:.5;cursor:default!important;pointer-events:none}
+.scope-readonly.assign-slot{background:var(--bg2)!important;border-style:dashed}
+.scope-readonly.staff-entry-row{filter:grayscale(.4)}
 .scope-cat-list{display:flex;flex-wrap:wrap;gap:8px}
 .scope-cat-label{display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;transition:border-color .15s}
 .scope-cat-label:has(input:checked){border-color:var(--accent);background:rgba(34,212,164,.08);color:var(--accent)}
