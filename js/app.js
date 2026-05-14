@@ -827,7 +827,6 @@ const App={
   /* Detail-Modal */
   openDet(ev){
     this._currentEvId=ev.id;
-    document.getElementById('m-del-confirm').style.display='none';
     openDet(ev);
   },
   closeDet(e){
