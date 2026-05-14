@@ -1033,18 +1033,39 @@ const App={
     }
   },
 
-   async _loadUsersList(){
+  async _loadUsersList(){
     const tbl=document.getElementById('team-table');
     const cnt=document.getElementById('team-count');
     if(!tbl)return;
     tbl.innerHTML='<div style="color:var(--txm);font-size:.8rem;padding:18px 14px">Lade…</div>';
-    const {data:profiles,error}=await db.from('profiles').select('*, roles(id, name, color)').order('display_name');
-    if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler</div>';return;}
+
+    // Rollen sicherstellen (wird gecacht, kein Doppel-Fetch)
+    if(!RolesMgr._roles.length) await RolesMgr.load();
+
+    // Nur eigene Spalten laden – kein PostgREST-Join der via Frontend-JWT
+    // an RLS-Policies scheitern kann und dann silent null liefert
+    const {data:profiles,error}=await db.from('profiles')
+      .select('id, display_name, role, role_id')
+      .order('display_name');
+    if(error||!profiles){tbl.innerHTML='<div style="color:var(--miss);font-size:.8rem;padding:14px">Fehler beim Laden</div>';return;}
     if(cnt)cnt.textContent=profiles.length+' '+(profiles.length===1?'Person':'Personen');
+
+    // Rollen-Lookup: zuerst Cache (role_id → roles-Tabelle), dann Legacy-Fallback
+    const roleInfo=p=>{
+      if(p.role_id){
+        const r=RolesMgr._roles.find(r=>r.id===p.role_id);
+        if(r)return r;
+      }
+      // Legacy: alte 'admin'/'viewer'-Strings auf sinnvolle Anzeige mappen
+      if(p.role==='admin')return{name:'Admin',color:'#ef4444'};
+      if(p.role==='viewer')return{name:'Mitarbeiter',color:'#6b7280'};
+      return{name:p.role||'Mitarbeiter',color:'#6b7280'};
+    };
+
     const allEmps=Employees.getAll();
-    // employees not yet linked to any profile
     const unlinkedEmps=allEmps.filter(e=>!e.profile_id);
     tbl.innerHTML=profiles.map(p=>{
+      const ri=roleInfo(p);
       const linkedEmp=allEmps.find(e=>e.profile_id===p.id);
       const isSelf=p.id===currentProfile?.id;
       const empCol=linkedEmp
@@ -1055,12 +1076,12 @@ const App={
           </select>`;
       return `<div class="team-row" style="grid-template-columns:1fr 140px 1fr 180px">
         <div class="team-name">${_esc(p.display_name)}</div>
-        <div><span class="role-pill" style="background:${(p.roles?.color||'#6b7280')}22;color:${p.roles?.color||'#6b7280'};border:1px solid ${(p.roles?.color||'#6b7280')}44">${_esc(p.roles?.name||p.role||'Mitarbeiter')}</span></div>
+        <div><span class="role-pill" style="background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44">${_esc(ri.name)}</span></div>
         <div>${empCol}</div>
         <div class="team-acts">
           ${!isSelf?`
             ${can(PERM.ROLES_ASSIGN)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 11px;white-space:nowrap"
-              onclick="RolesMgr.openAssign('${p.id}','${p.roles?.id||p.role_id||''}')">Rolle ändern</button>`:''}
+              onclick="RolesMgr.openAssign('${p.id}','${p.role_id||''}')">Rolle ändern</button>`:''}
             ${can(PERM.USERS_DELETE)?`<button class="btn btn-ghost" style="font-size:.75rem;padding:5px 9px;color:var(--miss);border-color:rgba(255,80,80,.3)"
               onclick="App.deleteUser('${p.id}','${p.display_name}')" title="Löschen">&#128465;</button>`:''}
           `:'<span style="font-size:.75rem;color:var(--txm)">Du</span>'}
