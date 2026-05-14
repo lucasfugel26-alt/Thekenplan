@@ -79,7 +79,7 @@ const Form={
     document.getElementById('f-req-staff-rows').innerHTML='';
     (ev.required_staff||[]).forEach(r=>this._addReqStaffRowData(r));
     // "+ Rolle hinzufügen" ausblenden wenn keine scoped Rolle verfügbar
-    const hasReqScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r));
+    const hasReqScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r))||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
     const addReqBtn=document.getElementById('f-add-req-staff');
     if(addReqBtn)addReqBtn.style.display=hasReqScope?'':'none';
     /* Besetzungszeilen aufbauen */
@@ -88,7 +88,7 @@ const Form={
     if(this.staffRows===0){this.addStaffRow();this.addStaffRow();}
 
     // Felder außerhalb des Dienstplan-Scopes sperren (sichtbar, aber nicht bearbeitbar)
-    if(!isInStaffScope('Produktionsleiter')){
+    if(!isInStaffScope('Produktionsleiter')&&!can(PERM.STAFF_EDIT_ALL_CATEGORIES)){
       ['f-pl-name','f-pl-time'].forEach(id=>{
         const el=document.getElementById(id);
         if(el){el.disabled=true;el.title='Kein Zugriff (außerhalb deines Dienstplan-Scopes)';}
@@ -96,7 +96,7 @@ const Form={
     }
     // "Zeile hinzufügen"-Button ausblenden wenn Thekenkraft nicht im Scope
     const addRowBtn=document.getElementById('f-add-staff-row');
-    if(addRowBtn)addRowBtn.style.display=isInStaffScope('Thekenkraft')?'':'none';
+    if(addRowBtn)addRowBtn.style.display=(isInStaffScope('Thekenkraft')||can(PERM.STAFF_EDIT_ALL_CATEGORIES))?'':'none';
   },
 
   _buildStatusBtns(activeStatuses){
@@ -113,7 +113,7 @@ const Form={
     const statuses=s.statuses||(s.miss?['fehlt']:[]);
     const defaultTime=s.ov||(document.getElementById('f-gastro')?.value||'');
     const empId=s.employeeId||'';
-    const inScope=isInStaffScope(s.role||'Thekenkraft');
+    const inScope=isInStaffScope(s.role||'Thekenkraft')||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
     const dis=inScope?'':'disabled';
     const title=inScope?'':'Kein Zugriff (außerhalb deines Dienstplan-Scopes)';
     const div=document.createElement('div');
@@ -137,9 +137,9 @@ const Form={
 
   _addReqStaffRowData(r){
     const allRoles=Config.data.employeeRoles||[];
-    const inScope=isInStaffScope(r.role||'');
+    const inScope=isInStaffScope(r.role||'')||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
     // Nur Rollen im Scope als Optionen anzeigen
-    const visibleRoles=allRoles.filter(ro=>isInStaffScope(ro));
+    const visibleRoles=allRoles.filter(ro=>isInStaffScope(ro)||can(PERM.STAFF_EDIT_ALL_CATEGORIES));
     // Aktuelle Rolle immer anzeigen (auch wenn außerhalb Scope – read-only)
     if(r.role && !visibleRoles.includes(r.role)) visibleRoles.unshift(r.role);
     const id='rsr-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
@@ -161,7 +161,7 @@ const Form={
   },
 
   addReqStaffRow(){
-    const hasScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r));
+    const hasScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r))||can(PERM.STAFF_EDIT_ALL_CATEGORIES);
     if(!hasScope)return;
     this._addReqStaffRowData({role:'',count:1});
   },

@@ -127,6 +127,7 @@ const RolesMgr = {
       planning: 'Dienstplanung', calendar: 'Kalender', statistics: 'Statistiken',
       visitors: 'Besucherzahlen', customer_cards: 'Kundenkarten', settings: 'Einstellungen',
       roles: 'Rollenverwaltung', users: 'Benutzerverwaltung', chat: 'Chat',
+      scope: 'Dienstplan-Scope Bypass',
     };
 
     const permMatrix = Object.entries(categories).map(([cat, perms]) => {
