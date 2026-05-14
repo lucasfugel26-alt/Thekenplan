@@ -64,7 +64,9 @@ function passesStaffFilter(ev){
     return hasPresent&&hasMissing;
   }
   if(f==='__ersatz__'){
-    return ev.barStaff.some(s=>(s.statuses||[]).some(sid=>sid==='ersatz'||sid.includes('ersatz')));
+    // Nutzt den konfigurierten Status-ID 'ersatz' aus config.js (exakter Match)
+    const ersatzIds=new Set(Config.data.staffStatuses.map(s=>s.id).filter(id=>id==='ersatz'));
+    return ev.barStaff.some(s=>(s.statuses||[]).some(sid=>ersatzIds.has(sid)));
   }
   return[...allNames(ev)].includes(f);
 }
@@ -903,8 +905,12 @@ const App={
     if(!ev||!confirm(`"${ev.event}" absagen?\n\nAlle verkn\u00fcpften Schichten werden als abgesagt markiert.`))return;
     ev.cancelled=true;
     Cloud.push();
-    db.from('shifts').update({cancelled:true}).eq('event_id',id).then(()=>{});
     this.render();
+    Cloud._withRetry(()=>db.from('shifts').update({cancelled:true}).eq('event_id',id),'cancelShifts')
+      .catch(e=>{
+        console.error('[Supabase] cancelShifts error:',e);
+        showToast('Schichten konnten nicht abgesagt werden \u2013 bitte neu laden.',false);
+      });
   },
 
   uncancelEventById(id){
@@ -912,8 +918,12 @@ const App={
     if(!ev)return;
     ev.cancelled=false;
     Cloud.push();
-    db.from('shifts').update({cancelled:false}).eq('event_id',id).then(()=>{});
     this.render();
+    Cloud._withRetry(()=>db.from('shifts').update({cancelled:false}).eq('event_id',id),'uncancelShifts')
+      .catch(e=>{
+        console.error('[Supabase] uncancelShifts error:',e);
+        showToast('Schichten konnten nicht reaktiviert werden \u2013 bitte neu laden.',false);
+      });
   },
 
   /* Neues Event erfassen */
