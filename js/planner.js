@@ -301,7 +301,7 @@ const Planner = {
 
     const slotRows = slots.map((s, idx) => {
       // Nur Slots im Scope sind bearbeitbar; außerhalb: sichtbar aber read-only
-      const canEdit = isEditing && isInStaffScope(s.role || 'Thekenkraft');
+      const canEdit = isEditing && (isInStaffScope(s.role || 'Thekenkraft') || can(PERM.PLANNING_EDIT_ALL_CATEGORIES));
       const removeBtn = canEdit ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${idx})" title="Entfernen">✕</button>` : '';
       const roleTag = s.role ? `<span class="slot-role">${_esc(s.role)}</span>` : '';
       const timeTag = (s.req_start || s.req_end) ? `<span class="slot-time">${s.req_start||''}${s.req_end?'–'+s.req_end:''}</span>` : '';
@@ -351,7 +351,7 @@ const Planner = {
     if (!el) return;
     const p = this._period;
     if (!p) { el.innerHTML = ''; return; }
-    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden' && isInStaffScope(e.default_role||'Thekenkraft'));
+    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden' && (isInStaffScope(e.default_role||'Thekenkraft') || can(PERM.PLANNING_VIEW_ALL_CATEGORIES)));
     const rows = emps.map(emp => {
       const { gross, net, breakMin, events } = this._calcHours(emp);
       const soll = Number(emp.soll_stunden) || 0;

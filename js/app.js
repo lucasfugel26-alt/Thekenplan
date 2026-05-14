@@ -235,10 +235,11 @@ function detectConflicts(eventsForWeek){
   const byDay={};
   eventsForWeek.filter(e=>!e.cancelled&&!e.relocated).forEach(ev=>{
     // Nur Mitarbeiter im Scope in die Konflikterkennung einbeziehen
+    const viewAll=can(PERM.PLANNING_VIEW_ALL_CATEGORIES);
     const scopedNames=new Set();
-    if(ev.prodL?.name && isInStaffScope('Produktionsleiter')) scopedNames.add(ev.prodL.name);
-    if(ev.prodL2?.name && isInStaffScope('Produktionsleiter')) scopedNames.add(ev.prodL2.name);
-    (ev.barStaff||[]).filter(s=>!s.miss&&s.name&&isInStaffScope(s.role||'Thekenkraft')).forEach(s=>scopedNames.add(s.name));
+    if(ev.prodL?.name && (viewAll||isInStaffScope('Produktionsleiter'))) scopedNames.add(ev.prodL.name);
+    if(ev.prodL2?.name && (viewAll||isInStaffScope('Produktionsleiter'))) scopedNames.add(ev.prodL2.name);
+    (ev.barStaff||[]).filter(s=>!s.miss&&s.name&&(viewAll||isInStaffScope(s.role||'Thekenkraft'))).forEach(s=>scopedNames.add(s.name));
     scopedNames.forEach(name=>{
       if(!name)return;
       if(!byDay[ev.date])byDay[ev.date]={};

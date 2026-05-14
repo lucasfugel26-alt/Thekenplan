@@ -209,8 +209,10 @@ export default async function handler(req, res) {
 
     // ── Dienstplan-Scope einer Rolle setzen (vollständiger Replace) ──────────────
     if (action === 'setRoleStaffScope') {
-      if (!(await hasPermissionOrLegacyAdmin(callerId, 'roles.edit', serviceKey))) {
-        return res.status(403).json({ error: 'Keine Berechtigung: roles.edit' });
+      const canManageScope = await hasPermissionOrLegacyAdmin(callerId, 'scope.manage', serviceKey)
+        || await hasPermissionOrLegacyAdmin(callerId, 'roles.edit', serviceKey);
+      if (!canManageScope) {
+        return res.status(403).json({ error: 'Keine Berechtigung: scope.manage oder roles.edit' });
       }
       const { roleId, categories } = req.body;
       if (!roleId || !Array.isArray(categories)) {

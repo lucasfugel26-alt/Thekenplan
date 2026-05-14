@@ -81,6 +81,14 @@ const PERM = {
   // Chat
   CHAT_ACCESS_ALL:      'chat.access_all',
   CHAT_DELETE_MESSAGES: 'chat.delete_messages',
+
+  // Dienstplan-Scope Bypass
+  SCOPE_MANAGE:                  'scope.manage',
+  STAFF_VIEW_ALL_CATEGORIES:     'staff.view_all_categories',
+  STAFF_EDIT_ALL_CATEGORIES:     'staff.edit_all_categories',
+  SHIFTS_MANAGE_ALL_CATEGORIES:  'shifts.manage_all_categories',
+  PLANNING_VIEW_ALL_CATEGORIES:  'planning.view_all_categories',
+  PLANNING_EDIT_ALL_CATEGORIES:  'planning.edit_all_categories',
 };
 
 // In-Memory Permission-Set des eingeloggten Users
