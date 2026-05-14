@@ -136,6 +136,30 @@ body.admin .stg-toggles-grid.admin-only{display:grid!important}
 .ev-card:hover .card-acts{display:none}
 body.admin .ev-card:hover .card-acts{display:flex}
 
+/* ── GRANULARE PERMISSION-OVERRIDES ──────────────────────
+   Jede perm-* Klasse blendet ein Element aus, auch wenn body.admin
+   gesetzt ist – wenn die spezifische Permission fehlt.
+   Reihenfolge: override NACH den allgemeinen admin-only Regeln.     */
+/* Import */
+body.admin:not(.can-import-ai) .perm-import-ai{display:none!important}
+/* Event erstellen */
+body.admin:not(.can-create-events) .perm-create-events{display:none!important}
+/* Team / Zugänge */
+body.admin:not(.can-view-users) .perm-view-users{display:none!important}
+/* Planung (sichtbar wenn PLANNING_EDIT oder PLANNING_AI_GENERATE) */
+body.admin:not(.can-edit-planning):not(.can-ai-generate) .perm-planning{display:none!important}
+/* Locations */
+body.admin:not(.can-edit-locations) .perm-edit-locations{display:none!important}
+/* Allgemeine Einstellungen / PDF */
+body.admin:not(.can-edit-settings) .perm-edit-settings{display:none!important}
+/* KI-Funktionen Einstellungen */
+body.admin:not(.can-edit-ai-settings) .perm-ai-settings{display:none!important}
+/* Event bearbeiten (Karte + Detail-Modal) */
+body.admin:not(.can-edit-events) .perm-edit-events{display:none!important}
+body.admin:not(.can-edit-events) .ev-card:hover .card-acts{display:none!important}
+/* Neuer Mitarbeiter */
+body.admin:not(.can-create-staff) .perm-create-staff{display:none!important}
+
 /* ── SYNC BUTTON ─────────────────────────────────────── */
 .btn-sync{display:flex;align-items:center;gap:8px;
   background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);

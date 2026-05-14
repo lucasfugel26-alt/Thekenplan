@@ -1101,8 +1101,11 @@ const App={
   showTeamTab(tab){
     Employees.showTab(tab);
     if(tab==='acc'){
+      // Rollen-Tab nur anzeigen wenn Permission vorhanden
+      const rolesTab=document.getElementById('asub-roles');
+      if(rolesTab) rolesTab.style.display=
+        (can(PERM.ROLES_VIEW)||can(PERM.ROLES_EDIT)||can(PERM.ROLES_CREATE))?'':'none';
       RolesMgr.load().then(()=>this._loadUsersList());
-      // Activate the users sub-tab by default when switching to Zugänge
       this.showAccSubTab('users');
     }
   },
