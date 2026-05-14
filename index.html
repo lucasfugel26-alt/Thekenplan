@@ -58,17 +58,17 @@
         <span class="sync-spin">&#8635;</span>
       </button>
 
-      <button class="gear-btn admin-only" onclick="App.printPDF()" title="PDF exportieren" style="display:none">&#128438; PDF</button>
+      <button class="gear-btn admin-only perm-edit-settings" onclick="App.printPDF()" title="PDF exportieren" style="display:none">&#128438; PDF</button>
       <button class="gear-btn" onclick="Auth.logout()" title="Abmelden" style="background:var(--bg3);border-color:var(--bd);color:var(--txd)">
         &#128274; Abmelden
       </button>
-      <button class="gear-btn admin-only" onclick="App.openTeam()" id="team-btn" style="color:#22d4a4;border-color:rgba(34,212,164,.25)">
+      <button class="gear-btn admin-only perm-view-users" onclick="App.openTeam()" id="team-btn" style="color:#22d4a4;border-color:rgba(34,212,164,.25)">
         &#128101; Team
       </button>
-      <button class="gear-btn admin-only" onclick="Planner.open()" style="color:var(--l3);border-color:rgba(224,90,255,.25)">
+      <button class="gear-btn admin-only perm-planning" onclick="Planner.open()" style="color:var(--l3);border-color:rgba(224,90,255,.25)">
         &#128203; Planung
       </button>
-      <button class="gear-btn admin-only" onclick="App.openLocations()" style="color:var(--l1);border-color:rgba(245,166,35,.25)">
+      <button class="gear-btn admin-only perm-edit-locations" onclick="App.openLocations()" style="color:var(--l1);border-color:rgba(245,166,35,.25)">
         &#128205; Locations
       </button>
       <button class="gear-btn" id="profil-btn" onclick="Profile.open()" style="display:none">
@@ -121,8 +121,8 @@
     <div class="spacer"></div>
     <span class="cnt" id="cnt"></span>
     <div style="width:1px;height:22px;background:var(--bd)"></div>
-    <button class="btn btn-ghost admin-only btn-mob-hide ai-feature" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
-    <button class="btn btn-primary admin-only" onclick="App.openEntry(S.filterLoc||1)" title="Neues Event erstellen">&#43; Event erstellen</button>
+    <button class="btn btn-ghost admin-only perm-import-ai btn-mob-hide ai-feature" onclick="Import.openModal()" title="Events aus Datei importieren">&#128229; Importieren</button>
+    <button class="btn btn-primary admin-only perm-create-events" onclick="App.openEntry(S.filterLoc||1)" title="Neues Event erstellen">&#43; Event erstellen</button>
   </div>
 
   <!-- ── WEEK GRID ── -->
@@ -160,10 +160,10 @@
   <button class="ham-item" id="ham-av" onclick="Availability.openModal();Ham.close()" style="display:none">&#128197; Verfügbarkeit</button>
   <button class="ham-item" onclick="App.openSettings();Ham.close()">&#9881; Einstellungen</button>
   <div class="ham-div admin-only"></div>
-  <button class="ham-item admin-only" onclick="Planner.open();Ham.close()">&#128203; Planung</button>
-  <button class="ham-item admin-only" onclick="App.openTeam();Ham.close()">&#128101; Team</button>
-  <button class="ham-item admin-only" onclick="App.openLocations();Ham.close()">&#128205; Locations</button>
-  <button class="ham-item admin-only" onclick="App.printPDF();Ham.close()">&#128438; PDF</button>
+  <button class="ham-item admin-only perm-planning" onclick="Planner.open();Ham.close()">&#128203; Planung</button>
+  <button class="ham-item admin-only perm-view-users" onclick="App.openTeam();Ham.close()">&#128101; Team</button>
+  <button class="ham-item admin-only perm-edit-locations" onclick="App.openLocations();Ham.close()">&#128205; Locations</button>
+  <button class="ham-item admin-only perm-edit-settings" onclick="App.printPDF();Ham.close()">&#128438; PDF</button>
   <div class="ham-div"></div>
   <button class="ham-item ham-danger" onclick="Auth.logout()">&#128274; Abmelden</button>
 </div>
@@ -183,7 +183,7 @@
     <div id="m-note"></div>
     <div id="m-briefing"></div>
     <div id="m-chat"></div>
-    <div class="m-actions admin-only">
+    <div class="m-actions admin-only perm-edit-events">
       <button class="btn btn-edit" onclick="App.editEvent()">&#9998; Bearbeiten</button>
     </div>
   </div>
@@ -424,14 +424,14 @@
           <button class="btn btn-ghost" onclick="Config.addRole()">&#43; Hinzuf&uuml;gen</button>
         </div>
 
-        <div class="stg-sec admin-only">Dienstplan – Regelwerk</div>
-        <div class="admin-only" id="stg-pr-editor-wrap">
+        <div class="stg-sec admin-only perm-manage-rules">Dienstplan – Regelwerk</div>
+        <div class="admin-only perm-manage-rules" id="stg-pr-editor-wrap">
           <p style="font-size:.78rem;color:var(--txm);margin-bottom:10px">Stunden-Limits und Pausenabzüge pro Rolle:</p>
           <div id="stg-pr-editor"></div>
         </div>
 
-<div class="stg-sec admin-only">KI-Funktionen</div>
-        <div class="admin-only" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+<div class="stg-sec admin-only perm-ai-settings">KI-Funktionen</div>
+        <div class="admin-only perm-ai-settings" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
           <label class="toggle-switch">
             <input type="checkbox" id="stg-ai-toggle" onchange="Config.data.aiEnabled=this.checked;Config.saveAiEnabled()">
             <span class="toggle-slider"></span>
@@ -502,7 +502,7 @@
           </select>
         </div>
         <div id="emp-list" class="emp-list"></div>
-        <button class="btn btn-primary emp-new-btn admin-only" onclick="Employees.openCreate()">&#43; Neuer Mitarbeiter</button>
+        <button class="btn btn-primary emp-new-btn admin-only perm-create-staff" onclick="Employees.openCreate()">&#43; Neuer Mitarbeiter</button>
       </div>
       <div class="emp-main" id="emp-main">
         <div class="emp-empty"><div style="font-size:2.5rem">&#128101;</div><div>Mitarbeiter auswählen</div></div>

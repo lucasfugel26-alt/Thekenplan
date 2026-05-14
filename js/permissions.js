@@ -153,24 +153,30 @@ async function loadPermissions() {
 // Ersetzt applyAdminMode() – ermöglicht CSS-Selektor-basiertes Hiding
 function applyPermissionClasses() {
   const classes = [
-    [PERM.EVENTS_EDIT,          'can-edit-events'],
-    [PERM.EVENTS_CREATE,        'can-create-events'],
-    [PERM.EVENTS_IMPORT_AI,     'can-import-ai'],
-    [PERM.STAFF_EDIT,           'can-edit-staff'],
-    [PERM.STAFF_MANAGE_ACCESS,  'can-manage-access'],
-    [PERM.PLANNING_EDIT,        'can-edit-planning'],
-    [PERM.PLANNING_AI_GENERATE, 'can-ai-generate'],
-    [PERM.SHIFTS_ASSIGN,        'can-assign-shifts'],
-    [PERM.SETTINGS_EDIT_GENERAL,'can-edit-settings'],
-    [PERM.ROLES_EDIT,           'can-edit-roles'],
-    [PERM.USERS_INVITE,         'can-invite-users'],
+    [PERM.EVENTS_EDIT,              'can-edit-events'],
+    [PERM.EVENTS_CREATE,            'can-create-events'],
+    [PERM.EVENTS_IMPORT_AI,         'can-import-ai'],
+    [PERM.STAFF_EDIT,               'can-edit-staff'],
+    [PERM.STAFF_CREATE,             'can-create-staff'],
+    [PERM.STAFF_MANAGE_ACCESS,      'can-manage-access'],
+    [PERM.PLANNING_EDIT,            'can-edit-planning'],
+    [PERM.PLANNING_AI_GENERATE,     'can-ai-generate'],
+    [PERM.PLANNING_MANAGE_RULES,    'can-manage-rules'],
+    [PERM.SHIFTS_ASSIGN,            'can-assign-shifts'],
+    [PERM.SETTINGS_EDIT_GENERAL,    'can-edit-settings'],
+    [PERM.SETTINGS_EDIT_AI,         'can-edit-ai-settings'],
+    [PERM.SETTINGS_EDIT_LOCATIONS,  'can-edit-locations'],
+    [PERM.SETTINGS_EDIT_CARD_FIELDS,'can-edit-card-fields'],
+    [PERM.ROLES_VIEW,               'can-view-roles'],
+    [PERM.ROLES_EDIT,               'can-edit-roles'],
+    [PERM.USERS_VIEW,               'can-view-users'],
+    [PERM.USERS_INVITE,             'can-invite-users'],
   ];
   classes.forEach(([perm, cls]) => {
     document.body.classList.toggle(cls, can(perm));
   });
 
   // Legacy: 'admin'-Klasse für bestehende CSS-Selektoren
-  // Wird entfernt wenn alle CSS-Regeln migriert sind
   const hasAdminLike = can(PERM.EVENTS_EDIT) || can(PERM.STAFF_EDIT);
   document.body.classList.toggle('admin', hasAdminLike);
 }
