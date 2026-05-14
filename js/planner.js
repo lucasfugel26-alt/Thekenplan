@@ -299,12 +299,16 @@ const Planner = {
       }
     }
 
-    const slotRows = slots.map((s, idx) => {
-      const removeBtn = isEditing ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${idx})" title="Entfernen">✕</button>` : '';
+    // Slots außerhalb des Dienstplan-Scopes ausblenden
+    const visibleSlots = slots.filter(s => isInStaffScope(s.role || 'Thekenkraft'));
+
+    const slotRows = visibleSlots.map((s, idx) => {
+      const originalIdx = slots.indexOf(s);
+      const removeBtn = isEditing ? `<button class="assign-remove-btn" onclick="Planner._removeSlot('${ev.id}',${originalIdx})" title="Entfernen">✕</button>` : '';
       const roleTag = s.role ? `<span class="slot-role">${_esc(s.role)}</span>` : '';
       const timeTag = (s.req_start || s.req_end) ? `<span class="slot-time">${s.req_start||''}${s.req_end?'–'+s.req_end:''}</span>` : '';
       if (s.miss || !s.name) {
-        return `<div class="assign-slot empty" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
+        return `<div class="assign-slot empty" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${originalIdx})"` : ''}>
           <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
           ${roleTag}${timeTag}
           <span class="slot-empty-txt">Nicht besetzt</span>
@@ -313,7 +317,7 @@ const Planner = {
       }
       const emp = Employees.getAll().find(e => e.name === s.name || e.id === s.employeeId);
       const bg = emp?.color || '#555';
-      return `<div class="assign-slot filled" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${idx})"` : ''}>
+      return `<div class="assign-slot filled" ${isEditing ? `onclick="Planner._openPicker('${ev.id}',${originalIdx})"` : ''}>
         <span class="slot-pos">Pos ${s.pos || idx + 1}</span>
         ${roleTag}${timeTag}
         <span class="emp-badge sm" style="background:${bg};color:${_contrastColor(bg)}">${emp?.kuerzel || s.name.slice(0, 2)}</span>

@@ -87,6 +87,10 @@ const PERM = {
 // Wird von auth.js nach dem Login befüllt
 let _currentPermissions = new Set();
 
+// Dienstplan-Scope des eingeloggten Users
+// Leer = Vollzugriff (alle Kategorien sichtbar/bearbeitbar)
+let _currentStaffScope = [];
+
 // Prüft ob der aktuelle User ein bestimmtes Recht hat – O(1)
 function can(permissionKey) {
   return _currentPermissions.has(permissionKey);
@@ -100,11 +104,29 @@ function setPermissions(permissionKeys) {
 // Räumt Permissions beim Logout auf
 function clearPermissions() {
   _currentPermissions = new Set();
+  _currentStaffScope = [];
 }
 
 // Gibt alle aktuellen Permissions zurück (für Debug)
 function getPermissions() {
   return Array.from(_currentPermissions);
+}
+
+// Setzt den Dienstplan-Scope nach dem Login (Array von Kategorie-Strings)
+function setStaffScope(categories) {
+  _currentStaffScope = Array.isArray(categories) ? [...categories] : [];
+}
+
+// Gibt den aktuellen Dienstplan-Scope zurück (leer = alle Kategorien)
+function getStaffScope() {
+  return _currentStaffScope;
+}
+
+// Gibt true zurück wenn die Kategorie im Scope liegt.
+// Leer = kein Filter → immer true.
+function isInStaffScope(category) {
+  if (_currentStaffScope.length === 0) return true;
+  return _currentStaffScope.includes(category);
 }
 
 // Lädt Permissions vom Backend für den eingeloggten User
@@ -121,6 +143,7 @@ async function loadPermissions() {
     if (!res.ok) { clearPermissions(); return; }
     const data = await res.json();
     setPermissions(data.permissions || []);
+    setStaffScope(data.staffScope || []);
   } catch {
     clearPermissions();
   }

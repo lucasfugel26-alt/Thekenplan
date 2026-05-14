@@ -43,7 +43,14 @@ export default async function handler(req, res) {
         );
         const permissions = await permRes.json();
 
-        return res.status(200).json({ roles, rolePerms, permissions });
+        // Dienstplan-Scopes laden
+        const scopeRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/role_staff_scopes?select=role_id,category`,
+          { headers }
+        );
+        const roleStaffScopes = await scopeRes.json();
+
+        return res.status(200).json({ roles, rolePerms, permissions, roleStaffScopes });
       }
 
       // Permissions eines einzelnen Users laden (für Login-Cache)
@@ -59,7 +66,29 @@ export default async function handler(req, res) {
           }
         );
         const perms = await permRes.json();
-        return res.status(200).json({ permissions: perms.map(p => p.permission_key) });
+
+        // Dienstplan-Scope für diese User-Rolle laden
+        const profileRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/profiles?id=eq.${targetId}&select=role_id`,
+          { headers }
+        );
+        const profileData = await profileRes.json();
+        const roleId = profileData?.[0]?.role_id || null;
+
+        let staffScope = [];
+        if (roleId) {
+          const scopeRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/role_staff_scopes?role_id=eq.${roleId}&select=category`,
+            { headers }
+          );
+          const scopeData = await scopeRes.json();
+          staffScope = (scopeData || []).map(r => r.category);
+        }
+
+        return res.status(200).json({
+          permissions: perms.map(p => p.permission_key),
+          staffScope,
+        });
       }
     }
 
@@ -172,6 +201,39 @@ export default async function handler(req, res) {
         if (!insRes.ok) {
           const err = await insRes.json().catch(() => ({}));
           return res.status(400).json({ error: err.message || 'Fehler beim Speichern' });
+        }
+      }
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Dienstplan-Scope einer Rolle setzen (vollständiger Replace) ──────────────
+    if (action === 'setRoleStaffScope') {
+      if (!(await hasPermissionOrLegacyAdmin(callerId, 'roles.edit', serviceKey))) {
+        return res.status(403).json({ error: 'Keine Berechtigung: roles.edit' });
+      }
+      const { roleId, categories } = req.body;
+      if (!roleId || !Array.isArray(categories)) {
+        return res.status(400).json({ error: 'roleId und categories[] erforderlich' });
+      }
+
+      // Alle bisherigen Scope-Einträge dieser Rolle löschen
+      await fetch(`${SUPABASE_URL}/rest/v1/role_staff_scopes?role_id=eq.${roleId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      // Neue Kategorien einfügen (leer = Vollzugriff, nichts einfügen)
+      if (categories.length > 0) {
+        const rows = categories.map(cat => ({ role_id: roleId, category: cat }));
+        const insRes = await fetch(`${SUPABASE_URL}/rest/v1/role_staff_scopes`, {
+          method: 'POST',
+          headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify(rows),
+        });
+        if (!insRes.ok) {
+          const err = await insRes.json().catch(() => ({}));
+          return res.status(400).json({ error: err.message || 'Fehler beim Speichern des Scopes' });
         }
       }
 

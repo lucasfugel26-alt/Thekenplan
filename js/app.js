@@ -384,10 +384,11 @@ function renderCalendar(){
             // Besetzung mit Rollen, Zeiten, Status
             const detailStaffHtml=(()=>{
               const rows=[];
-              if(ev.prodL&&ev.prodL.name){
+              if(ev.prodL&&ev.prodL.name&&isInStaffScope('Produktionsleiter')){
                 rows.push(`<div class="cdp-srow"><span class="cdp-srole">Prod L</span><span class="cdp-sname">${_esc(ev.prodL.name)}</span><span class="cdp-stime">${ev.prodL.startTime||''}</span></div>`);
               }
               (ev.barStaff||[]).forEach(s=>{
+                if(!isInStaffScope(s.role||'Thekenkraft'))return;
                 const statuses=s.statuses||(s.miss?['fehlt']:[]);
                 const isFehlt=statuses.includes('fehlt');
                 const t=isFehlt?'–':barStart(s.pos,ev.startGastro,s.ov);
@@ -532,14 +533,15 @@ function buildCard(ev, conflictIds=new Set()){
   if(ev.kundenkarte) tags.push(`<span class="tag tag-${ev.kundenkarte.toLowerCase().slice(0,2)}">${ev.kundenkarte}</span>`);
 
   const rows=[];
-  if(ev.prodL)rows.push(`<div class="srow"><span class="sb pl">PL</span>
+  if(ev.prodL&&isInStaffScope('Produktionsleiter'))rows.push(`<div class="srow"><span class="sb pl">PL</span>
     <span class="sname">${ev.prodL.name}</span>
     <span class="stime">${ev.prodL.startTime}</span></div>`);
-  if(ev.prodL2)rows.push(`<div class="srow"><span class="sb pl">PL</span>
+  if(ev.prodL2&&isInStaffScope('Produktionsleiter'))rows.push(`<div class="srow"><span class="sb pl">PL</span>
     <span class="sname">${ev.prodL2.name}</span>
     <span class="stime">${ev.prodL2.startTime}</span></div>`);
   const myName=currentProfile?.display_name?.toLowerCase();
   ev.barStaff.forEach(s=>{
+    if(!isInStaffScope(s.role||'Thekenkraft'))return;
     const statuses=s.statuses||(s.miss?['fehlt']:[]);
     const isFehlt=statuses.includes('fehlt');
     const t=isFehlt?'\u2013':barStart(s.pos,ev.startGastro,s.ov);
@@ -651,11 +653,12 @@ function openDet(ev){
     <div class="m-tb"><label>Start Gastro</label><span>${ev.startGastro}</span></div>
     <div class="m-tb"><label>Schluss Show</label><span>${ev.schlussShow}</span></div>`;
   const rows=[];
-  if(ev.prodL)rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
+  if(ev.prodL&&isInStaffScope('Produktionsleiter'))rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
     <span class="m-sname">${ev.prodL.name}</span><span class="m-stime">${ev.prodL.startTime}</span></div>`);
-  if(ev.prodL2)rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
+  if(ev.prodL2&&isInStaffScope('Produktionsleiter'))rows.push(`<div class="m-srow"><span class="m-sbadge">Prod L</span>
     <span class="m-sname">${ev.prodL2.name}</span><span class="m-stime">${ev.prodL2.startTime}</span></div>`);
   ev.barStaff.forEach(s=>{
+    if(!isInStaffScope(s.role||'Thekenkraft'))return;
     const t=s.miss?'\u2013':barStart(s.pos,ev.startGastro,s.ov);
     rows.push(`<div class="m-srow${s.miss?' miss':''}"><span class="m-sbadge">Bar ${s.pos}</span>
       <span class="m-sname${s.miss?' miss':''}">${s.miss?'\u26A0 Noch nicht besetzt':s.name}</span>
