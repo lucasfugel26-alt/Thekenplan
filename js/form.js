@@ -78,6 +78,10 @@ const Form={
     /* Benötigte Besetzung laden */
     document.getElementById('f-req-staff-rows').innerHTML='';
     (ev.required_staff||[]).forEach(r=>this._addReqStaffRowData(r));
+    // "+ Rolle hinzufügen" ausblenden wenn keine scoped Rolle verfügbar
+    const hasReqScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r));
+    const addReqBtn=document.getElementById('f-add-req-staff');
+    if(addReqBtn)addReqBtn.style.display=hasReqScope?'':'none';
     /* Besetzungszeilen aufbauen */
     document.getElementById('f-staff-rows').innerHTML='';
     ev.barStaff.forEach(s=>this._addStaffRowData(s));
@@ -132,24 +136,33 @@ const Form={
   },
 
   _addReqStaffRowData(r){
-    const roles=Config.data.employeeRoles||[];
+    const allRoles=Config.data.employeeRoles||[];
+    const inScope=isInStaffScope(r.role||'');
+    // Nur Rollen im Scope als Optionen anzeigen
+    const visibleRoles=allRoles.filter(ro=>isInStaffScope(ro));
+    // Aktuelle Rolle immer anzeigen (auch wenn außerhalb Scope – read-only)
+    if(r.role && !visibleRoles.includes(r.role)) visibleRoles.unshift(r.role);
     const id='rsr-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
-    const roleOpts=roles.map(ro=>`<option value="${_esc(ro)}" ${ro===(r.role||'')?'selected':''}>${_esc(ro)}</option>`).join('');
+    const roleOpts=visibleRoles.map(ro=>`<option value="${_esc(ro)}" ${ro===(r.role||'')?'selected':''}>${_esc(ro)}</option>`).join('');
+    const dis=inScope?'':'disabled';
+    const title=inScope?'':'Kein Zugriff (außerhalb deines Dienstplan-Scopes)';
     const div=document.createElement('div');
-    div.className='req-staff-row';
+    div.className='req-staff-row'+(inScope?'':' scope-readonly');
     div.id=id;
     div.innerHTML=`
-      <select class="fi req-role" style="flex:2" title="Rolle">
+      <select class="fi req-role" style="flex:2" title="${title||'Rolle'}" ${dis}>
         <option value="">– Rolle –</option>${roleOpts}
       </select>
-      <input class="fi req-count" type="number" min="1" max="20" value="${r.count||1}" style="width:60px" title="Anzahl">
-      <input class="fi req-start" type="time" value="${r.start_time||''}" style="width:90px" title="Startzeit (opt.)">
-      <input class="fi req-end" type="time" value="${r.end_time||''}" style="width:90px" title="Endzeit (opt.)">
-      <button class="se-rm" onclick="document.getElementById('${id}').remove()" title="Entfernen">✕</button>`;
+      <input class="fi req-count" type="number" min="1" max="20" value="${r.count||1}" style="width:60px" title="${title||'Anzahl'}" ${dis}>
+      <input class="fi req-start" type="time" value="${r.start_time||''}" style="width:90px" title="${title||'Startzeit (opt.)'}" ${dis}>
+      <input class="fi req-end" type="time" value="${r.end_time||''}" style="width:90px" title="${title||'Endzeit (opt.)'}" ${dis}>
+      ${inScope?`<button class="se-rm" onclick="document.getElementById('${id}').remove()" title="Entfernen">✕</button>`:''}`;
     document.getElementById('f-req-staff-rows').appendChild(div);
   },
 
   addReqStaffRow(){
+    const hasScope=(Config.data.employeeRoles||[]).some(r=>isInStaffScope(r));
+    if(!hasScope)return;
     this._addReqStaffRowData({role:'',count:1});
   },
 

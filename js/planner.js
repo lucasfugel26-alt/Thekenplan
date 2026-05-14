@@ -351,7 +351,7 @@ const Planner = {
     if (!el) return;
     const p = this._period;
     if (!p) { el.innerHTML = ''; return; }
-    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden');
+    const emps = Employees.getAll().filter(e => e.status !== 'ausgeschieden' && isInStaffScope(e.default_role||'Thekenkraft'));
     const rows = emps.map(emp => {
       const { gross, net, breakMin, events } = this._calcHours(emp);
       const soll = Number(emp.soll_stunden) || 0;
