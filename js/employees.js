@@ -57,6 +57,7 @@ const Employees = {
     const list=document.getElementById('emp-list');
     if(!list) return;
     const rows=this._rows.filter(e=>{
+      if(!isInStaffScope(e.default_role||'Thekenkraft')) return false;
       if(sf && e.status!==sf) return false;
       if(q && !e.name.toLowerCase().includes(q) && !(e.default_role||'').toLowerCase().includes(q)) return false;
       return true;
@@ -162,13 +163,14 @@ const Employees = {
     const durStr=dur>0?(dur%1===0?dur+'h':dur.toFixed(1)+'h'):'–';
     const becherIcon=s.bechertyp==='plastik'?'🥤':s.bechertyp==='glas'?'🍺':'–';
     const timeChanged=past&&s.confirmed&&(s.actual_start_time||s.actual_end_time);
+    const canEditShift=isInStaffScope(s.role||'Thekenkraft');
     const confirmCell=past
       ?`<td style="white-space:nowrap">
           ${s.confirmed?`<span class="shift-confirmed-badge">&#10003; Best&auml;tigt</span> `:''}
-          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px" title="Anpassen"
-            onclick="Employees._openConfirmShift('${s.id}','${s.actual_start_time||s.start_time||''}','${s.actual_end_time||s.end_time||''}')">&#9998;</button>
-          <button class="btn btn-ghost" style="font-size:.7rem;padding:3px 6px;color:var(--miss);border-color:rgba(255,80,80,.3)" title="L&ouml;schen"
-            onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>
+          ${canEditShift?`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 8px" title="Anpassen"
+            onclick="Employees._openConfirmShift('${s.id}','${s.actual_start_time||s.start_time||''}','${s.actual_end_time||s.end_time||''}')">&#9998;</button>`:''}
+          ${canEditShift?`<button class="btn btn-ghost" style="font-size:.7rem;padding:3px 6px;color:var(--miss);border-color:rgba(255,80,80,.3)" title="L&ouml;schen"
+            onclick="Employees._deleteShift('${s.id}','${s.event_id}','${s.employee_id}')">&#128465;</button>`:''}
         </td>`
       :'';
     const ev=EVENTS.find(e=>e.id===s.event_id);
@@ -424,6 +426,9 @@ const Employees = {
 
   /* ── MODAL (create/edit) ─── */
   openCreate() {
+    // Anlegen nur erlauben wenn mindestens eine Kategorie im Scope liegt
+    const scopedRoles=Config.data.employeeRoles.filter(r=>isInStaffScope(r));
+    if(scopedRoles.length===0){alert('Du hast keinen Schreibzugriff auf Mitarbeiterkategorien.');return;}
     document.getElementById('em-id').value='';
     document.getElementById('em-title').textContent='Mitarbeiter anlegen';
     document.getElementById('em-name').value='';
@@ -465,9 +470,12 @@ const Employees = {
 
   _fillRoleSelect(current) {
     const sel=document.getElementById('em-role');
-    sel.innerHTML=Config.data.employeeRoles.map(r=>`<option value="${_esc(r)}" ${r===current?'selected':''}>${_esc(r)}</option>`).join('');
-    if(current && !Config.data.employeeRoles.includes(current)) {
-      sel.innerHTML+=`<option value="${_esc(current)}" selected>${_esc(current)}</option>`;
+    // Nur Rollen anzeigen die im Scope liegen (leer = alle)
+    const visibleRoles=Config.data.employeeRoles.filter(r=>isInStaffScope(r));
+    sel.innerHTML=visibleRoles.map(r=>`<option value="${_esc(r)}" ${r===current?'selected':''}>${_esc(r)}</option>`).join('');
+    // Aktuelle Rolle immer anzeigen, auch wenn außerhalb Scope (beim Bearbeiten)
+    if(current && !visibleRoles.includes(current)) {
+      sel.innerHTML+=`<option value="${_esc(current)}" selected>${_esc(current)} (außerh. Scope)</option>`;
     }
   },
 
@@ -499,6 +507,11 @@ const Employees = {
     const errEl=document.getElementById('em-err');
     errEl.style.display='none';
     if(!name){errEl.textContent='Name ist Pflichtfeld.';errEl.style.display='';return;}
+    const selectedRole=document.getElementById('em-role').value||null;
+    if(!isInStaffScope(selectedRole||'Thekenkraft')){
+      errEl.textContent='Diese Mitarbeiterkategorie liegt außerhalb deines Dienstplan-Scopes.';
+      errEl.style.display='';return;
+    }
     const payload={
       name,
       kuerzel: document.getElementById('em-kuerzel').value.trim().toUpperCase()||name.slice(0,2).toUpperCase(),
