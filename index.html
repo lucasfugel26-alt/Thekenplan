@@ -113,6 +113,9 @@
     <button class="btn btn-ghost" id="btn-my-shifts" onclick="App.toggleMyShifts()" style="display:none">
       &#128100; Meine Schichten
     </button>
+    <button class="btn btn-ghost" id="btn-unbesetzt" onclick="App.toggleUnbesetzt()" style="display:none" title="Nur Schichten mit fehlender Besetzung anzeigen">
+      &#9888; Unbesetzte
+    </button>
     <button class="btn btn-ghost btn-mob-hide" onclick="App.resetFilters()">Alle anzeigen</button>
     <button class="btn btn-ghost btn-mob-hide" onclick="SF.active=true;renderGrid()" title="Alle Veranstaltungen durchsuchen und filtern">&#128269; Alle Events</button>
     <div class="spacer"></div>
@@ -181,13 +184,7 @@
     <div id="m-briefing"></div>
     <div id="m-chat"></div>
     <div class="m-actions admin-only">
-      <button class="btn btn-edit"   onclick="App.editEvent()">&#9998; Bearbeiten</button>
-      <button class="btn btn-del"    onclick="App.confirmDelete()">&#128465; L&ouml;schen</button>
-    </div>
-    <div class="m-del-confirm" id="m-del-confirm" style="display:none">
-      <span>Wirklich l&ouml;schen?</span>
-      <button class="btn btn-danger" onclick="App.deleteEvent()">Ja, l&ouml;schen</button>
-      <button class="btn btn-ghost"  onclick="App.cancelDelete()">Abbrechen</button>
+      <button class="btn btn-edit" onclick="App.editEvent()">&#9998; Bearbeiten</button>
     </div>
   </div>
 </div>
@@ -318,6 +315,8 @@
           <button class="btn btn-primary" onclick="Form.save()">&#10003; Speichern</button>
           <button class="btn btn-ghost"   onclick="Form.saveAndNew()">Speichern + weiteres Event</button>
           <button class="btn btn-ghost"   onclick="App.closeEntry()">Abbrechen</button>
+          <button class="btn btn-danger form-del-btn" id="form-del-btn" style="display:none;margin-left:auto"
+            onclick="App.deleteEvent()">&#128465; L&ouml;schen</button>
         </div>
       </div>
     </div>
