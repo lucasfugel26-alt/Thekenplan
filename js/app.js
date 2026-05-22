@@ -596,18 +596,18 @@ function buildCard(ev, conflictIds=new Set()){
 }
 
 function updateStaffSel(){
-  const sel=document.getElementById('filter-staff');
+  const wrapper=document.getElementById('filter-staff');
+  const labelEl=document.getElementById('filter-staff-label');
+  const list=document.getElementById('filter-staff-list');
   const myShiftsBtn=document.getElementById('btn-my-shifts');
   const profilBtn=document.getElementById('profil-btn');
   const avBtn=document.getElementById('av-btn');
   const hamAv=document.getElementById('ham-av');
   const myEmp=currentUser?Employees.getAll().find(e=>e.profile_id===currentUser.id):null;
-
   const unbesesztBtn=document.getElementById('btn-unbesetzt');
-  // Non-privileged: hide the staff dropdown, show "Meine Schichten" + "Unbesetzte" toggle
   const hamProfil=document.getElementById('ham-profil');
   if(!can(PERM.SHIFTS_VIEW_ALL)){
-    sel.style.display='none';
+    wrapper.style.display='none';
     if(myShiftsBtn) myShiftsBtn.style.display=myEmp?'':'none';
     if(profilBtn) profilBtn.style.display=myEmp?'':'none';
     if(hamProfil) hamProfil.style.display=myEmp?'':'none';
@@ -622,19 +622,31 @@ function updateStaffSel(){
   if(avBtn) avBtn.style.display='none';
   if(hamAv) hamAv.style.display='none';
   if(unbesesztBtn) unbesesztBtn.style.display='none';
-
-  // Full access: full dropdown with special filter options + staff names
   if(myShiftsBtn) myShiftsBtn.style.display='none';
   if(profilBtn) profilBtn.style.display='none';
-  sel.style.display='';
-  const cur=sel.value;
+  wrapper.style.display='';
+  const cur=S.filterStaff;
   const empNames=Employees.getAll().map(e=>e.name).sort((a,b)=>a.localeCompare(b,'de'));
-  sel.innerHTML=`<option value="">Alle Mitarbeiter</option>
-    <option value="__unbesetzt__"${cur==='__unbesetzt__'?' selected':''}>⚠ Nur unbesetzte Schichten</option>
-    <option value="__teilbesetzt__"${cur==='__teilbesetzt__'?' selected':''}>⚡ Teilweise besetzte Schichten</option>
-    <option value="__ersatz__"${cur==='__ersatz__'?' selected':''}>↔ Mit Ersatzbedarf</option>`+
-    `<option disabled style="color:var(--txm);font-size:.7rem">──── Mitarbeiter ────</option>`+
-    empNames.map(n=>`<option${n===cur?' selected':''}>${_esc(n)}</option>`).join('');
+  const specials=[
+    {val:'',label:'Alle Mitarbeiter'},
+    {val:'__unbesetzt__',label:'⚠ Nur unbesetzte Schichten'},
+    {val:'__teilbesetzt__',label:'⚡ Teilweise besetzte Schichten'},
+    {val:'__ersatz__',label:'↔ Mit Ersatzbedarf'},
+  ];
+  const mkOpt=({val,label})=>`<div class="ctrl-csel-opt${val===cur?' sel':''}" data-val="${_esc(val)}"><span class="ctrl-csel-tick">${val===cur?'&#10003;':''}</span><span class="ctrl-csel-text">${_esc(label)}</span></div>`;
+  list.innerHTML=specials.map(mkOpt).join('')+
+    '<div class="ctrl-csel-divider"></div><div class="ctrl-csel-group">Mitarbeiter</div>'+
+    empNames.map(n=>mkOpt({val:n,label:n})).join('');
+  const activeSpec=specials.find(s=>s.val===cur);
+  if(labelEl) labelEl.textContent=activeSpec?activeSpec.label:(cur||'Alle Mitarbeiter');
+  list.querySelectorAll('.ctrl-csel-opt').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      S.filterStaff=opt.dataset.val;
+      wrapper.classList.remove('open');
+      updateStaffSel();
+      renderGrid();
+    });
+  });
 }
 
 
@@ -699,7 +711,11 @@ const App={
     loadLocal();
     applyAdminMode();
     document.getElementById('search-inp').addEventListener('input',e=>{S.search=e.target.value.trim();renderGrid();});
-    document.getElementById('filter-staff').addEventListener('change',e=>{S.filterStaff=e.target.value;renderGrid();});
+    const fsBtn=document.getElementById('filter-staff-btn');
+    if(fsBtn){
+      fsBtn.addEventListener('click',e=>{e.stopPropagation();document.getElementById('filter-staff').classList.toggle('open');});
+      document.addEventListener('click',()=>{const w=document.getElementById('filter-staff');if(w)w.classList.remove('open');});
+    }
     /* Swipe to navigate weeks on mobile */
     let _tx=0;
     const grid=document.getElementById('week-grid');
@@ -826,7 +842,7 @@ const App={
     const mm=document.getElementById('mob-miss');if(mm)mm.classList.remove('active');
     const ub=document.getElementById('btn-unbesetzt');
     if(ub){ub.style.background='';ub.style.borderColor='';ub.style.color='';}
-    if(can(PERM.SHIFTS_VIEW_ALL)){S.filterStaff='';document.getElementById('filter-staff').value='';}
+    if(can(PERM.SHIFTS_VIEW_ALL)){S.filterStaff='';updateStaffSel();}
     else{S.filterStaff='';const btn=document.getElementById('btn-my-shifts');if(btn){btn.style.background='';btn.style.borderColor='';btn.style.color='';}}
     renderGrid();renderLocBtns();},
 
