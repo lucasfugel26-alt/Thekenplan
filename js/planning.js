@@ -234,6 +234,7 @@ const Planning = {
 /* ---- Availability ----------------------------------------- */
 const Availability = {
   _cache: {},
+  _eventsCache: {},
 
   async openModal() {
     const myEmp = currentUser ? Employees.getAll().find(e => e.profile_id === currentUser.id) : null;
@@ -253,7 +254,7 @@ const Availability = {
       </div>`;
       return;
     }
-    await this.load(p.id, myEmp.id);
+    await Promise.all([this.load(p.id, myEmp.id), this.loadEvents(p.year, p.month)]);
     this.renderForm(p.id, myEmp.id, cont);
   },
 
@@ -355,6 +356,42 @@ const Availability = {
     return !!(av.wished_dates?.includes(dateStr));
   },
 
+  async loadEvents(year, month) {
+    const key = `${year}-${month}`;
+    if (this._eventsCache[key]) return this._eventsCache[key];
+    const pad = n => String(n).padStart(2, '0');
+    const prefix = `${year}-${pad(month)}`;
+    try {
+      const { data } = await db.from('events')
+        .select('id, date, location_id, data')
+        .gte('date', `${prefix}-01`)
+        .lte('date', `${prefix}-31`);
+      const byDate = {};
+      (data || []).filter(e => !e.data?.cancelled).forEach(e => {
+        if (!byDate[e.date]) byDate[e.date] = [];
+        byDate[e.date].push(e);
+      });
+      this._eventsCache[key] = byDate;
+    } catch {
+      this._eventsCache[key] = {};
+    }
+    return this._eventsCache[key];
+  },
+
+  _eventBadgesHtml(year, month, dateStr) {
+    const evs = (this._eventsCache[`${year}-${month}`] || {})[dateStr] || [];
+    if (!evs.length) return '';
+    return evs.map(e => {
+      const loc = (typeof LOCS !== 'undefined' && LOCS[e.location_id]) || {};
+      const color = loc.color || '#888';
+      const short = loc.short || '';
+      const name = e.data?.event || '';
+      const label = short || name.substring(0, 4);
+      const title = [short, name].filter(Boolean).join(': ');
+      return `<span title="${title.replace(/"/g, '&quot;')}" style="display:block;font-size:.55rem;line-height:1.2;padding:0 2px;margin-top:2px;border-radius:2px;background:${color};color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.35)">${label}</span>`;
+    }).join('');
+  },
+
   // Render form for Profile page
   renderForm(periodId, empId, container) {
     if (!container) return;
@@ -379,8 +416,9 @@ const Availability = {
       if (wished) cls += ' wished';
       const label = fromTime && !blocked ? `<span class="av-day-time">${fromTime}</span>` : '';
       const wishMark = wished ? '<span class="av-day-wish">★</span>' : '';
+      const evBadges = this._eventBadgesHtml(year, month + 1, ds);
       calHtml += `<div class="${cls}" data-date="${ds}"
-        onclick="Availability._openDayPopup(this,'${periodId}','${empId}')">${d}${label}${wishMark}</div>`;
+        onclick="Availability._openDayPopup(this,'${periodId}','${empId}')">${d}${label}${wishMark}${evBadges}</div>`;
     }
     calHtml += '</div>';
 
@@ -532,8 +570,10 @@ const Availability = {
       const d = new Date(ds + 'T12:00:00').getDate();
       const label = fromTime && !isBlocked ? `<span class="av-day-time">${fromTime}</span>` : '';
       const wishMark = isWished ? '<span class="av-day-wish">★</span>' : '';
+      const dsDate = new Date(ds + 'T12:00:00');
+      const evBadges = Availability._eventBadgesHtml(dsDate.getFullYear(), dsDate.getMonth() + 1, ds);
       dayEl.className = cls;
-      dayEl.innerHTML = `${d}${label}${wishMark}`;
+      dayEl.innerHTML = `${d}${label}${wishMark}${evBadges}`;
     }
   },
 
