@@ -103,9 +103,13 @@
   <!-- ── CONTROLS ── -->
   <div class="controls">
     <input class="ctrl-input" type="text" id="search-inp" placeholder="&#128269; Name oder Veranstaltung&hellip;">
-    <select class="ctrl-select" id="filter-staff">
-      <option value="">Alle Mitarbeiter</option>
-    </select>
+    <div class="ctrl-csel" id="filter-staff">
+      <button type="button" class="ctrl-csel-btn" id="filter-staff-btn">
+        <span id="filter-staff-label">Alle Mitarbeiter</span>
+        <span class="ctrl-csel-chevron">&#9660;</span>
+      </button>
+      <div class="ctrl-csel-list" id="filter-staff-list"></div>
+    </div>
     <button class="btn btn-danger" id="btn-miss" onclick="App.toggleMiss()" style="display:none">
       &#9888; Fehlende Besetzung
     </button>
