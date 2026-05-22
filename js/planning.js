@@ -254,7 +254,8 @@ const Availability = {
       </div>`;
       return;
     }
-    await Promise.all([this.load(p.id, myEmp.id), this.loadEvents(p.year, p.month)]);
+    await this.load(p.id, myEmp.id);
+    this.loadEvents(p.year, p.month);
     this.renderForm(p.id, myEmp.id, cont);
   },
 
@@ -356,36 +357,29 @@ const Availability = {
     return !!(av.wished_dates?.includes(dateStr));
   },
 
-  async loadEvents(year, month) {
+  loadEvents(year, month) {
     const key = `${year}-${month}`;
-    if (this._eventsCache[key]) return this._eventsCache[key];
     const pad = n => String(n).padStart(2, '0');
     const prefix = `${year}-${pad(month)}`;
-    try {
-      const { data } = await db.from('events')
-        .select('id, date, location_id, data')
-        .gte('date', `${prefix}-01`)
-        .lte('date', `${prefix}-31`);
-      const byDate = {};
-      (data || []).filter(e => !e.data?.cancelled).forEach(e => {
+    const byDate = {};
+    (typeof EVENTS !== 'undefined' ? EVENTS : [])
+      .filter(e => e.date && e.date.startsWith(prefix) && !e.cancelled)
+      .forEach(e => {
         if (!byDate[e.date]) byDate[e.date] = [];
         byDate[e.date].push(e);
       });
-      this._eventsCache[key] = byDate;
-    } catch {
-      this._eventsCache[key] = {};
-    }
-    return this._eventsCache[key];
+    this._eventsCache[key] = byDate;
+    return byDate;
   },
 
   _eventBadgesHtml(year, month, dateStr) {
     const evs = (this._eventsCache[`${year}-${month}`] || {})[dateStr] || [];
     if (!evs.length) return '';
     return evs.map(e => {
-      const loc = (typeof LOCS !== 'undefined' && LOCS[e.location_id]) || {};
+      const loc = (typeof LOCS !== 'undefined' && LOCS[e.location]) || {};
       const color = loc.color || '#888';
       const short = loc.short || '';
-      const name = e.data?.event || '';
+      const name = e.event || '';
       const label = short || name.substring(0, 4);
       const title = [short, name].filter(Boolean).join(': ');
       return `<span title="${title.replace(/"/g, '&quot;')}" style="display:block;font-size:.55rem;line-height:1.2;padding:0 2px;margin-top:2px;border-radius:2px;background:${color};color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.35)">${label}</span>`;

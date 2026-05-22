@@ -694,6 +694,7 @@ const Profile = {
     if (!cont) return;
     if (!p || (p.status !== 'open' && p.status !== 'collecting')) { cont.innerHTML = ''; return; }
     await Availability.load(p.id, empId);
+    Availability.loadEvents(p.year, p.month);
     Availability.renderForm(p.id, empId, cont);
   },
 
