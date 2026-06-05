@@ -9,11 +9,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="style.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
 </head>
 <body>
 <div id="pw-screen" class="pw-screen" style="display:none">
   <div class="pw-box">
-    <div class="pw-logo">Thekenplan</div>
+    <div class="pw-logo">
+      <img src="/logo.svg" alt="" class="pw-logo-icon">
+      <span>Thekenplan</span>
+    </div>
     <div class="pw-sub">Bitte mit deinem Account anmelden</div>
     <form onsubmit="event.preventDefault();Auth.submit()">
       <input type="email" id="pw-email" placeholder="E-Mail" autocomplete="email">
@@ -27,7 +32,10 @@
 <!-- Passwort setzen (nach Einladungs-/Reset-Link) -->
 <div id="set-pw-screen" class="pw-screen" style="display:none">
   <div class="pw-box">
-    <div class="pw-logo">Thekenplan</div>
+    <div class="pw-logo">
+      <img src="/logo.svg" alt="" class="pw-logo-icon">
+      <span>Thekenplan</span>
+    </div>
     <div class="pw-sub" id="set-pw-sub">Bitte wähle ein neues Passwort</div>
     <form onsubmit="event.preventDefault();Auth.setNewPassword()">
       <input type="password" id="set-pw-input" placeholder="Neues Passwort" autocomplete="new-password" minlength="8">
@@ -43,8 +51,11 @@
   <!-- ── HEADER ── -->
   <header class="app-header">
     <div class="app-title">
-      <h1>Thekenplan</h1>
-      <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
+      <img src="/logo.svg" alt="" class="app-logo-icon">
+      <div>
+        <h1>Thekenplan</h1>
+        <p>Wochenübersicht &middot; alle Locations gemeinsam &middot; Schichtplanung</p>
+      </div>
       <button id="ham-btn" onclick="Ham.toggle()" title="Menü">&#9776;</button>
     </div>
     <div id="header-right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

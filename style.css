@@ -22,6 +22,8 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fb);min-height:100vh
 .app-header{display:flex;align-items:center;justify-content:space-between;
   padding:20px 0 16px;border-bottom:1px solid var(--bd);margin-bottom:18px;
   gap:12px;flex-wrap:wrap}
+.app-title{display:flex;align-items:center;gap:10px}
+.app-logo-icon{width:36px;height:36px;flex-shrink:0}
 .app-title h1{font-family:var(--fh);font-size:1.55rem;font-weight:800;letter-spacing:-.5px;
   background:linear-gradient(135deg,#fff 30%,#8890c8);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -953,8 +955,11 @@ body.light{
 .pw-box{background:var(--bg2);border:1px solid var(--bda);border-radius:var(--rl);
   padding:32px;max-width:360px;width:100%;text-align:center}
 .pw-logo{font-family:var(--fh);font-size:1.6rem;font-weight:800;margin-bottom:4px;
+  display:flex;flex-direction:column;align-items:center;gap:8px}
+.pw-logo span{
   background:linear-gradient(135deg,#fff 30%,#8890c8);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pw-logo-icon{width:56px;height:56px}
 .pw-sub{font-size:.8rem;color:var(--txd);margin-bottom:24px}
 .pw-box form{width:100%;margin:0;padding:0;display:block}
 .pw-box input{width:100%;background:var(--bg4);border:1px solid var(--bd);
