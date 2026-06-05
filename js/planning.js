@@ -354,7 +354,21 @@ const Availability = {
 
   isWished(periodId, empId, dateStr) {
     const av = this.get(periodId, empId);
-    return !!(av.wished_dates?.includes(dateStr));
+    if (av.wished_dates?.includes(dateStr)) return true;
+    return !!(av.date_rules?.[dateStr]?.wished_event_ids?.length);
+  },
+
+  isWishedEvent(periodId, empId, eventId) {
+    const ev = (typeof EVENTS !== 'undefined' ? EVENTS : []).find(e => e.id === eventId);
+    if (!ev) return false;
+    const av = this.get(periodId, empId);
+    return !!(av.date_rules?.[ev.date]?.wished_event_ids?.includes(eventId));
+  },
+
+  _getEventsForDate(ds) {
+    const d = new Date(ds + 'T12:00:00');
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    return (this._eventsCache[key] || {})[ds] || [];
   },
 
   loadEvents(year, month) {
@@ -372,17 +386,22 @@ const Availability = {
     return byDate;
   },
 
-  _eventBadgesHtml(year, month, dateStr) {
+  _eventBadgesHtml(year, month, dateStr, periodId, empId) {
     const evs = (this._eventsCache[`${year}-${month}`] || {})[dateStr] || [];
     if (!evs.length) return '';
+    const wishedIds = (periodId && empId)
+      ? (this.get(periodId, empId).date_rules?.[dateStr]?.wished_event_ids || [])
+      : [];
     return evs.map(e => {
       const loc = (typeof LOCS !== 'undefined' && LOCS[e.location]) || {};
       const color = loc.color || '#888';
       const short = loc.short || '';
       const name = e.event || '';
       const label = short || name.substring(0, 4);
+      const isWished = wishedIds.includes(e.id);
+      const star = isWished ? '★' : '';
       const title = [short, name].filter(Boolean).join(': ');
-      return `<span title="${title.replace(/"/g, '&quot;')}" style="display:block;font-size:.55rem;line-height:1.2;padding:0 2px;margin-top:2px;border-radius:2px;background:${color};color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.35)">${label}</span>`;
+      return `<span title="${title.replace(/"/g, '&quot;')}" style="display:block;font-size:.55rem;line-height:1.2;padding:0 2px;margin-top:2px;border-radius:2px;background:${color};color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.35)">${star}${label}</span>`;
     }).join('');
   },
 
@@ -410,7 +429,7 @@ const Availability = {
       if (wished) cls += ' wished';
       const label = fromTime && !blocked ? `<span class="av-day-time">${fromTime}</span>` : '';
       const wishMark = wished ? '<span class="av-day-wish">★</span>' : '';
-      const evBadges = this._eventBadgesHtml(year, month + 1, ds);
+      const evBadges = this._eventBadgesHtml(year, month + 1, ds, periodId, empId);
       calHtml += `<div class="${cls}" data-date="${ds}"
         onclick="Availability._openDayPopup(this,'${periodId}','${empId}')">${d}${label}${wishMark}${evBadges}</div>`;
     }
@@ -464,7 +483,8 @@ const Availability = {
     const av = this.get(periodId, empId);
     const blocked = av.blocked_dates?.includes(ds);
     const fromTime = av.date_rules?.[ds]?.available_from || '';
-    const wished = av.wished_dates?.includes(ds);
+    const wishedEventIds = av.date_rules?.[ds]?.wished_event_ids || [];
+    const dayEvents = this._getEventsForDate(ds);
 
     const existing = document.getElementById('av-day-popup');
     if (existing) existing.remove();
@@ -476,8 +496,32 @@ const Availability = {
     const d = new Date(ds + 'T12:00:00');
     const dayName = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    let evSection = '';
+    if (dayEvents.length) {
+      const evRows = dayEvents.map(e => {
+        const loc = (typeof LOCS !== 'undefined' && LOCS[e.location]) || {};
+        const color = loc.color || '#888';
+        const isWished = wishedEventIds.includes(e.id);
+        const time = e.startGastro || '';
+        return `<label style="display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:6px;cursor:pointer;background:${isWished ? 'rgba(245,166,35,.15)' : 'rgba(128,128,128,.07)'};margin-bottom:3px">
+          <input type="checkbox" ${isWished ? 'checked' : ''}
+            onchange="Availability._toggleEventWish('${ds}','${e.id}','${periodId}','${empId}',this.checked)"
+            style="accent-color:#f5a623;width:14px;height:14px;cursor:pointer;flex-shrink:0">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};flex-shrink:0"></span>
+          <span style="font-size:.78rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.event || ''}</span>
+          ${time ? `<span style="font-size:.68rem;color:var(--txm);flex-shrink:0">${time}</span>` : ''}
+          <span style="font-size:.68rem;color:#f5a623;flex-shrink:0">★</span>
+        </label>`;
+      }).join('');
+      evSection = `<div style="border-bottom:1px solid var(--bd);margin-bottom:8px;padding-bottom:8px">
+        <div style="font-size:.65rem;color:var(--txm);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Events &amp; Wünsche</div>
+        ${evRows}
+      </div>`;
+    }
+
     popup.innerHTML = `
       <div class="av-popup-title">${dayName}</div>
+      ${evSection}
       <div class="av-popup-row">
         <label class="av-popup-opt ${blocked ? 'active-blocked' : ''}">
           <input type="checkbox" id="avp-blocked" ${blocked ? 'checked' : ''}
@@ -492,22 +536,13 @@ const Availability = {
             onchange="Availability._popupChange('${ds}','${periodId}','${empId}')">
         </label>
       </div>
-      <div class="av-popup-row">
-        <label class="av-popup-opt ${wished ? 'active-wish' : ''}">
-          <input type="checkbox" id="avp-wish" ${wished ? 'checked' : ''}
-            onchange="Availability._popupChange('${ds}','${periodId}','${empId}')">
-          ⭐ Wunschdienst
-        </label>
-      </div>
       <button class="btn btn-ghost av-popup-close" onclick="document.getElementById('av-day-popup').remove()">Schließen</button>`;
 
-    // Position near clicked element
     const rect = el.getBoundingClientRect();
     popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-    popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 220) + 'px';
+    popup.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 240) + 'px';
     document.body.appendChild(popup);
 
-    // Close on outside click
     setTimeout(() => {
       document.addEventListener('click', function handler(e) {
         if (!popup.contains(e.target) && e.target !== el) {
@@ -518,57 +553,77 @@ const Availability = {
     }, 0);
   },
 
+  _toggleEventWish(ds, eventId, periodId, empId, isWished) {
+    const av = this.get(periodId, empId);
+    if (!av.date_rules) av.date_rules = {};
+    if (!av.date_rules[ds]) av.date_rules[ds] = {};
+    const ids = av.date_rules[ds].wished_event_ids ? [...av.date_rules[ds].wished_event_ids] : [];
+    const idx = ids.indexOf(eventId);
+    if (isWished && idx < 0) ids.push(eventId);
+    else if (!isWished && idx >= 0) ids.splice(idx, 1);
+    av.date_rules[ds].wished_event_ids = ids;
+
+    // Update popup label background
+    const changed = document.querySelector(`#av-day-popup input[onchange*="'${eventId}'"]`);
+    if (changed) {
+      const lbl = changed.closest('label');
+      if (lbl) lbl.style.background = isWished ? 'rgba(245,166,35,.15)' : 'rgba(128,128,128,.07)';
+    }
+
+    // Re-render calendar day
+    this._rerenderDay(ds, periodId, empId);
+  },
+
+  _rerenderDay(ds, periodId, empId) {
+    const dayEl = document.querySelector(`.av-day[data-date="${ds}"]`);
+    if (!dayEl) return;
+    const av = this.get(periodId, empId);
+    const isBlocked = av.blocked_dates?.includes(ds) || false;
+    const fromTime = av.date_rules?.[ds]?.available_from || '';
+    const isWishedDay = this.isWished(periodId, empId, ds);
+    let cls = 'av-day';
+    if (isBlocked) cls += ' blocked';
+    else if (fromTime) cls += ' from-time';
+    if (isWishedDay) cls += ' wished';
+    const dayNum = new Date(ds + 'T12:00:00').getDate();
+    const lbl = fromTime && !isBlocked ? `<span class="av-day-time">${fromTime}</span>` : '';
+    const wishMark = isWishedDay ? '<span class="av-day-wish">★</span>' : '';
+    const dsDate = new Date(ds + 'T12:00:00');
+    const evBadges = this._eventBadgesHtml(dsDate.getFullYear(), dsDate.getMonth() + 1, ds, periodId, empId);
+    dayEl.className = cls;
+    dayEl.innerHTML = `${dayNum}${lbl}${wishMark}${evBadges}`;
+  },
+
   _popupChange(ds, periodId, empId) {
     const av = this.get(periodId, empId);
     if (!av.blocked_dates) av.blocked_dates = [];
     if (!av.date_rules) av.date_rules = {};
-    if (!av.wished_dates) av.wished_dates = [];
 
     const blockedEl = document.getElementById('avp-blocked');
     const fromEl = document.getElementById('avp-from');
-    const wishEl = document.getElementById('avp-wish');
     const fromRow = document.getElementById('avp-from-row');
 
     const isBlocked = blockedEl?.checked || false;
     const fromTime = fromEl?.value || '';
-    const isWished = wishEl?.checked || false;
 
-    // Dim "ab Uhrzeit" when blocked
     if (fromRow) fromRow.style.opacity = isBlocked ? '.4' : '1';
     if (fromRow) fromRow.style.pointerEvents = isBlocked ? 'none' : '';
 
-    // Update blocked_dates
     const bIdx = av.blocked_dates.indexOf(ds);
     if (isBlocked && bIdx < 0) av.blocked_dates.push(ds);
     else if (!isBlocked && bIdx >= 0) av.blocked_dates.splice(bIdx, 1);
 
-    // Update date_rules
+    // Preserve wished_event_ids when updating date_rules
+    const existingWished = av.date_rules[ds]?.wished_event_ids;
     if (!isBlocked && fromTime) {
-      av.date_rules[ds] = { available_from: fromTime };
+      av.date_rules[ds] = { available_from: fromTime, ...(existingWished ? { wished_event_ids: existingWished } : {}) };
+    } else if (existingWished?.length) {
+      av.date_rules[ds] = { wished_event_ids: existingWished };
     } else {
       delete av.date_rules[ds];
     }
 
-    // Update wished_dates
-    const wIdx = av.wished_dates.indexOf(ds);
-    if (isWished && wIdx < 0) av.wished_dates.push(ds);
-    else if (!isWished && wIdx >= 0) av.wished_dates.splice(wIdx, 1);
-
-    // Re-render the calendar day
-    const dayEl = document.querySelector(`.av-day[data-date="${ds}"]`);
-    if (dayEl) {
-      let cls = 'av-day';
-      if (isBlocked) cls += ' blocked';
-      else if (fromTime) cls += ' from-time';
-      if (isWished) cls += ' wished';
-      const d = new Date(ds + 'T12:00:00').getDate();
-      const label = fromTime && !isBlocked ? `<span class="av-day-time">${fromTime}</span>` : '';
-      const wishMark = isWished ? '<span class="av-day-wish">★</span>' : '';
-      const dsDate = new Date(ds + 'T12:00:00');
-      const evBadges = Availability._eventBadgesHtml(dsDate.getFullYear(), dsDate.getMonth() + 1, ds);
-      dayEl.className = cls;
-      dayEl.innerHTML = `${d}${label}${wishMark}${evBadges}`;
-    }
+    this._rerenderDay(ds, periodId, empId);
   },
 
   _setWd(wd, periodId, empId, key, val) {

@@ -423,7 +423,8 @@ const Planner = {
       const submitted = av?.submitted_at;
       const blocked = av?.blocked_dates?.length || 0;
       const fromTimes = Object.keys(av?.date_rules || {}).length;
-      const wished = av?.wished_dates?.length || 0;
+      const wished = (av?.wished_dates?.length || 0) +
+        Object.values(av?.date_rules || {}).reduce((n, r) => n + (r.wished_event_ids?.length || 0), 0);
       const applied = appsList.filter(a => a.employee_id === emp.id).length;
       const wdBlocked = Object.values(av?.weekday_rules || {}).filter(r => r.blocked).length;
       const wdFrom = Object.values(av?.weekday_rules || {}).filter(r => r.from && !r.blocked).length;
@@ -507,9 +508,17 @@ const Planner = {
       return `<div class="av-detail-wd">${name}: ${r.blocked ? '🔴 Nie' : `🟠 Erst ab ${r.from}`}</div>`;
     }).join('') || '<span style="color:var(--txm);font-size:.78rem">Keine</span>';
 
-    // Wish summary
-    const wishSummary = wished.length
-      ? wished.map(ds => `<span class="av-detail-wish">${_fmtDate(ds)}</span>`).join(' ')
+    // Wish summary — per-event wishes
+    const evWishes = [];
+    Object.entries(av.date_rules || {}).forEach(([date, rule]) => {
+      (rule.wished_event_ids || []).forEach(evId => {
+        const wEv = EVENTS.find(e => e.id === evId);
+        if (wEv) evWishes.push(`<span class="av-detail-wish">${_esc(wEv.event)} <small style="opacity:.7">${_fmtDate(date)}</small></span>`);
+      });
+    });
+    const dayWishes = wished.map(ds => `<span class="av-detail-wish">${_fmtDate(ds)}</span>`);
+    const allWishes = [...evWishes, ...dayWishes];
+    const wishSummary = allWishes.length ? allWishes.join(' ')
       : '<span style="color:var(--txm);font-size:.78rem">Keine</span>';
 
     // Applications
@@ -592,7 +601,7 @@ const Planner = {
     const empRows = emps.map(emp => {
       const blockedByAv = p ? Availability.isBlocked(p.id, emp.id, ev.date) : false;
       const avFrom = p ? Availability.getDateState(p.id, emp.id, ev.date) : null;
-      const isWished = p ? Availability.isWished(p.id, emp.id, ev.date) : false;
+      const isWished = p ? Availability.isWishedEvent(p.id, emp.id, evId) : false;
       const conflict = this._monthEvents.some(other => other.id !== evId && other.date === ev.date &&
         (this._draft[other.id] !== undefined ? this._draft[other.id] : (other.barStaff || []))
           .some(s => !s.miss && (s.name === emp.name || s.employeeId === emp.id)));
