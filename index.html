@@ -461,6 +461,10 @@
         <div class="stg-sec admin-only">Datensicherung</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap" class="admin-only">
           <button class="btn btn-ghost admin-only" onclick="App.exportJSON()">&#8659; Events als JSON</button>
+          <button class="btn btn-ghost admin-only" onclick="App.forceSync()" title="Neu im Code hinzugef&uuml;gte Plan-Events in die Cloud laden (ohne bestehende zu &uuml;berschreiben)">&#8635; Neue Plan-Events synchronisieren</button>
+        </div>
+        <div class="admin-only" style="font-size:.75rem;color:var(--txm);margin-top:6px">
+          L&auml;dt neu eingebaute Events (z.B. ein neuer Monat) additiv in die Cloud. Bestehende Events bleiben unver&auml;ndert.
         </div>
       </div>
 
