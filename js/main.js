@@ -835,5 +835,292 @@ let EVENTS=[];
    ]},
 ].forEach(e=>EVENTS.push(e));
 
+/* ============================================================
+   JULI 2026 – LOCATION 1 (KH)
+   Quelle: hochgeladener Screenshot des Thekenplans KH.
+   Hinweis: Kasse/Garderobe existieren nicht als eigenes Feld
+   und stehen daher als Text in den Notizen.
+   ============================================================ */
+[
+  /* Fr.03.07 – School of Rock */
+  {id:"kh_jul01",date:"2026-07-03",location:1,event:"School of Rock",
+   notes:"Plastik ? · Kasse: Sascha",veranstaltungsnummer:"26070320KH",
+   plastik:true,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Mady",startTime:"14:30"},startGastro:"16:30",schlussShow:"22:00",belegungsende:"00:30",
+   barStaff:[
+     {name:"Lucia",pos:1,ov:null,miss:false},
+     {name:"Bonnie",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Sa.11.07 – Katzenclub */
+  {id:"kh_jul02",date:"2026-07-11",location:1,event:"Katzenclub",
+   notes:"Get In tba",veranstaltungsnummer:"26071120KH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"15:00"},startGastro:"19:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Felix Hölter",pos:1,ov:null,miss:false},
+     {name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+     {name:"Igor",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Mo.13.07 – PL Treffen (alle Locations, Treffen KH Cafe) */
+  {id:"kh_jul03",date:"2026-07-13",location:1,event:"PL Treffen",
+   notes:"KH Cafe",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"alle",startTime:"16:00"},startGastro:"16:00",schlussShow:"19:00",belegungsende:"19:00",
+   barStaff:[]},
+
+  /* Mi.15.07 – House of Protection */
+  {id:"kh_jul04",date:"2026-07-15",location:1,event:"House of Protection",
+   notes:"Plastik ? · Garderobe: Kostja",veranstaltungsnummer:"26071520KH",
+   plastik:true,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"13:30"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:null,miss:false},
+     {name:"Felix Hohl",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Do.16.07 – Jubiläumsfeier Kinderschutz (Get In Bar 17:00) */
+  {id:"kh_jul05",date:"2026-07-16",location:1,event:"Jubiläumsfeier Kinderschutz",
+   notes:"externes Catering · Kein Schnaps, Kein Aperol · Kein Pfand",veranstaltungsnummer:"26071613KH",
+   plastik:false,missingStaff:false,kundenkarte:"Kunde",
+   prodL:{name:"Lena",startTime:"14:00"},startGastro:"17:00",schlussShow:"23:00",belegungsende:"01:00",
+   barStaff:[
+     {name:"Bonnie",pos:1,ov:"17:00",miss:false},
+     {name:"Claudio",pos:2,ov:"17:00",miss:false},
+     {name:"Dominic",pos:3,ov:"17:00",miss:false},
+     {name:"Tim",pos:4,ov:"17:00",miss:false},
+   ]},
+
+  /* Sa.18.07 – MoreCore (Bar 4 unbesetzt) */
+  {id:"kh_jul06",date:"2026-07-18",location:1,event:"MoreCore",
+   notes:"Garderobe: Sascha",veranstaltungsnummer:"26071823KH",
+   plastik:false,missingStaff:true,kundenkarte:"",
+   prodL:{name:"Lena",startTime:"20:30"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Galia",pos:1,ov:null,miss:false},
+     {name:"Laura",pos:2,ov:null,miss:false},
+     {name:"Felix Hohl",pos:3,ov:null,miss:false},
+     {name:"",pos:4,ov:null,miss:true},
+   ]},
+
+  /* So.26.07 – geblockt wg. DP-Sommerfest */
+  {id:"kh_jul07",date:"2026-07-26",location:1,event:"geblockt wg. DP-Sommerfest",
+   notes:"Sperrtermin – kein Barbetrieb",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:null,barStaff:[]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   JULI 2026 – LOCATION 2 (H39)
+   Quelle: hochgeladener Screenshot des Thekenplans H39.
+   ============================================================ */
+[
+  /* Fr.03.07 – Black Opera */
+  {id:"h39_jul01",date:"2026-07-03",location:2,event:"Black Opera",
+   notes:"",veranstaltungsnummer:"26070322H39",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Anna",startTime:"20:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"06:30",
+   barStaff:[
+     {name:"Jonathan",pos:1,ov:null,miss:false},
+     {name:"Henry",pos:2,ov:null,miss:false},
+     {name:"Galia",pos:3,ov:null,miss:false},
+     {name:"Tim",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Mo.13.07 – PL Treffen */
+  {id:"h39_jul02",date:"2026-07-13",location:2,event:"PL Treffen",
+   notes:"KH Cafe",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"alle",startTime:"16:00"},startGastro:"16:00",schlussShow:"19:00",belegungsende:"19:00",
+   barStaff:[]},
+
+  /* Do.16.07 – Jubiläumsfeier Kinderschutz */
+  {id:"h39_jul03",date:"2026-07-16",location:2,event:"Jubiläumsfeier Kinderschutz",
+   notes:"",veranstaltungsnummer:"26071617H39",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Bruce",startTime:"14:00"},startGastro:"14:30",schlussShow:"23:00",belegungsende:"01:00",
+   barStaff:[]},
+
+  /* Sa.18.07 – MoreCore (nur Saal · Fr.17.07 in H38 bis 3 Uhr) */
+  {id:"h39_jul04",date:"2026-07-18",location:2,event:"MoreCore",
+   notes:"nur Saal · Fr.17.07 (H38) bis 3 Uhr",veranstaltungsnummer:"26071823H39",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"20:30"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[
+     {name:"Claudio",pos:1,ov:null,miss:false},
+     {name:"Igor",pos:2,ov:null,miss:false},
+     {name:"Tim",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Di.21.07 – Voivod */
+  {id:"h39_jul05",date:"2026-07-21",location:2,event:"Voivod",
+   notes:"Plastik – nur Saal · Garderobe: Kostja",veranstaltungsnummer:"26072120H39",
+   plastik:true,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"14:00"},startGastro:"18:30",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Dominic",pos:1,ov:null,miss:false},
+     {name:"Jonathan",pos:2,ov:null,miss:false},
+     {name:"Ines",pos:3,ov:null,miss:false},
+   ]},
+
+  /* Sa.25.07 – Aufbau Sommerfest Dschungelpalast */
+  {id:"h39_jul06",date:"2026-07-25",location:2,event:"Aufbau Sommerfest Dschungelpalast",
+   notes:"Aufbau – kein Barbetrieb",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:"00:00",barStaff:[]},
+
+  /* So.26.07 – Sommerfest Dschungel */
+  {id:"h39_jul07",date:"2026-07-26",location:2,event:"Sommerfest Dschungel",
+   notes:"Details siehe OH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:null,barStaff:[]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   JULI 2026 – LOCATION 3 (Sunny / SR)
+   Quelle: hochgeladener Screenshot.
+   Hinweis: Sa.18.07 "Thomas Gögi" war durchgestrichen (abgesagt)
+   und wurde daher nicht übernommen.
+   ============================================================ */
+[
+  /* Mi.01.07 – Reggae Jam */
+  {id:"sr_jul01",date:"2026-07-01",location:3,event:"Reggae Jam",
+   notes:"",veranstaltungsnummer:"26070120SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"18:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Igor",pos:1,ov:null,miss:false}]},
+
+  /* Fr.03.07 – Zombie Sessions */
+  {id:"sr_jul02",date:"2026-07-03",location:3,event:"Zombie Sessions",
+   notes:"",veranstaltungsnummer:"26070321SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"18:00"},startGastro:"19:30",schlussShow:"00:00",belegungsende:"01:00",
+   barStaff:[{name:"Ines",pos:1,ov:null,miss:false}]},
+
+  /* Sa.04.07 – Dubtown */
+  {id:"sr_jul03",date:"2026-07-04",location:3,event:"Dubtown",
+   notes:"",veranstaltungsnummer:"26070423SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"21:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* Mi.08.07 – Bold */
+  {id:"sr_jul04",date:"2026-07-08",location:3,event:"Bold",
+   notes:"",veranstaltungsnummer:"26070820SR",
+   plastik:false,missingStaff:false,kundenkarte:"Marken",
+   prodL:{name:"Luise",startTime:"16:00"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[{name:"Laura",pos:1,ov:null,miss:false}]},
+
+  /* Mo.13.07 – PL Treffen */
+  {id:"sr_jul05",date:"2026-07-13",location:3,event:"PL Treffen",
+   notes:"KH Cafe",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"alle",startTime:"16:00"},startGastro:"16:00",schlussShow:"19:00",belegungsende:"19:00",
+   barStaff:[]},
+
+  /* Do.16.07 – Black Rat */
+  {id:"sr_jul06",date:"2026-07-16",location:3,event:"Black Rat",
+   notes:"",veranstaltungsnummer:"26071620SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"18:00"},startGastro:"19:30",schlussShow:"00:00",belegungsende:"01:00",
+   barStaff:[{name:"Henry",pos:1,ov:null,miss:false}]},
+
+  /* Fr.17.07 – Technoparty */
+  {id:"sr_jul07",date:"2026-07-17",location:3,event:"Technoparty",
+   notes:"",veranstaltungsnummer:"26071723SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"20:00"},startGastro:"22:30",schlussShow:"05:00",belegungsende:"07:00",
+   barStaff:[{name:"Felix Hölter",pos:1,ov:null,miss:false}]},
+
+  /* Fr.24.07 – Sacred Bones */
+  {id:"sr_jul08",date:"2026-07-24",location:3,event:"Sacred Bones",
+   notes:"",veranstaltungsnummer:"26072422SR",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Anna",startTime:"21:00"},startGastro:"21:30",schlussShow:"05:00",belegungsende:"06:30",
+   barStaff:[{name:"Jonathan",pos:1,ov:null,miss:false}]},
+
+  /* So.26.07 – geblockt wegen DP Sommerfest */
+  {id:"sr_jul09",date:"2026-07-26",location:3,event:"geblockt wegen DP Sommerfest",
+   notes:"Sperrtermin – kein Barbetrieb",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:null,barStaff:[]},
+].forEach(e=>EVENTS.push(e));
+
+/* ============================================================
+   JULI 2026 – LOCATION 4 (OH)
+   Quelle: hochgeladener Screenshot.
+   ============================================================ */
+[
+  /* Fr.03.07 – A Thousand Horses */
+  {id:"oh_jul01",date:"2026-07-03",location:4,event:"A Thousand Horses",
+   notes:"Plastik · Garderobe: Dave Crew",veranstaltungsnummer:"26070320OH",
+   plastik:true,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"14:30"},startGastro:"19:00",schlussShow:"23:30",belegungsende:"01:00",
+   barStaff:[
+     {name:"Richard",pos:1,ov:null,miss:false},
+     {name:"Franzi",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Sa.04.07 – Valeria Erhardt Abiball Afterparty */
+  {id:"oh_jul02",date:"2026-07-04",location:4,event:"Valeria Erhardt Abiball Afterparty",
+   notes:"",veranstaltungsnummer:"26070419OH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Marlon",startTime:"22:00"},startGastro:"22:00",schlussShow:"04:00",belegungsende:"05:00",
+   barStaff:[
+     {name:"Franzi",pos:1,ov:null,miss:false},
+     {name:"Gabi",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Do.09.07 – Münchner Trichter (Prod L / Gastro noch offen) */
+  {id:"oh_jul03",date:"2026-07-09",location:4,event:"Münchner Trichter",
+   notes:"Prod L / Start Gastro noch offen",veranstaltungsnummer:"26070912OH",
+   plastik:false,missingStaff:true,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:"18:00",belegungsende:"20:00",barStaff:[]},
+
+  /* Sa.11.07 – Daniel Prümers Geburtstagsfeier */
+  {id:"oh_jul04",date:"2026-07-11",location:4,event:"Daniel Prümers Geburtstagsfeier",
+   notes:"",veranstaltungsnummer:"26071119OH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Lena",startTime:"16:30"},startGastro:"18:30",schlussShow:"03:00",belegungsende:"04:30",
+   barStaff:[
+     {name:"Gabi",pos:1,ov:null,miss:false},
+     {name:"Richard",pos:2,ov:null,miss:false},
+   ]},
+
+  /* Mo.13.07 – PL Treffen */
+  {id:"oh_jul05",date:"2026-07-13",location:4,event:"PL Treffen",
+   notes:"KH Cafe",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"alle",startTime:"16:00"},startGastro:"16:00",schlussShow:"19:00",belegungsende:"19:00",
+   barStaff:[]},
+
+  /* Sa.25.07 – Aufbau Sommerfest Dschungelpalast */
+  {id:"oh_jul06",date:"2026-07-25",location:4,event:"Aufbau Sommerfest Dschungelpalast",
+   notes:"Aufbau – kein Barbetrieb",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:null,startGastro:null,schlussShow:null,belegungsende:"00:00",barStaff:[]},
+
+  /* So.26.07 – Dschungelpalast Sommerfest */
+  {id:"oh_jul07",date:"2026-07-26",location:4,event:"Dschungelpalast Sommerfest",
+   notes:"Booker: szenkne",veranstaltungsnummer:"26072612OH",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Luise",startTime:"10:30"},startGastro:"11:30",schlussShow:"18:00",belegungsende:"19:00",
+   barStaff:[
+     {name:"Gabi",pos:1,ov:null,miss:false},
+     {name:"Igor",pos:2,ov:null,miss:false},
+     {name:"Bonnie",pos:3,ov:null,miss:false},
+     {name:"Felix Hohl",pos:4,ov:null,miss:false},
+   ]},
+
+  /* Di.28.07 – Mitarbeiter*innen-Sommerfest */
+  {id:"oh_jul08",date:"2026-07-28",location:4,event:"Mitarbeiter*innen-Sommerfest",
+   notes:"",
+   plastik:false,missingStaff:false,kundenkarte:"",
+   prodL:{name:"Anna",startTime:"14:00"},startGastro:"14:00",schlussShow:"00:00",belegungsende:"01:00",
+   barStaff:[{name:"Tim",pos:1,ov:null,miss:false}]},
+].forEach(e=>EVENTS.push(e));
+
 /* Snapshot der eingebauten Standarddaten (für "Zurücksetzen") */
 const DEFAULT_EVENTS = JSON.stringify(EVENTS);
